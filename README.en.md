@@ -73,6 +73,8 @@ The app also checks at launch and only notifies you when an update is available.
 
 Updates come from [FilmDevelop Releases](https://github.com/VaderChen/FilmDevelop/releases). A public repository and stable release with an installer are required. Tags use `v1.YY.MMdd-build-HHmm`; assets use `FilmYourPhoto-1.YY.MMdd-build-HHmm-arm64.dmg`. The local packaging tool generates matching names from the build version.
 
+If an early version reports “Update Incomplete” after downloading, download the installer from [GitHub Releases](https://github.com/VaderChen/FilmDevelop/releases/latest), quit the old app and reinstall once. Saved photo adjustments and custom films are preserved. Newer versions handle renamed apps more reliably and provide clearer explanations when an update fails.
+
 ## Build and run
 
 ```sh

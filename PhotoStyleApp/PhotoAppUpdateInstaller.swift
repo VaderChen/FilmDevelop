@@ -53,12 +53,9 @@ enum PhotoAppUpdateInstaller {
         try fm.createDirectory(at: mount, withIntermediateDirectories: false)
         _ = try run("/usr/bin/hdiutil", ["attach", "-readonly", "-nobrowse", "-noautoopen", "-mountpoint", mount.path, dmg.path])
         defer { _ = try? run("/usr/bin/hdiutil", ["detach", mount.path]) }
-        // Accept the current display name and installers made before the rename.
-        let renamedApp = mount.appendingPathComponent("照片沖洗.app")
-        let candidate = fm.fileExists(atPath: renamedApp.path)
-            ? renamedApp : mount.appendingPathComponent("FilmYourPhoto.app")
         let expectedID = try metadata(target)["CFBundleIdentifier"] as? String
         guard let expectedID, !expectedID.isEmpty else { throw PhotoAppUpdateError(message: "無法辨識目前 App。") }
+        let candidate = try application(in: mount, identifier: expectedID)
         try validateBundle(candidate, identifier: expectedID, version: version)
         // A Developer ID signed installation may only be replaced by the same team.
         if let team = try signingTeam(target), try signingTeam(candidate) != team {
@@ -78,6 +75,25 @@ enum PhotoAppUpdateInstaller {
         try JSONSerialization.data(withJSONObject: receipt).write(to: work.appendingPathComponent("receipt.json"), options: .atomic)
         prepared = true
         return PhotoAppPreparedUpdate(work: work, target: target, staged: staged, backup: backup, version: version)
+    }
+
+    /// Match the app identity rather than its localized Finder name.
+    static func application(in directory: URL, identifier: String) throws -> URL {
+        let entries = try FileManager.default.contentsOfDirectory(at: directory,
+            includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey], options: [.skipsHiddenFiles])
+        let matches = entries.filter { url in
+            guard url.pathExtension.lowercased() == "app",
+                  let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey]),
+                  values.isDirectory == true, values.isSymbolicLink != true,
+                  let info = try? metadata(url) else { return false }
+            return info["CFBundleIdentifier"] as? String == identifier
+        }
+        guard matches.count == 1, let app = matches.first else {
+            throw PhotoAppUpdateError(message: matches.isEmpty
+                ? "安裝檔中找不到相符的 App，請重新下載或手動安裝。"
+                : "安裝檔中有多個相符的 App，無法判斷要安裝哪一個。")
+        }
+        return app
     }
 
     static func validateBundle(_ app: URL, identifier: String, version: PhotoAppVersion) throws {
@@ -161,7 +177,9 @@ enum PhotoAppUpdateInstaller {
         let parent = bundle.bundleURL.resolvingSymlinksInPath().deletingLastPathComponent()
         guard staged.deletingLastPathComponent() == parent, backup.deletingLastPathComponent() == parent,
               staged.lastPathComponent.hasPrefix(".FilmYourPhoto-"), staged.pathExtension == "app",
-              backup == staged.deletingPathExtension().appendingPathExtension("bak"),
+              // An existing backup is a directory URL; compare canonical path text,
+              // not URL equality, which also compares the trailing directory slash.
+              backup.standardizedFileURL.path == staged.deletingPathExtension().appendingPathExtension("bak").standardizedFileURL.path,
               !fm.fileExists(atPath: staged.path) else { return }
         // The installer waits for this acknowledgement; it owns cleanup and rollback.
         fm.createFile(atPath: work.appendingPathComponent("confirmed").path, contents: Data())

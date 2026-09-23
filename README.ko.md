@@ -73,6 +73,8 @@ macOS 14 이상이 필요합니다. AI 기능은 별도로 다운로드하는 �
 
 업데이트는 [FilmDevelop Releases](https://github.com/VaderChen/FilmDevelop/releases)에서 가져옵니다. 공개 저장소와 설치 파일이 포함된 정식 Release가 필요합니다. 태그는 `v1.YY.MMdd-build-HHmm`, 파일은 `FilmYourPhoto-1.YY.MMdd-build-HHmm-arm64.dmg`입니다. 로컬 패키징 도구가 빌드 버전에 맞춰 이름을 생성합니다.
 
+초기 버전에서 다운로드 후 업데이트 실패 메시지가 나타나면 [GitHub Releases](https://github.com/VaderChen/FilmDevelop/releases/latest)에서 설치 파일을 받아 기존 앱을 종료하고 한 번 다시 설치해 주세요. 저장한 사진 조정과 사용자 지정 필름은 유지됩니다. 새 버전은 앱 이름 변경 후에도 안정적으로 업데이트하며 실패 원인에 맞는 안내를 표시합니다.
+
 ## 소스에서 실행
 
 ```sh

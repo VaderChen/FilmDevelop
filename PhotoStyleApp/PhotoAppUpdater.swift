@@ -1,4 +1,5 @@
 import AppKit
+import OSLog
 
 @MainActor
 final class PhotoAppUpdater {
@@ -13,6 +14,8 @@ final class PhotoAppUpdater {
     private var progressLabel: NSTextField?
     private var progressCancel: (() -> Void)?
     private var transferID: UUID?
+    private var phase: PhotoAppUpdatePhase = .checking
+    private static let logger = Logger(subsystem: "person.vader.PhotoStyleApp", category: "AppUpdate")
     private let session: URLSession
     private let currentVersion: PhotoAppVersion?
     private let launchDelay: UInt64
@@ -50,6 +53,7 @@ final class PhotoAppUpdater {
             return
         }
         checkingNetwork = true
+        phase = .checking
         manualRequested = manual
         task = Task { [weak self] in
             guard let self else { return }
@@ -93,9 +97,11 @@ final class PhotoAppUpdater {
             } catch {
                 closeProgress()
                 if Task.isCancelled || (error as? URLError)?.code == .cancelled { return }
+                let failure = error as NSError
+                Self.logger.error("Update failed: phase=\(self.phase.title, privacy: .public) domain=\(failure.domain, privacy: .public) code=\(failure.code)")
                 // Startup network errors and missing releases do not interrupt editing.
                 if manualRequested || transferID != nil {
-                    let message = (error as? PhotoAppUpdateError)?.message ?? "無法完成更新，請檢查網路連線後再試一次。"
+                    let message = PhotoAppUpdateError.explanation(for: error, phase: phase)
                     _ = await alert("更新未完成", message, buttons: ["好"])
                 }
             }
@@ -120,6 +126,7 @@ final class PhotoAppUpdater {
     }
 
     private func downloadAndInstall(asset: PhotoAppRelease.Asset, version: PhotoAppVersion) async throws {
+        phase = .preparing
         let target = Bundle.main.bundleURL.resolvingSymlinksInPath()
         try PhotoAppUpdateInstaller.validateDestination(target)
         guard let helper = Bundle.main.url(forResource: "install", withExtension: "sh", subdirectory: "Updater") else {
@@ -138,6 +145,7 @@ final class PhotoAppUpdater {
                 try? fm.removeItem(at: work)
             }
         }
+        phase = .downloading
         showProgress(title: "正在下載更新", detail: version.display, cancellable: true)
         isDownloadingUpdate = true
         let transfer = PhotoUpdateTransfer { [weak self] completed, expected in
@@ -151,6 +159,7 @@ final class PhotoAppUpdater {
         try Task.checkCancellation()
         guard let response = response as? HTTPURLResponse, response.statusCode == 200 else { throw Self.connectionError }
         isDownloadingUpdate = false
+        phase = .preparing
         progressAlert?.messageText = PhotoL10n.text("正在準備更新")
         progressAlert?.buttons.first?.isEnabled = false
         progressLabel?.stringValue = PhotoL10n.text("正在驗證安裝檔，完成後會重新開啟 App…")
@@ -165,6 +174,7 @@ final class PhotoAppUpdater {
               !coordinator.isSavingImage, !coordinator.isComputing, !coordinator.isMCPMutating else {
             throw PhotoAppUpdateError(message: "照片仍在處理中，請完成後再更新。")
         }
+        phase = .installing
         // Use the app's existing termination delegate to persist edits and drain GPU work.
         coordinator.commitAdjustmentPreview()
         coordinator.persistCurrentPhotoEdits()

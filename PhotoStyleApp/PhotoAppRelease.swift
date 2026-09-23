@@ -49,6 +49,47 @@ struct PhotoAppVersion: Comparable, Equatable {
 struct PhotoAppUpdateError: LocalizedError {
     let message: String
     var errorDescription: String? { message }
+
+    static func explanation(for error: Error, phase: PhotoAppUpdatePhase) -> String {
+        if let error = error as? Self { return error.message }
+        if error is DecodingError { return "GitHub 的版本資訊無法讀取，請稍後再試。" }
+        let failure = error as NSError
+        if failure.domain == NSURLErrorDomain {
+            switch failure.code {
+            case NSURLErrorTimedOut: return "連線逾時，請稍後再試。"
+            case NSURLErrorNotConnectedToInternet, NSURLErrorNetworkConnectionLost:
+                return "網路連線已中斷，請恢復連線後再試一次。"
+            case NSURLErrorSecureConnectionFailed, NSURLErrorServerCertificateUntrusted,
+                 NSURLErrorServerCertificateHasBadDate, NSURLErrorServerCertificateHasUnknownRoot:
+                return "無法安全連線至 GitHub，請確認系統日期與網路設定。"
+            default: return "無法連線至 GitHub，請稍後再試。"
+            }
+        }
+        if failure.domain == NSCocoaErrorDomain {
+            switch failure.code {
+            case NSFileNoSuchFileError, NSFileReadNoSuchFileError:
+                return "更新需要的檔案不存在，請重新下載或手動安裝。"
+            case NSFileReadNoPermissionError, NSFileWriteNoPermissionError:
+                return "無法讀取或寫入更新檔案，請將 App 移到可寫入的「應用程式」資料夾後再試。"
+            case NSFileWriteOutOfSpaceError:
+                return "磁碟空間不足，請釋放空間後再更新。"
+            default: break
+            }
+        }
+        return "\(phase.title)失敗（\(failure.domain)：\(failure.code)）。原本的 App 保持不變，請稍後再試。"
+    }
+}
+
+enum PhotoAppUpdatePhase {
+    case checking, downloading, preparing, installing
+    var title: String {
+        switch self {
+        case .checking: return "檢查更新"
+        case .downloading: return "下載更新"
+        case .preparing: return "準備更新"
+        case .installing: return "安裝更新"
+        }
+    }
 }
 
 struct PhotoAppRelease: Decodable {

@@ -73,6 +73,8 @@
 
 更新來源為 [FilmDevelop 的 GitHub Releases](https://github.com/VaderChen/FilmDevelop/releases)。儲存庫需公開並發布含安裝檔的正式 Release，更新功能才有版本可下載。發布時，Release 標籤使用 `v1.YY.MMdd-build-HHmm`，安裝檔名稱為 `FilmYourPhoto-1.YY.MMdd-build-HHmm-arm64.dmg`；本機打包工具會依建置版本自動產生對應名稱。
 
+若早期版本在下載後顯示「更新未完成」，可從 [GitHub Releases](https://github.com/VaderChen/FilmDevelop/releases/latest) 下載安裝檔，關閉舊版後重新安裝一次；已儲存的照片調整與自訂底片會保留。新版已改善 App 改名後的更新相容性，並會依實際問題顯示提示。
+
 ## 取得與啟動
 
 ```sh

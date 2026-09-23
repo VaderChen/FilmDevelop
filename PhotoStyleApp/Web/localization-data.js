@@ -1,4 +1,69 @@
 window.PhotoLocalizationData = {
+  "安裝檔中找不到相符的 App，請重新下載或手動安裝。": [
+    "The installer does not contain the matching app. Download it again or install manually.",
+    "インストーラに一致するアプリが見つかりません。再ダウンロードするか、手動でインストールしてください。",
+    "설치 파일에서 일치하는 앱을 찾을 수 없습니다. 다시 다운로드하거나 수동으로 설치해 주세요."
+  ],
+  "安裝檔中有多個相符的 App，無法判斷要安裝哪一個。": [
+    "The installer contains multiple matching apps. The app to install could not be determined.",
+    "インストーラに一致するアプリが複数あるため、インストールするアプリを特定できません。",
+    "설치 파일에 일치하는 앱이 여러 개 있어 설치할 앱을 결정할 수 없습니다."
+  ],
+  "GitHub 的版本資訊無法讀取，請稍後再試。": [
+    "The GitHub release information could not be read. Try again later.",
+    "GitHub のリリース情報を読み取れません。しばらくしてから再試行してください。",
+    "GitHub 릴리스 정보를 읽을 수 없습니다. 잠시 후 다시 시도해 주세요."
+  ],
+  "連線逾時，請稍後再試。": [
+    "The connection timed out. Try again later.",
+    "接続がタイムアウトしました。しばらくしてから再試行してください。",
+    "연결 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요."
+  ],
+  "網路連線已中斷，請恢復連線後再試一次。": [
+    "The network connection was interrupted. Reconnect and try again.",
+    "ネットワーク接続が切断されました。接続を復旧してから再試行してください。",
+    "네트워크 연결이 끊어졌습니다. 연결을 복구한 후 다시 시도해 주세요."
+  ],
+  "無法安全連線至 GitHub，請確認系統日期與網路設定。": [
+    "A secure connection to GitHub could not be established. Check your system date and network settings.",
+    "GitHub に安全に接続できません。システムの日付とネットワーク設定を確認してください。",
+    "GitHub에 안전하게 연결할 수 없습니다. 시스템 날짜와 네트워크 설정을 확인해 주세요."
+  ],
+  "更新需要的檔案不存在，請重新下載或手動安裝。": [
+    "A file required for the update is missing. Download it again or install manually.",
+    "更新に必要なファイルが見つかりません。再ダウンロードするか、手動でインストールしてください。",
+    "업데이트에 필요한 파일이 없습니다. 다시 다운로드하거나 수동으로 설치해 주세요."
+  ],
+  "無法讀取或寫入更新檔案，請將 App 移到可寫入的「應用程式」資料夾後再試。": [
+    "Update files could not be read or written. Move the app to a writable Applications folder and try again.",
+    "更新ファイルを読み書きできません。書き込み可能な「アプリケーション」フォルダにアプリを移動してから再試行してください。",
+    "업데이트 파일을 읽거나 쓸 수 없습니다. 쓰기 가능한 응용 프로그램 폴더로 앱을 옮긴 후 다시 시도해 주세요."
+  ],
+  "磁碟空間不足，請釋放空間後再更新。": [
+    "There is not enough disk space. Free up space before updating.",
+    "ディスクの空き容量が不足しています。空き容量を確保してから更新してください。",
+    "디스크 공간이 부족합니다. 공간을 확보한 후 업데이트해 주세요."
+  ],
+  "檢查更新失敗（{0}：{1}）。原本的 App 保持不變，請稍後再試。": [
+    "Checking for updates failed ({0}: {1}). The original app is unchanged. Try again later.",
+    "更新の確認に失敗しました（{0}：{1}）。元のアプリは変更されていません。しばらくしてから再試行してください。",
+    "업데이트 확인에 실패했습니다({0}: {1}). 기존 앱은 변경되지 않았습니다. 잠시 후 다시 시도해 주세요."
+  ],
+  "下載更新失敗（{0}：{1}）。原本的 App 保持不變，請稍後再試。": [
+    "Downloading the update failed ({0}: {1}). The original app is unchanged. Try again later.",
+    "更新のダウンロードに失敗しました（{0}：{1}）。元のアプリは変更されていません。しばらくしてから再試行してください。",
+    "업데이트 다운로드에 실패했습니다({0}: {1}). 기존 앱은 변경되지 않았습니다. 잠시 후 다시 시도해 주세요."
+  ],
+  "準備更新失敗（{0}：{1}）。原本的 App 保持不變，請稍後再試。": [
+    "Preparing the update failed ({0}: {1}). The original app is unchanged. Try again later.",
+    "更新の準備に失敗しました（{0}：{1}）。元のアプリは変更されていません。しばらくしてから再試行してください。",
+    "업데이트 준비에 실패했습니다({0}: {1}). 기존 앱은 변경되지 않았습니다. 잠시 후 다시 시도해 주세요."
+  ],
+  "安裝更新失敗（{0}：{1}）。原本的 App 保持不變，請稍後再試。": [
+    "Installing the update failed ({0}: {1}). The original app is unchanged. Try again later.",
+    "更新のインストールに失敗しました（{0}：{1}）。元のアプリは変更されていません。しばらくしてから再試行してください。",
+    "업데이트 설치에 실패했습니다({0}: {1}). 기존 앱은 변경되지 않았습니다. 잠시 후 다시 시도해 주세요."
+  ],
   "刪除": ["Delete", "削除", "삭제"],
   "刪除自訂底片「{0}」？": ["Delete custom film “{0}”?", "カスタムフィルム「{0}」を削除しますか？", "사용자 지정 필름 ‘{0}’을(를) 삭제할까요?"],
   "刪除後，已套用到照片上的調整會保留。": ["Adjustments already applied to photos will be kept.", "写真に適用済みの調整は保持されます。", "사진에 이미 적용한 조정은 유지됩니다."],
