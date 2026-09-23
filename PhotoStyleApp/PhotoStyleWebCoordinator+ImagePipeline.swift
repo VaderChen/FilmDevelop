@@ -177,7 +177,10 @@ extension PhotoStyleWebCoordinator {
            metadata["identifier"] as? String == identifier,
            let requiresMapping = metadata["requiresRAWDisplayMapping"] as? Bool,
            let cgImage = image.cgImage {
-            image = PhotoImage(cgImage: cgImage, requiresRAWDisplayMapping: requiresMapping)
+            // Older caches recorded false when ImageIO returned a RAW thumbnail.
+            // A freshly decoded sensor image must keep its required display mapping.
+            image = PhotoImage(cgImage: cgImage,
+                               requiresRAWDisplayMapping: image.requiresRAWDisplayMapping || requiresMapping)
         }
         return RestoredSourceImage(
             image: image,

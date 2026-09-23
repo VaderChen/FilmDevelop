@@ -143,7 +143,10 @@ extension PhotoStyleWebCoordinator {
 
     func decodePickedImage(data: Data, url: URL) -> PhotoImage? {
         if let source = CGImageSourceCreateWithData(data as CFData, nil) {
-            if sourceContainsRAWData(source),
+            // Nikon NEF can be reported as public.tiff with a tiny embedded JPEG
+            // at index zero. Decode camera RAW before accepting that raster image.
+            let isRAWFile = UTType(filenameExtension: url.pathExtension)?.conforms(to: .rawImage) == true
+            if sourceContainsRAWData(source) || isRAWFile,
                let image = decodeRAWImage(data: data, url: url) {
                 return image
             }
