@@ -190,7 +190,8 @@ final class PhotoAppUpdater {
         process.standardError = FileHandle.nullDevice
         try process.run()
         handedOff = true
-        NSApp.terminate(nil)
+        closeProgress()
+        PhotoStyleApplicationDelegate.terminateAfterUpdate()
     }
 
     private var isDownloadingUpdate = false

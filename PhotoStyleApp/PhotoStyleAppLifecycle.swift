@@ -8,6 +8,12 @@ final class PhotoStyleApplicationDelegate: NSObject, NSApplicationDelegate {
     private var terminationTask: Task<Void, Never>?
     private var terminationReady = false
 
+    /// terminateLater runs a nested event loop. Enter it outside a Swift task or
+    /// main-queue callback so asynchronous saving and GPU shutdown can still run.
+    static func terminateAfterUpdate() {
+        RunLoop.main.perform(inModes: [.common]) { NSApp.terminate(nil) }
+    }
+
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {

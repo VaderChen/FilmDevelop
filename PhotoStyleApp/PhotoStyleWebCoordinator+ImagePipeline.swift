@@ -393,7 +393,9 @@ extension PhotoStyleWebCoordinator {
             .lowercased()
         guard !normalized.isEmpty,
               normalized.count <= 12,
-              normalized.unicodeScalars.allSatisfy(CharacterSet.alphanumerics.contains) else {
+              normalized.utf8.allSatisfy({ byte in
+                  (byte >= 97 && byte <= 122) || (byte >= 48 && byte <= 57)
+              }) else {
             return nil
         }
         return normalized
