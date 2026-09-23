@@ -1,5 +1,9 @@
 # FilmDevelop — 照片沖洗
 
+[繁體中文](README.md) · [English](README.en.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
+
+![照片沖洗 — FilmDevelop](title.jpg)
+
 為 Apple Silicon Mac 設計的底片照片編輯器。從照片目錄開始，選一款底片，調整沖洗、掃描與明暗，再匯出成品。照片編輯與 AI 輔助計算都在本機進行。
 
 支援 macOS 14 以上；AI 功能需另備相容的本機模型。
