@@ -1,0 +1,6 @@
+[submodule "aiTest2/ThirdParty/llama.cpp"]
+	path = aiTest2/ThirdParty/llama.cpp
+	url = https://github.com/ggml-org/llama.cpp
+[submodule "aiTest/ThirdParty/stable-diffusion.cpp"]
+	path = aiTest/ThirdParty/stable-diffusion.cpp
+	url = https://github.com/leejet/stable-diffusion.cpp

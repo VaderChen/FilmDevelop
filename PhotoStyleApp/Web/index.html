@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>照片沖洗</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="desktop.css">
+</head>
+<body>
+  <main id="app" class="app"></main>
+  <div id="toast" class="toast" hidden></div>
+  <div id="busyDialog" class="busy-dialog" hidden>
+    <div class="busy-panel">
+      <div class="spinner"></div>
+      <div id="busyTitle" class="busy-title">AI 正在重新計算中</div>
+      <div id="busyStep" class="busy-step" hidden></div>
+      <ul id="busyItems" class="busy-items" data-l10n-aria="AI 計算項目" aria-label="AI 計算項目" hidden></ul>
+      <div id="busyTime" class="busy-time"><span id="busySeconds">0</span> <span data-l10n="秒">秒</span></div>
+      <button id="busyCancel" class="busy-cancel" type="button" hidden>取消</button>
+    </div>
+  </div>
+  <section id="exportDevelopment" class="export-development" role="dialog" aria-modal="true" aria-labelledby="exportDevelopmentTitle" hidden>
+    <div class="development-dialog">
+      <div class="development-photo"><img data-l10n-alt="匯出照片顯影預覽" alt="匯出照片顯影預覽"></div>
+      <div class="development-caption" role="status" aria-live="polite">
+        <strong id="exportDevelopmentTitle">正在輸出照片</strong>
+        <span>影像正在慢慢顯現</span>
+      </div>
+    </div>
+  </section>
+  <script src="localization-data.js"></script>
+  <script src="localization.js"></script>
+  <script src="export-development.js"></script>
+  <script src="film-hover-preview.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

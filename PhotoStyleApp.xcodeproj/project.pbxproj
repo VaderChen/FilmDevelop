@@ -1,0 +1,659 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		44F8E6012C00100100000001 /* PhotoStyleAppApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E5012C00100100000001 /* PhotoStyleAppApp.swift */; };
+		44F8E6022C00100100000001 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E5022C00100100000001 /* ContentView.swift */; };
+		44F8E6032C00100100000001 /* PhotoStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E5032C00100100000001 /* PhotoStyle.swift */; };
+		44F8E6042C00100100000001 /* PhotoStyleProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E5042C00100100000001 /* PhotoStyleProcessor.swift */; };
+		44F8E6072C00100100000001 /* AIModelManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E5082C00100100000001 /* AIModelManager.swift */; };
+		44F8E6082C00100100000001 /* PhotoStyleLLMRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E5092C00100100000001 /* PhotoStyleLLMRuntime.swift */; };
+		44F8E6092C00100100000001 /* PhotoStyleWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E50A2C00100100000001 /* PhotoStyleWebView.swift */; };
+		44F8E60A2C00100100000001 /* Web in Resources */ = {isa = PBXBuildFile; fileRef = 44F8E50B2C00100100000001 /* Web */; };
+		44F8E60B2C00100100000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 44F8E50C2C00100100000001 /* Assets.xcassets */; };
+		44F8E60C2C00100100000001 /* Models in Resources */ = {isa = PBXBuildFile; fileRef = 44F8E50D2C00100100000001 /* Models */; };
+		44F8F0022C00100100000001 /* PhotoStyleShared in Frameworks */ = {isa = PBXBuildFile; productRef = 44F8F0012C00100100000001 /* PhotoStyleShared */; };
+		44F8E60D2C00100100000001 /* StylePromptStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E50E2C00100100000001 /* StylePromptStore.swift */; };
+		44F8E60E2C00100100000001 /* PhotoStyleWebSaveError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E50F2C00100100000001 /* PhotoStyleWebSaveError.swift */; };
+		44F8E60F2C00100100000001 /* PhotoImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E5102C00100100000001 /* PhotoImage.swift */; };
+		44F8E6102C00100100000001 /* PhotoStyleWebCoordinator+Presentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E5112C00100100000001 /* PhotoStyleWebCoordinator+Presentation.swift */; };
+		AA1100012C00100100000001 /* PhotoLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1100022C00100100000001 /* PhotoLocalization.swift */; };
+		44F8E6112C00100100000001 /* PhotoStyleWebCoordinator+Saving.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E5122C00100100000001 /* PhotoStyleWebCoordinator+Saving.swift */; };
+		44F8E6122C00100100000001 /* PhotoStyleWebCoordinator+Picking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E5132C00100100000001 /* PhotoStyleWebCoordinator+Picking.swift */; };
+		44F8E6132C00100100000001 /* PhotoStyleWebCoordinator+State.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E5142C00100100000001 /* PhotoStyleWebCoordinator+State.swift */; };
+		44F8E6142C00100100000001 /* PhotoStyleWebCoordinator+Bridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E5152C00100100000001 /* PhotoStyleWebCoordinator+Bridge.swift */; };
+		44F8E6152C00100100000001 /* PhotoStyleWebCoordinator+StyleActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E5162C00100100000001 /* PhotoStyleWebCoordinator+StyleActions.swift */; };
+		44F8E6162C00100100000001 /* PhotoStyleWebCoordinator+Computation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E5172C00100100000001 /* PhotoStyleWebCoordinator+Computation.swift */; };
+		44F8E6172C00100100000001 /* PhotoStyleWebCoordinator+ModelActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E5182C00100100000001 /* PhotoStyleWebCoordinator+ModelActions.swift */; };
+		44F8E6182C00100100000001 /* PhotoStyleWebCoordinator+ImagePipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E5192C00100100000001 /* PhotoStyleWebCoordinator+ImagePipeline.swift */; };
+		44F8E6192C00100100000001 /* PhotoStyleWebCoordinator+PayloadParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E51A2C00100100000001 /* PhotoStyleWebCoordinator+PayloadParsing.swift */; };
+		44F8E61A2C00100100000001 /* PhotoStyleWebCoordinator+Navigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E51B2C00100100000001 /* PhotoStyleWebCoordinator+Navigation.swift */; };
+		44F8E61B2C00100100000001 /* PhotoStyleWebView+Loading.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E51C2C00100100000001 /* PhotoStyleWebView+Loading.swift */; };
+		44F8E61C2C00100100000001 /* PhotoStyleWebCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E51D2C00100100000001 /* PhotoStyleWebCoordinator.swift */; };
+		44F8E61D2C00100100000001 /* PhotoStyleWebPayloadHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E51E2C00100100000001 /* PhotoStyleWebPayloadHelpers.swift */; };
+		44F8E61E2C00100100000001 /* PhotoStyleWebBridgeMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E51F2C00100100000001 /* PhotoStyleWebBridgeMessage.swift */; };
+		44F8E61F2C00100100000001 /* AIModelPairingResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E5202C00100100000001 /* AIModelPairingResolver.swift */; };
+		44F8E6202C00100100000001 /* PhotoStyleAdjustmentMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E5212C00100100000001 /* PhotoStyleAdjustmentMapper.swift */; };
+		44F8E6212C00100100000001 /* PhotoStylePromptCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E5222C00100100000001 /* PhotoStylePromptCatalog.swift */; };
+		44F8E6222C00100100000001 /* Comparable+Clamped.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E5232C00100100000001 /* Comparable+Clamped.swift */; };
+		44F8E6232C00100100000001 /* PhotoStyleRendering.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E5242C00100100000001 /* PhotoStyleRendering.swift */; };
+		44F8E6242C00100100000001 /* PhotoStylePlanPolicyResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E5252C00100100000001 /* PhotoStylePlanPolicyResolver.swift */; };
+		44F8E6282C00100100000001 /* PhotoStyleMCPServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E5282C00100100000001 /* PhotoStyleMCPServer.swift */; };
+		44F8E6292C00100100000001 /* PhotoStyleMCPHTTPConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E5292C00100100000001 /* PhotoStyleMCPHTTPConnection.swift */; };
+		44F8E62A2C00100100000001 /* PhotoStyleMCPTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E52A2C00100100000001 /* PhotoStyleMCPTools.swift */; };
+		44F8E62B2C00100100000001 /* PhotoStyleWebCoordinator+MCP.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E52B2C00100100000001 /* PhotoStyleWebCoordinator+MCP.swift */; };
+		44F8E62C2C00100100000001 /* PhotoStyleWebCoordinator+Preview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E52C2C00100100000001 /* PhotoStyleWebCoordinator+Preview.swift */; };
+		44F8E62D2C00100100000001 /* PhotoStyleAIRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E52D2C00100100000001 /* PhotoStyleAIRequest.swift */; };
+		44F8E62E2C00100100000001 /* AIModelDirectoryCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E52E2C00100100000001 /* AIModelDirectoryCatalog.swift */; };
+		44F9B0012C00100100000001 /* AIModelRuntimeSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F9A0012C00100100000001 /* AIModelRuntimeSupport.swift */; };
+		44F9B0022C00100100000001 /* AIRepositoryBrowser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F9A0022C00100100000001 /* AIRepositoryBrowser.swift */; };
+		44F9B0032C00100100000001 /* AIMLXModelValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F9A0032C00100100000001 /* AIMLXModelValidator.swift */; };
+		44F9B0042C00100100000001 /* AIModelRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F9A0042C00100100000001 /* AIModelRepository.swift */; };
+		44F9B0052C00100100000001 /* AIModelRepositoryDownloader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F9A0052C00100100000001 /* AIModelRepositoryDownloader.swift */; };
+		44F9B0062C00100100000001 /* PhotoStyleMLXRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F9A0062C00100100000001 /* PhotoStyleMLXRuntime.swift */; };
+		44F9B0072C00100100000001 /* MLXRuntime in Resources */ = {isa = PBXBuildFile; fileRef = 44F9A0072C00100100000001 /* MLXRuntime */; };
+		46A100012C00100100000001 /* PhotoWebPEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46A100022C00100100000001 /* PhotoWebPEncoder.swift */; };
+		46A100032C00100100000001 /* WebPLicenses in Resources */ = {isa = PBXBuildFile; fileRef = 46A100042C00100100000001 /* WebPLicenses */; };
+		DD1202012C00100100000001 /* PhotoDirectoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD1201012C00100100000001 /* PhotoDirectoryStore.swift */; };
+		DD1202022C00100100000001 /* PhotoStyleWebCoordinator+PhotoDirectory.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD1201022C00100100000001 /* PhotoStyleWebCoordinator+PhotoDirectory.swift */; };
+		DD1202032C00100100000001 /* PhotoStyleAppLifecycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD1201032C00100100000001 /* PhotoStyleAppLifecycle.swift */; };
+		DD1202042C00100100000001 /* PhotoEditStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD1201042C00100100000001 /* PhotoEditStore.swift */; };
+		DD1202052C00100100000001 /* PhotoStyleWebCoordinator+PhotoEdits.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD1201052C00100100000001 /* PhotoStyleWebCoordinator+PhotoEdits.swift */; };
+		DD1902052C00100100000001 /* CustomFilmStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD1901052C00100100000001 /* CustomFilmStore.swift */; };
+		DD1202062C00100100000001 /* PhotoDateStampRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD1201062C00100100000001 /* PhotoDateStampRenderer.swift */; };
+		AD2302012C00100100000001 /* PhotoAppRelease.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD2301012C00100100000001 /* PhotoAppRelease.swift */; };
+		AD2302022C00100100000001 /* PhotoAppUpdateInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD2301022C00100100000001 /* PhotoAppUpdateInstaller.swift */; };
+		AD2302032C00100100000001 /* PhotoAppUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD2301032C00100100000001 /* PhotoAppUpdater.swift */; };
+		AD2302042C00100100000001 /* Updater in Resources */ = {isa = PBXBuildFile; fileRef = AD2301042C00100100000001 /* Updater */; };
+		AD2402012C00100100000001 /* PhotoStyleFilmHoverPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD2401012C00100100000001 /* PhotoStyleFilmHoverPreview.swift */; };
+		BC2401002C00100100000001 /* en.lproj in Resources */ = {isa = PBXBuildFile; fileRef = BC2402002C00100100000001; };
+		BC2401012C00100100000001 /* zh-Hant.lproj in Resources */ = {isa = PBXBuildFile; fileRef = BC2402012C00100100000001; };
+		BC2401022C00100100000001 /* ja.lproj in Resources */ = {isa = PBXBuildFile; fileRef = BC2402022C00100100000001; };
+		BC2401032C00100100000001 /* ko.lproj in Resources */ = {isa = PBXBuildFile; fileRef = BC2402032C00100100000001; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		44F8E4012C00100100000001 /* PhotoStyleApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PhotoStyleApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		44F8E5012C00100100000001 /* PhotoStyleAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoStyleAppApp.swift; sourceTree = "<group>"; };
+		44F8E5022C00100100000001 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		44F8E5032C00100100000001 /* PhotoStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoStyle.swift; sourceTree = "<group>"; };
+		44F8E5042C00100100000001 /* PhotoStyleProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoStyleProcessor.swift; sourceTree = "<group>"; };
+		44F8E5072C00100100000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		44F8E5082C00100100000001 /* AIModelManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIModelManager.swift; sourceTree = "<group>"; };
+		44F8E5092C00100100000001 /* PhotoStyleLLMRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoStyleLLMRuntime.swift; sourceTree = "<group>"; };
+		44F8E50A2C00100100000001 /* PhotoStyleWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoStyleWebView.swift; sourceTree = "<group>"; };
+		44F8E50B2C00100100000001 /* Web */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Web; sourceTree = "<group>"; };
+		44F8E50C2C00100100000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		44F8E50D2C00100100000001 /* Models */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Models; sourceTree = "<group>"; };
+		44F8E50E2C00100100000001 /* StylePromptStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StylePromptStore.swift; sourceTree = "<group>"; };
+		44F8E50F2C00100100000001 /* PhotoStyleWebSaveError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoStyleWebSaveError.swift; sourceTree = "<group>"; };
+		44F8E5102C00100100000001 /* PhotoImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoImage.swift"; sourceTree = "<group>"; };
+		44F8E5112C00100100000001 /* PhotoStyleWebCoordinator+Presentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleWebCoordinator+Presentation.swift"; sourceTree = "<group>"; };
+		AA1100022C00100100000001 /* PhotoLocalization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoLocalization.swift"; sourceTree = "<group>"; };
+		44F8E5122C00100100000001 /* PhotoStyleWebCoordinator+Saving.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleWebCoordinator+Saving.swift"; sourceTree = "<group>"; };
+		44F8E5132C00100100000001 /* PhotoStyleWebCoordinator+Picking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleWebCoordinator+Picking.swift"; sourceTree = "<group>"; };
+		44F8E5142C00100100000001 /* PhotoStyleWebCoordinator+State.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleWebCoordinator+State.swift"; sourceTree = "<group>"; };
+		44F8E5152C00100100000001 /* PhotoStyleWebCoordinator+Bridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleWebCoordinator+Bridge.swift"; sourceTree = "<group>"; };
+		44F8E5162C00100100000001 /* PhotoStyleWebCoordinator+StyleActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleWebCoordinator+StyleActions.swift"; sourceTree = "<group>"; };
+		44F8E5172C00100100000001 /* PhotoStyleWebCoordinator+Computation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleWebCoordinator+Computation.swift"; sourceTree = "<group>"; };
+		44F8E5182C00100100000001 /* PhotoStyleWebCoordinator+ModelActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleWebCoordinator+ModelActions.swift"; sourceTree = "<group>"; };
+		44F8E5192C00100100000001 /* PhotoStyleWebCoordinator+ImagePipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleWebCoordinator+ImagePipeline.swift"; sourceTree = "<group>"; };
+		44F8E51A2C00100100000001 /* PhotoStyleWebCoordinator+PayloadParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleWebCoordinator+PayloadParsing.swift"; sourceTree = "<group>"; };
+		44F8E51B2C00100100000001 /* PhotoStyleWebCoordinator+Navigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleWebCoordinator+Navigation.swift"; sourceTree = "<group>"; };
+		44F8E51C2C00100100000001 /* PhotoStyleWebView+Loading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleWebView+Loading.swift"; sourceTree = "<group>"; };
+		44F8E51D2C00100100000001 /* PhotoStyleWebCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleWebCoordinator.swift"; sourceTree = "<group>"; };
+		44F8E51E2C00100100000001 /* PhotoStyleWebPayloadHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoStyleWebPayloadHelpers.swift; sourceTree = "<group>"; };
+		44F8E51F2C00100100000001 /* PhotoStyleWebBridgeMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoStyleWebBridgeMessage.swift; sourceTree = "<group>"; };
+		44F8E5202C00100100000001 /* AIModelPairingResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIModelPairingResolver.swift; sourceTree = "<group>"; };
+		44F8E5212C00100100000001 /* PhotoStyleAdjustmentMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoStyleAdjustmentMapper.swift; sourceTree = "<group>"; };
+		44F8E5222C00100100000001 /* PhotoStylePromptCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoStylePromptCatalog.swift; sourceTree = "<group>"; };
+		44F8E5232C00100100000001 /* Comparable+Clamped.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Comparable+Clamped.swift"; sourceTree = "<group>"; };
+		44F8E5242C00100100000001 /* PhotoStyleRendering.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoStyleRendering.swift; sourceTree = "<group>"; };
+		44F8E5252C00100100000001 /* PhotoStylePlanPolicyResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoStylePlanPolicyResolver.swift; sourceTree = "<group>"; };
+		44F8E5282C00100100000001 /* PhotoStyleMCPServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleMCPServer.swift"; sourceTree = "<group>"; };
+		44F8E5292C00100100000001 /* PhotoStyleMCPHTTPConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleMCPHTTPConnection.swift"; sourceTree = "<group>"; };
+		44F8E52A2C00100100000001 /* PhotoStyleMCPTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleMCPTools.swift"; sourceTree = "<group>"; };
+		44F8E52B2C00100100000001 /* PhotoStyleWebCoordinator+MCP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleWebCoordinator+MCP.swift"; sourceTree = "<group>"; };
+		44F8E52C2C00100100000001 /* PhotoStyleWebCoordinator+Preview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleWebCoordinator+Preview.swift"; sourceTree = "<group>"; };
+		44F8E52D2C00100100000001 /* PhotoStyleAIRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoStyleAIRequest.swift; sourceTree = "<group>"; };
+		44F8E52E2C00100100000001 /* AIModelDirectoryCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIModelDirectoryCatalog.swift; sourceTree = "<group>"; };
+		44F9A0012C00100100000001 /* AIModelRuntimeSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIModelRuntimeSupport.swift; sourceTree = "<group>"; };
+		44F9A0022C00100100000001 /* AIRepositoryBrowser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIRepositoryBrowser.swift; sourceTree = "<group>"; };
+		44F9A0032C00100100000001 /* AIMLXModelValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIMLXModelValidator.swift; sourceTree = "<group>"; };
+		44F9A0042C00100100000001 /* AIModelRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIModelRepository.swift; sourceTree = "<group>"; };
+		44F9A0052C00100100000001 /* AIModelRepositoryDownloader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIModelRepositoryDownloader.swift; sourceTree = "<group>"; };
+		44F9A0062C00100100000001 /* PhotoStyleMLXRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoStyleMLXRuntime.swift; sourceTree = "<group>"; };
+		44F9A0072C00100100000001 /* MLXRuntime */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MLXRuntime; path = ../Vendor/MLXRuntime; sourceTree = "<group>"; };
+		46A100022C00100100000001 /* PhotoWebPEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoWebPEncoder.swift; sourceTree = "<group>"; };
+		46A100042C00100100000001 /* WebPLicenses */ = {isa = PBXFileReference; lastKnownFileType = folder; path = ../Vendor/libwebp/macos/WebPLicenses; sourceTree = "<group>"; };
+		DD1201012C00100100000001 /* PhotoDirectoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoDirectoryStore.swift"; sourceTree = "<group>"; };
+		DD1201022C00100100000001 /* PhotoStyleWebCoordinator+PhotoDirectory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleWebCoordinator+PhotoDirectory.swift"; sourceTree = "<group>"; };
+		DD1201032C00100100000001 /* PhotoStyleAppLifecycle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoStyleAppLifecycle.swift; sourceTree = "<group>"; };
+		DD1201042C00100100000001 /* PhotoEditStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoEditStore.swift"; sourceTree = "<group>"; };
+		DD1201052C00100100000001 /* PhotoStyleWebCoordinator+PhotoEdits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleWebCoordinator+PhotoEdits.swift"; sourceTree = "<group>"; };
+		DD1901052C00100100000001 /* CustomFilmStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CustomFilmStore.swift"; sourceTree = "<group>"; };
+		DD1201062C00100100000001 /* PhotoDateStampRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoDateStampRenderer.swift"; sourceTree = "<group>"; };
+		AD2301012C00100100000001 /* PhotoAppRelease.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoAppRelease.swift; sourceTree = "<group>"; };
+		AD2301022C00100100000001 /* PhotoAppUpdateInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoAppUpdateInstaller.swift; sourceTree = "<group>"; };
+		AD2301032C00100100000001 /* PhotoAppUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoAppUpdater.swift; sourceTree = "<group>"; };
+		AD2301042C00100100000001 /* Updater */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Updater; sourceTree = "<group>"; };
+		AD2401012C00100100000001 /* PhotoStyleFilmHoverPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoStyleFilmHoverPreview.swift; sourceTree = "<group>"; };
+		BC2402002C00100100000001 /* en.lproj */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "en.lproj"; sourceTree = "<group>"; };
+		BC2402012C00100100000001 /* zh-Hant.lproj */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "zh-Hant.lproj"; sourceTree = "<group>"; };
+		BC2402022C00100100000001 /* ja.lproj */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "ja.lproj"; sourceTree = "<group>"; };
+		BC2402032C00100100000001 /* ko.lproj */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "ko.lproj"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		44F8E3012C00100100000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				44F8F0022C00100100000001 /* PhotoStyleShared in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		44F8E1012C00100100000001 = {
+			isa = PBXGroup;
+			children = (
+				44F8E2012C00100100000001 /* PhotoStyleApp */,
+				44F8E1022C00100100000001 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		44F8E1022C00100100000001 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				44F8E4012C00100100000001 /* PhotoStyleApp.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		44F8E2012C00100100000001 /* PhotoStyleApp */ = {
+			isa = PBXGroup;
+				children = (
+				BC2402002C00100100000001 /* en.lproj */,
+				BC2402012C00100100000001 /* zh-Hant.lproj */,
+				BC2402022C00100100000001 /* ja.lproj */,
+				BC2402032C00100100000001 /* ko.lproj */,
+					44F8E5012C00100100000001 /* PhotoStyleAppApp.swift */,
+                AD2401012C00100100000001 /* PhotoStyleFilmHoverPreview.swift */,
+				AD2301042C00100100000001 /* Updater */,
+				AD2301032C00100100000001 /* PhotoAppUpdater.swift */,
+				AD2301022C00100100000001 /* PhotoAppUpdateInstaller.swift */,
+				AD2301012C00100100000001 /* PhotoAppRelease.swift */,
+					44F8E5022C00100100000001 /* ContentView.swift */,
+					44F8E50A2C00100100000001 /* PhotoStyleWebView.swift */,
+				DD1201012C00100100000001 /* PhotoDirectoryStore.swift */,
+				DD1201022C00100100000001 /* PhotoStyleWebCoordinator+PhotoDirectory.swift */,
+				DD1201042C00100100000001 /* PhotoEditStore.swift */,
+				DD1201052C00100100000001 /* PhotoStyleWebCoordinator+PhotoEdits.swift */,
+		DD1901052C00100100000001 /* CustomFilmStore.swift */,
+				DD1201062C00100100000001 /* PhotoDateStampRenderer.swift */,
+				DD1201032C00100100000001 /* PhotoStyleAppLifecycle.swift */,
+				44F8E51D2C00100100000001 /* PhotoStyleWebCoordinator.swift */,
+				44F8E52C2C00100100000001 /* PhotoStyleWebCoordinator+Preview.swift */,
+				44F8E52B2C00100100000001 /* PhotoStyleWebCoordinator+MCP.swift */,
+				44F8E52A2C00100100000001 /* PhotoStyleMCPTools.swift */,
+				44F8E5292C00100100000001 /* PhotoStyleMCPHTTPConnection.swift */,
+				44F8E5282C00100100000001 /* PhotoStyleMCPServer.swift */,
+				44F8E51E2C00100100000001 /* PhotoStyleWebPayloadHelpers.swift */,
+				44F8E51C2C00100100000001 /* PhotoStyleWebView+Loading.swift */,
+				44F8E50E2C00100100000001 /* StylePromptStore.swift */,
+				44F8E50F2C00100100000001 /* PhotoStyleWebSaveError.swift */,
+				44F8E5102C00100100000001 /* PhotoImage.swift */,
+				46A100022C00100100000001 /* PhotoWebPEncoder.swift */,
+				46A100042C00100100000001 /* WebPLicenses */,
+				44F8E5112C00100100000001 /* PhotoStyleWebCoordinator+Presentation.swift */,
+				AA1100022C00100100000001 /* PhotoLocalization.swift */,
+				44F8E5122C00100100000001 /* PhotoStyleWebCoordinator+Saving.swift */,
+				44F8E5132C00100100000001 /* PhotoStyleWebCoordinator+Picking.swift */,
+				44F8E5142C00100100000001 /* PhotoStyleWebCoordinator+State.swift */,
+				44F8E51B2C00100100000001 /* PhotoStyleWebCoordinator+Navigation.swift */,
+				44F8E51A2C00100100000001 /* PhotoStyleWebCoordinator+PayloadParsing.swift */,
+				44F8E5192C00100100000001 /* PhotoStyleWebCoordinator+ImagePipeline.swift */,
+				44F8E5182C00100100000001 /* PhotoStyleWebCoordinator+ModelActions.swift */,
+				44F8E5172C00100100000001 /* PhotoStyleWebCoordinator+Computation.swift */,
+				44F8E5162C00100100000001 /* PhotoStyleWebCoordinator+StyleActions.swift */,
+				44F8E5152C00100100000001 /* PhotoStyleWebCoordinator+Bridge.swift */,
+				44F8E51F2C00100100000001 /* PhotoStyleWebBridgeMessage.swift */,
+					44F8E5032C00100100000001 /* PhotoStyle.swift */,
+				44F8E5232C00100100000001 /* Comparable+Clamped.swift */,
+					44F8E5042C00100100000001 /* PhotoStyleProcessor.swift */,
+				44F8E5242C00100100000001 /* PhotoStyleRendering.swift */,
+					44F8E5082C00100100000001 /* AIModelManager.swift */,
+				44F8E5202C00100100000001 /* AIModelPairingResolver.swift */,
+				44F8E52E2C00100100000001 /* AIModelDirectoryCatalog.swift */,
+				44F9A0072C00100100000001 /* MLXRuntime */,
+				44F9A0062C00100100000001 /* PhotoStyleMLXRuntime.swift */,
+				44F9A0052C00100100000001 /* AIModelRepositoryDownloader.swift */,
+				44F9A0042C00100100000001 /* AIModelRepository.swift */,
+				44F9A0032C00100100000001 /* AIMLXModelValidator.swift */,
+				44F9A0022C00100100000001 /* AIRepositoryBrowser.swift */,
+				44F9A0012C00100100000001 /* AIModelRuntimeSupport.swift */,
+					44F8E5092C00100100000001 /* PhotoStyleLLMRuntime.swift */,
+				44F8E52D2C00100100000001 /* PhotoStyleAIRequest.swift */,
+				44F8E5222C00100100000001 /* PhotoStylePromptCatalog.swift */,
+				44F8E5212C00100100000001 /* PhotoStyleAdjustmentMapper.swift */,
+				44F8E5252C00100100000001 /* PhotoStylePlanPolicyResolver.swift */,
+					44F8E50B2C00100100000001 /* Web */,
+					44F8E50D2C00100100000001 /* Models */,
+					44F8E50C2C00100100000001 /* Assets.xcassets */,
+					44F8E5072C00100100000001 /* Info.plist */,
+				);
+			path = PhotoStyleApp;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		44F8E7012C00100100000001 /* PhotoStyleApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 44F8EA012C00100100000001 /* Build configuration list for PBXNativeTarget "PhotoStyleApp" */;
+				buildPhases = (
+					46A100052C00100100000001 /* Build WebP */,
+					44F8E8012C00100100000001 /* Sources */,
+					44F8E3012C00100100000001 /* Frameworks */,
+					44F8E9012C00100100000001 /* Resources */,
+                    AD2302052C00100100000001 /* Stamp App Version */,
+				);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PhotoStyleApp;
+			packageProductDependencies = (
+				44F8F0012C00100100000001 /* PhotoStyleShared */,
+			);
+			productName = PhotoStyleApp;
+			productReference = 44F8E4012C00100100000001 /* PhotoStyleApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		44F8E0012C00100100000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2640;
+				LastUpgradeCheck = 2640;
+				TargetAttributes = {
+					44F8E7012C00100100000001 = {
+						CreatedOnToolsVersion = 26.4.1;
+					};
+				};
+			};
+			buildConfigurationList = 44F8EB012C00100100000001 /* Build configuration list for PBXProject "PhotoStyleApp" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				"zh-Hant",
+				ja,
+				ko,
+				en,
+				Base,
+			);
+			mainGroup = 44F8E1012C00100100000001;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				44F8F0002C00100100000001 /* XCLocalSwiftPackageReference "PhotoStyleShared" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 44F8E1022C00100100000001 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				44F8E7012C00100100000001 /* PhotoStyleApp */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		44F8E9012C00100100000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BC2401002C00100100000001 /* en.lproj in Resources */,
+				BC2401012C00100100000001 /* zh-Hant.lproj in Resources */,
+				BC2401022C00100100000001 /* ja.lproj in Resources */,
+				BC2401032C00100100000001 /* ko.lproj in Resources */,
+				44F8E60A2C00100100000001 /* Web in Resources */,
+				AD2302042C00100100000001 /* Updater in Resources */,
+				44F8E60B2C00100100000001 /* Assets.xcassets in Resources */,
+				44F8E60C2C00100100000001 /* Models in Resources */,
+				44F9B0072C00100100000001 /* MLXRuntime in Resources */,
+				46A100032C00100100000001 /* WebPLicenses in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+
+
+/* Begin PBXShellScriptBuildPhase section */
+        46A100052C00100100000001 /* Build WebP */ = {
+            isa = PBXShellScriptBuildPhase;
+            alwaysOutOfDate = 1;
+            buildActionMask = 2147483647;
+            files = ();
+            inputPaths = ();
+            name = "Build WebP";
+            outputPaths = ("$(PROJECT_DIR)/Vendor/libwebp/macos/lib/libphotowebp.a", "$(PROJECT_DIR)/Vendor/libwebp/macos/include/module.modulemap");
+            runOnlyForDeploymentPostprocessing = 0;
+            shellPath = /bin/bash;
+            shellScript = "\"$PROJECT_DIR/scripts/build-webp-macos.sh\"";
+        };
+        AD2302052C00100100000001 /* Stamp App Version */ = {
+            isa = PBXShellScriptBuildPhase;
+            alwaysOutOfDate = 1;
+            buildActionMask = 2147483647;
+            files = ();
+            inputPaths = ("$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)");
+            name = "Stamp App Version";
+            outputPaths = ();
+            runOnlyForDeploymentPostprocessing = 0;
+            shellPath = /bin/bash;
+            shellScript = "/bin/bash \"$PROJECT_DIR/scripts/stamp-app-version.sh\"";
+        };
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		44F8E8012C00100100000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				44F8E6012C00100100000001 /* PhotoStyleAppApp.swift in Sources */,
+                AD2402012C00100100000001 /* PhotoStyleFilmHoverPreview.swift in Sources */,
+				AD2302032C00100100000001 /* PhotoAppUpdater.swift in Sources */,
+				AD2302022C00100100000001 /* PhotoAppUpdateInstaller.swift in Sources */,
+				AD2302012C00100100000001 /* PhotoAppRelease.swift in Sources */,
+				44F8E6022C00100100000001 /* ContentView.swift in Sources */,
+				44F8E6032C00100100000001 /* PhotoStyle.swift in Sources */,
+				44F8E6222C00100100000001 /* Comparable+Clamped.swift in Sources */,
+				44F8E6042C00100100000001 /* PhotoStyleProcessor.swift in Sources */,
+				44F8E6232C00100100000001 /* PhotoStyleRendering.swift in Sources */,
+				44F8E6072C00100100000001 /* AIModelManager.swift in Sources */,
+				44F8E61F2C00100100000001 /* AIModelPairingResolver.swift in Sources */,
+				44F8E62E2C00100100000001 /* AIModelDirectoryCatalog.swift in Sources */,
+				44F9B0062C00100100000001 /* PhotoStyleMLXRuntime.swift in Sources */,
+				44F9B0052C00100100000001 /* AIModelRepositoryDownloader.swift in Sources */,
+				44F9B0042C00100100000001 /* AIModelRepository.swift in Sources */,
+				44F9B0032C00100100000001 /* AIMLXModelValidator.swift in Sources */,
+				44F9B0022C00100100000001 /* AIRepositoryBrowser.swift in Sources */,
+				44F9B0012C00100100000001 /* AIModelRuntimeSupport.swift in Sources */,
+				44F8E6082C00100100000001 /* PhotoStyleLLMRuntime.swift in Sources */,
+				44F8E62D2C00100100000001 /* PhotoStyleAIRequest.swift in Sources */,
+				44F8E6212C00100100000001 /* PhotoStylePromptCatalog.swift in Sources */,
+				44F8E6202C00100100000001 /* PhotoStyleAdjustmentMapper.swift in Sources */,
+				44F8E6242C00100100000001 /* PhotoStylePlanPolicyResolver.swift in Sources */,
+				44F8E6092C00100100000001 /* PhotoStyleWebView.swift in Sources */,
+				DD1202012C00100100000001 /* PhotoDirectoryStore.swift in Sources */,
+				DD1202022C00100100000001 /* PhotoStyleWebCoordinator+PhotoDirectory.swift in Sources */,
+				DD1202042C00100100000001 /* PhotoEditStore.swift in Sources */,
+				DD1202052C00100100000001 /* PhotoStyleWebCoordinator+PhotoEdits.swift in Sources */,
+		DD1902052C00100100000001 /* CustomFilmStore.swift in Sources */,
+				DD1202062C00100100000001 /* PhotoDateStampRenderer.swift in Sources */,
+				DD1202032C00100100000001 /* PhotoStyleAppLifecycle.swift in Sources */,
+				44F8E61C2C00100100000001 /* PhotoStyleWebCoordinator.swift in Sources */,
+				44F8E62C2C00100100000001 /* PhotoStyleWebCoordinator+Preview.swift in Sources */,
+				44F8E62B2C00100100000001 /* PhotoStyleWebCoordinator+MCP.swift in Sources */,
+				44F8E62A2C00100100000001 /* PhotoStyleMCPTools.swift in Sources */,
+				44F8E6292C00100100000001 /* PhotoStyleMCPHTTPConnection.swift in Sources */,
+				44F8E6282C00100100000001 /* PhotoStyleMCPServer.swift in Sources */,
+				44F8E61D2C00100100000001 /* PhotoStyleWebPayloadHelpers.swift in Sources */,
+				44F8E61B2C00100100000001 /* PhotoStyleWebView+Loading.swift in Sources */,
+				44F8E60D2C00100100000001 /* StylePromptStore.swift in Sources */,
+				44F8E60E2C00100100000001 /* PhotoStyleWebSaveError.swift in Sources */,
+				44F8E60F2C00100100000001 /* PhotoImage.swift in Sources */,
+				46A100012C00100100000001 /* PhotoWebPEncoder.swift in Sources */,
+				44F8E6102C00100100000001 /* PhotoStyleWebCoordinator+Presentation.swift in Sources */,
+				AA1100012C00100100000001 /* PhotoLocalization.swift in Sources */,
+				44F8E6112C00100100000001 /* PhotoStyleWebCoordinator+Saving.swift in Sources */,
+				44F8E6122C00100100000001 /* PhotoStyleWebCoordinator+Picking.swift in Sources */,
+				44F8E6132C00100100000001 /* PhotoStyleWebCoordinator+State.swift in Sources */,
+				44F8E61A2C00100100000001 /* PhotoStyleWebCoordinator+Navigation.swift in Sources */,
+				44F8E6192C00100100000001 /* PhotoStyleWebCoordinator+PayloadParsing.swift in Sources */,
+				44F8E6182C00100100000001 /* PhotoStyleWebCoordinator+ImagePipeline.swift in Sources */,
+				44F8E6172C00100100000001 /* PhotoStyleWebCoordinator+ModelActions.swift in Sources */,
+				44F8E6162C00100100000001 /* PhotoStyleWebCoordinator+Computation.swift in Sources */,
+				44F8E6152C00100100000001 /* PhotoStyleWebCoordinator+StyleActions.swift in Sources */,
+				44F8E6142C00100100000001 /* PhotoStyleWebCoordinator+Bridge.swift in Sources */,
+				44F8E61E2C00100100000001 /* PhotoStyleWebBridgeMessage.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		44F8EC012C00100100000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = arm64;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		44F8EC022C00100100000001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = arm64;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		44F8ED012C00100100000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = 8QB2QM35YM;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = PhotoStyleApp/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "照片沖洗";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.photography";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.26.0923;
+				OTHER_LDFLAGS = ("$(inherited)", "-lllama", "-lphotowebp", "-lc++", "-framework", Accelerate, "-framework", Metal, "-framework", MetalKit);
+                SWIFT_INCLUDE_PATHS = ("$(PROJECT_DIR)/Vendor/llama.cpp/macos/include", "$(PROJECT_DIR)/Vendor/libwebp/macos/include");
+                ENABLE_USER_SCRIPT_SANDBOXING = NO;
+                LIBRARY_SEARCH_PATHS = ("$(inherited)", "$(PROJECT_DIR)/Vendor/llama.cpp/macos/lib", "$(PROJECT_DIR)/Vendor/libwebp/macos/lib");
+                ENABLE_HARDENED_RUNTIME = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = person.vader.PhotoStyleApp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		44F8ED022C00100100000001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = 8QB2QM35YM;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = PhotoStyleApp/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "照片沖洗";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.photography";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.26.0923;
+				OTHER_LDFLAGS = ("$(inherited)", "-lllama", "-lphotowebp", "-lc++", "-framework", Accelerate, "-framework", Metal, "-framework", MetalKit);
+                SWIFT_INCLUDE_PATHS = ("$(PROJECT_DIR)/Vendor/llama.cpp/macos/include", "$(PROJECT_DIR)/Vendor/libwebp/macos/include");
+                ENABLE_USER_SCRIPT_SANDBOXING = NO;
+                LIBRARY_SEARCH_PATHS = ("$(inherited)", "$(PROJECT_DIR)/Vendor/llama.cpp/macos/lib", "$(PROJECT_DIR)/Vendor/libwebp/macos/lib");
+                ENABLE_HARDENED_RUNTIME = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = person.vader.PhotoStyleApp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		44F8EA012C00100100000001 /* Build configuration list for PBXNativeTarget "PhotoStyleApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				44F8ED012C00100100000001 /* Debug */,
+				44F8ED022C00100100000001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		44F8EB012C00100100000001 /* Build configuration list for PBXProject "PhotoStyleApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				44F8EC012C00100100000001 /* Debug */,
+				44F8EC022C00100100000001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		44F8F0002C00100100000001 /* XCLocalSwiftPackageReference "PhotoStyleShared" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = PhotoStyleShared;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		44F8F0012C00100100000001 /* PhotoStyleShared */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 44F8F0002C00100100000001 /* XCLocalSwiftPackageReference "PhotoStyleShared" */;
+			productName = PhotoStyleShared;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 44F8E0012C00100100000001 /* Project object */;
+}
