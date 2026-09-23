@@ -201,6 +201,7 @@ textarea, input:not([type=range]) { -webkit-user-select: text; user-select: text
 .development-caption strong { font-size:16px; font-weight:600; letter-spacing:.12em; }
 .development-caption span { font-size:12px; color:#aaa59c; letter-spacing:.08em; }
 
+.desktop-page .page-heading:has(.settings-update-button) { max-width:none; margin-left:0; margin-right:0; }
 .page-title-row:has(.settings-update-button) { display:flex; flex-wrap:nowrap; align-items:center; justify-content:space-between; gap:20px; }
 .settings-update-button { flex:0 0 auto; white-space:nowrap; }
 
