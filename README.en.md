@@ -2,7 +2,7 @@
 
 [繁體中文](README.md) · [English](README.en.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
 
-![FilmYourPhoto — FilmDevelop](title.jpg)
+![FilmYourPhoto — FilmDevelop](demo.gif)
 
 A film-inspired photo editor for Apple Silicon Mac. Open a photo folder, choose a film, adjust development, scanning and tones, then export. Photo editing and AI-assisted adjustments run locally.
 

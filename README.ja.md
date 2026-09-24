@@ -2,7 +2,7 @@
 
 [繁體中文](README.md) · [English](README.en.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
 
-![写真現像 — FilmDevelop](title.jpg)
+![写真現像 — FilmDevelop](demo.gif)
 
 Apple Silicon Mac 向けのフィルム風写真エディターです。写真フォルダを開き、フィルムを選び、現像・スキャン・階調を調整して書き出します。写真編集と AI 補助調整はローカルで実行されます。
 

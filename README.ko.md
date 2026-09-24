@@ -2,7 +2,7 @@
 
 [繁體中文](README.md) · [English](README.en.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
 
-![사진 현상 — FilmDevelop](title.jpg)
+![사진 현상 — FilmDevelop](demo.gif)
 
 Apple Silicon Mac용 필름 스타일 사진 편집기입니다. 사진 폴더를 열고 필름을 선택한 뒤 현상, 스캔, 밝기와 색상을 조정하여 내보내세요. 사진 편집과 AI 보조 조정은 로컬에서 실행됩니다.
 
