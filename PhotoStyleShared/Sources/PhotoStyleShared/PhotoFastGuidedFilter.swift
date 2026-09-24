@@ -34,11 +34,12 @@ enum PhotoFastGuidedFilter {
         epsilon: Float = 0.0025
     ) -> CIImage {
         let extent = image.extent
+        guard maximumSampleShortEdge.isFinite, maximumSampleShortEdge > 0,
+              epsilon.isFinite, epsilon > 0 else { return image }
         let shortEdge = max(min(extent.width, extent.height), 1)
         let scale = min(maximumSampleShortEdge / shortEdge, 0.5)
-        let sampled = image.transformed(
-            by: CGAffineTransform(scaleX: scale, y: scale)
-        )
+        guard let sampling = PhotoFilterSampling(extent: extent, scale: scale) else { return image }
+        let sampled = sampling.sample(image)
         let sampledShortEdge = max(min(sampled.extent.width, sampled.extent.height), 1)
         let radius = min(max(sampledShortEdge / 32, 2), 8)
 
@@ -62,10 +63,7 @@ enum PhotoFastGuidedFilter {
         }
 
         let averagedCoefficients = boxBlur(coefficients, radius: radius)
-        let upsampledCoefficients = averagedCoefficients
-            .clampedToExtent()
-            .transformed(by: CGAffineTransform(scaleX: 1 / scale, y: 1 / scale))
-            .cropped(to: extent)
+        let upsampledCoefficients = sampling.reconstruct(averagedCoefficients)
         return reconstructionKernel.apply(
             extent: extent,
             arguments: [image, upsampledCoefficients]
@@ -73,12 +71,7 @@ enum PhotoFastGuidedFilter {
     }
 
     private static func boxBlur(_ image: CIImage, radius: CGFloat) -> CIImage {
-        image
-            .clampedToExtent()
-            .applyingFilter("CIBoxBlur", parameters: [
-                kCIInputRadiusKey: radius
-            ])
-            .cropped(to: image.extent)
+        PhotoBoxMeanFilter.apply(image, radius: radius)
     }
 
     private static func fallback(_ image: CIImage) -> CIImage {

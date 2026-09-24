@@ -20,3 +20,21 @@ CLI-only process wrappers and llama.cpp command execution stay in `aiTest2`.
 - HDR 在沒有 AI 曲線時仍有手動效果；背景模糊改善深度裁切對齊及主體邊界滲色。
 - 掃描／正片的印相光源使用成品色彩補償，原始參考不改變既有輸出；非掃描負片保留光譜印相。
 - 修復區塊使用正規化座標保存，供預覽與完整解析度匯出共用。
+
+## RGB 遮罩細化與導向濾波視窗
+
+`PhotoGuidedMaskRefiner` 將單通道遮罩與 RGB 引導照片分開處理，使用完整 3×3 共變異矩陣及 LDLᵀ 解法，不把三色頻當作互不相關的三個濾波器。膚色遮罩與鏡頭模糊共用此流程。
+
+- 公式來源：[Guided Image Filtering，TPAMI 2013，式 14–16](https://people.csail.mit.edu/kaiming/publications/pami12guidedfilter.pdf)。
+- 大圖係數最長邊限制 1024 px，最後用原解析度照片重建，依據 [Fast Guided Filter（2015）](https://arxiv.org/abs/1505.00996)。
+- 引導訊號先解除預乘 alpha，再以 `x / (1 + x)` 壓縮非負 RGB；成品照片不做此映射。透明來源區域的輸出遮罩為 0。
+- 遮罩與照片須使用相同座標；先平移到原點估計係數，重建後還原 extent。輸出限制在 0–1。
+- `PhotoBoxMeanFilter` 統一離散半徑到 `CIBoxBlur` 視窗寬度的換算：`2r + 1`。磨皮、HDR 與 RGB 遮罩細化共用。
+- 半徑在取樣空間取整並限制 1–64；epsilon 最低 0.00001。係數採 FP32，斜率與截距分開儲存，避免 alpha 預乘破壞負係數。
+- 沿用呼叫端 Core Image context；App 僅在 Apple Silicon 使用 Metal 加速。沒有加入 OpenCV、額外模型或網路服務。
+
+兩輪檢查後，HDR 已移除原本獨立的導向濾波副本，實際使用共用 `PhotoFastGuidedFilter`，保留自身 epsilon 0.0015。`PhotoFilterSampling` 將取樣網格對齊整數像素，先延伸邊緣再縮放，重建時還原原始座標，避免奇數及狹長照片混入透明邊界。
+
+HDR、局部明暗與膚色判定先解除預乘 alpha，輸出仍保留原透明度；背景散景的有效權重包含來源 alpha，再以原 alpha 重建輸出，避免半透明邊緣變暗及完全透明區殘留 RGB。這些修正不更動控制項、強度預設或匯出格式。
+
+這是依論文公式自行實作，沒有複製第三方程式碼。膚色初始判定仍是色彩規則、人物初始遮罩仍由 Vision 提供；無法修復整塊漏辨識的部位，深度散景仍使用原有的分層近似。

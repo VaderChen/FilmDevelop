@@ -67,7 +67,7 @@ public enum PhotoSkinEnhancementProcessor {
         guard let prepared = unpremultiply?.apply(extent: extent, arguments: [image]),
               let squared = square?.apply(extent: extent, arguments: [prepared]) else { return image }
         func mean(_ value: CIImage) -> CIImage {
-            value.clampedToExtent().applyingFilter("CIBoxBlur", parameters: [kCIInputRadiusKey: radius]).cropped(to: extent)
+            PhotoBoxMeanFilter.apply(value, radius: radius)
         }
         let average = mean(prepared)
         guard let slope = coefficientA?.apply(extent: extent, arguments: [average, mean(squared), epsilon]),

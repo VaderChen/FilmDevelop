@@ -62,7 +62,7 @@ extension PhotoStyleWebCoordinator {
         guard format.supportedBitDepths.contains(bitDepth) else {
             throw PhotoStyleMCPTools.failure("\(format.displayName) 不支援 \(bitDepth) bit 匯出；可用色深為 \(format.supportedBitDepths.map(String.init).joined(separator: "、")) bit。")
         }
-        guard let sourceImage, !isLoadingImage, !isComputing, !isSavingImage, !isRepairingImage else {
+        guard let sourceImage, !isTerminating, !isLoadingImage, !isComputing, !isSavingImage, !isRepairingImage else {
             throw PhotoStyleMCPTools.failure("目前沒有可匯出的照片，或影像仍在處理中。")
         }
         if !overwrite && FileManager.default.fileExists(atPath: url.path) {
@@ -71,6 +71,7 @@ extension PhotoStyleWebCoordinator {
         let style = selectedStyle
         let patches = repairPatches
         let adjustment = renderingAdjustment(adjustmentStore.adjustment(for: style))
+        let fallbackSubjectMask = sourceSubjectMask
         let shouldUseSubjectMask = sourceSubjectMask != nil || adjustment.requiresSubjectMask
         let animationID = UUID().uuidString
         let needsDisplayPreview = webView != nil && isWebReady
@@ -100,8 +101,10 @@ extension PhotoStyleWebCoordinator {
                 try Task.checkCancellation()
                 let scoped = url.startAccessingSecurityScopedResource()
                 defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-                let mask = shouldUseSubjectMask && renderer.canDetectSubjectMask
+                let detectedMask = shouldUseSubjectMask && renderer.canDetectSubjectMask
                     ? renderer.detectSubjectMask(for: PhotoStyleProcessor.repairedSource(sourceImage, patches: patches)) : nil
+                // 完整解析度重新辨識失敗時，仍沿用這張照片已確認的遮罩。
+                let mask = detectedMask ?? fallbackSubjectMask
                 try Task.checkCancellation()
                 reportStage("render")
                 let output = renderer.render(.init(
@@ -120,6 +123,8 @@ extension PhotoStyleWebCoordinator {
                 let preview = needsDisplayPreview ? imageDataURL(output, maxPixel: 1600) : nil
                 return (output.size, preview)
             }
+            exportWorker = worker
+            defer { exportWorker = nil }
             let result = try await withTaskCancellationHandler {
                 try await worker.value
             } onCancel: {

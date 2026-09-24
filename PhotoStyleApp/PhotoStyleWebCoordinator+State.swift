@@ -15,12 +15,23 @@ extension PhotoStyleWebCoordinator {
         var payload = baseStatePayload()
         payload["externalEdit"] = externalEdit
         if includeImages {
-            payload["loadingPreviewImage"] = loadingPreviewImagePayload ?? NSNull()
-            for key in ["cropSourceImage", "repairSourceImage", "sourceImage", "outputImage"] {
-                payload[key] = previewImagePayload[key] ?? NSNull()
-            }
+            payload.merge(previewImageDelta()) { _, new in new }
         }
         callJavaScript(function: "handleNativeState", payload: payload)
+    }
+
+    // 缺省欄位代表沿用；NSNull 明確清除，照片切換與重設不會留下舊圖。
+    func previewImageDelta() -> [String: Any] {
+        var current = previewImagePayload.compactMapValues { $0 as? String }
+        current["loadingPreviewImage"] = loadingPreviewImagePayload
+        var delta: [String: Any] = [:]
+        for key in ["loadingPreviewImage", "cropSourceImage", "repairSourceImage", "sourceImage", "outputImage"] {
+            if lastSentPreviewImages == nil || lastSentPreviewImages?[key] != current[key] {
+                delta[key] = current[key] as Any? ?? NSNull()
+            }
+        }
+        lastSentPreviewImages = current
+        return delta
     }
 
     func baseStatePayload() -> [String: Any] {
@@ -309,7 +320,11 @@ extension PhotoStyleWebCoordinator {
               let json = String(data: data, encoding: .utf8) else {
             return
         }
-        let update = { webView.evaluateJavaScript("window.\(function) && window.\(function)(\(json));") }
+        let update = { [weak self] in
+            webView.evaluateJavaScript("window.\(function) && window.\(function)(\(json));") { _, error in
+                if error != nil && function == "handleNativeState" { self?.lastSentPreviewImages = nil }
+            }
+        }
         if Thread.isMainThread { update() } else { DispatchQueue.main.async(execute: update) }
     }
 }

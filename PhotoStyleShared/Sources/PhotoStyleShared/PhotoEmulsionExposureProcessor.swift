@@ -27,9 +27,11 @@ public enum PhotoEmulsionExposureProcessor {
             .transformed(by: .init(scaleX: 1 / scale, y: 1 / scale))
         let canonical = CGRect(x: 0, y: 0, width: extent.width / scale, height: extent.height / scale)
         let radius = 12 * e.grainSize
-        guard let captured = field.apply(extent: canonical, roiCallback: { _, r in r.insetBy(dx: -radius, dy: -radius) },
+        guard let captureGraph = field.apply(extent: canonical, roiCallback: { _, r in r.insetBy(dx: -radius, dy: -radius) },
             arguments: [source.clampedToExtent(), e.grainSize, e.grainClumping / 100,
                         monochrome ? 0 : e.grainChroma / 100, Double(seed & 0xffff), Double(seed >> 16)]) else { return image }
+        // 紅暈與成品共用同一個捕獲場，避免分支重算晶體取樣。
+        let captured = captureGraph.insertingIntermediate(cache: true)
         let halo = min(1, max(0, strength.isFinite ? strength : 0)) * PhotoFilmEffects.effectAmount(e.halationAmount)
         let bounced: CIImage
         if halo > 0 {

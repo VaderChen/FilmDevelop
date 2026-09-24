@@ -85,12 +85,15 @@ extension PhotoStyleWebCoordinator {
         let computer = computer
         let renderer = renderer
         let existingSubjectMask = sourceSubjectMask
+        let patches = repairPatches
 
         inferenceTask = Task { @MainActor [weak self] in
             do {
                 let analysisImage = await Task.detached(priority: .userInitiated) {
                     // The AI can now change crop geometry; it must see the full source.
-                    sourceImage.resizedForWebPreview(maxPixel: 800)
+                    PhotoStyleProcessor.repairedSource(
+                        sourceImage.resizedForWebPreview(maxPixel: 800), patches: patches
+                    )
                 }.value
                 try Task.checkCancellation()
                 let request = PhotoStyleComputationRequest(image: analysisImage, style: style,
@@ -112,7 +115,7 @@ extension PhotoStyleWebCoordinator {
                     self.computationStep = "偵測主體並準備預覽"
                     self.sendState(includeImages: false)
                     subjectMask = await Task.detached(priority: .userInitiated) {
-                        renderer.detectSubjectMask(for: previewImage)
+                        renderer.detectSubjectMask(for: PhotoStyleProcessor.repairedSource(previewImage, patches: patches))
                     }.value
                     try Task.checkCancellation()
                     guard self.computationID == id else { return }

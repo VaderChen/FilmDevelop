@@ -3,10 +3,10 @@ import CoreImage
 public enum PhotoLocalToneProcessor {
     private static let logLuminanceKernel = CIColorKernel(source: """
     kernel vec4 localToneLogLuminance(__sample source) {
-        vec3 color = max(source.rgb, vec3(0.0));
+        vec3 color = max(source.rgb / max(source.a, 0.00001), vec3(0.0));
         float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
         float value = log2(max(luminance, 0.000001));
-        return vec4(value, value, value, source.a);
+        return vec4(value, value, value, 1.0);
     }
     """)
 
@@ -70,6 +70,8 @@ public enum PhotoLocalToneProcessor {
         highlights: Double = 0,
         shadows: Double = 0
     ) -> CIImage {
+        guard [contrast, highlights, shadows].allSatisfy(\.isFinite),
+              !image.extent.isInfinite else { return image }
         let contrast = min(max(contrast, -1), 1)
         let highlights = min(max(highlights, -1), 1)
         let shadows = min(max(shadows, -1), 1)

@@ -9,12 +9,19 @@ public enum PhotoBackgroundBlurProcessor {
     }
     """)
 
+    private static let coverageKernel = CIColorKernel(source: """
+    kernel vec4 backgroundCoverage(__sample source, __sample mask) {
+        float weight = clamp(1.0 - mask.r, 0.0, 1.0) * source.a;
+        return vec4(weight, weight, weight, 1.0);
+    }
+    """)
+
     private static let normalizeKernel = CIColorKernel(source: """
     kernel vec4 normalizedBackground(__sample blurred, __sample coverage, __sample source) {
         // 散景捲積在接近全遮罩處可能有微小負值，不能除以接近零的權重。
         vec3 color = max(blurred.rgb, vec3(0.0)) / max(coverage.r, 0.05);
         float confidence = smoothstep(0.05, 0.20, coverage.r);
-        return mix(source, vec4(color, source.a), confidence);
+        return mix(source, vec4(color * source.a, source.a), confidence);
     }
     """)
 
@@ -31,9 +38,10 @@ public enum PhotoBackgroundBlurProcessor {
 
         let extent = image.extent
         let radius = blurRadius(for: extent, amount: amount)
-        let softenedMask = refinedSubjectMask(personMask, extent: extent, blurRadius: radius)
-        let backgroundMask = softenedMask.applyingFilter("CIColorInvert")
-        guard let isolated = backgroundKernel?.apply(extent: extent, arguments: [image, softenedMask]) else {
+        let softenedMask = refinedSubjectMask(personMask, extent: extent, blurRadius: radius, guidance: image)
+            .insertingIntermediate(cache: true)
+        guard let backgroundMask = coverageKernel?.apply(extent: extent, arguments: [image, softenedMask]),
+              let isolated = backgroundKernel?.apply(extent: extent, arguments: [image, softenedMask]) else {
             return image
         }
         // 排除主體後才產生散景，再按有效背景權重正規化，避免人物顏色滲入背景。
@@ -87,10 +95,19 @@ public enum PhotoBackgroundBlurProcessor {
     public static func refinedSubjectMask(
         _ subjectMask: CIImage,
         extent: CGRect,
-        blurRadius: Double
+        blurRadius: Double,
+        guidance: CIImage? = nil
     ) -> CIImage {
         guard isUsableExtent(extent) else { return CIImage.empty() }
         let scale = resolutionScale(for: extent)
+        if let guidance, guidance.extent == extent {
+            // 直接細化分割遮罩，以 RGB 邊界保護人物；先膨脹再模糊會留下清晰背景光圈。
+            return PhotoGuidedMaskRefiner.refine(
+                subjectMask, guidedBy: guidance,
+                radius: max(2, max(4 * scale, blurRadius * 0.35)), epsilon: 0.0001
+            )
+        }
+        // 沒有引導照片的既有呼叫仍可使用保守的邊緣保護。
         let expansionRadius = max(1 * scale, blurRadius * 0.14)
         let featherRadius = max(1.2 * scale, blurRadius * 0.08)
         let normalized = subjectMask

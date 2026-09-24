@@ -59,9 +59,12 @@ extension PhotoStyleWebCoordinator {
         case .retryPreview:
             guard sourceImage != nil, !isRenderingPreview else { return }
             photoPreviewCache.removeAllObjects()
+            // 解碼失敗後，即使重新渲染的位元組相同，也必須重新傳送圖片。
+            lastSentPreviewImages = nil
             applySelectedStyle()
             sendState(includeImages: true)
         case .getState:
+            lastSentPreviewImages = nil
             sendState(includeImages: true)
         case .browseFiles:
             openFilePicker()

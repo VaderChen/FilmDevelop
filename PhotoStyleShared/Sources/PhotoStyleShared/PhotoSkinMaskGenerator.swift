@@ -6,14 +6,13 @@ public enum PhotoSkinMaskProfile: Sendable {
 }
 
 public enum PhotoSkinMaskGenerator {
-    public static func make(from image: CIImage, personMask: CIImage?, profile: PhotoSkinMaskProfile) -> CIImage {
-        let extent = image.extent
-        let source = """
+    private static let kernel = CIColorKernel(source: """
         kernel vec4 skinMask(__sample s) {
-            float r = s.r;
-            float g = s.g;
-            float b = s.b;
-            float l = dot(s.rgb, vec3(0.2126, 0.7152, 0.0722));
+            vec3 rgb = s.rgb / max(s.a, 0.00001);
+            float r = rgb.r;
+            float g = rgb.g;
+            float b = rgb.b;
+            float l = dot(rgb, vec3(0.2126, 0.7152, 0.0722));
             float maxc = max(r, max(g, b));
             float minc = min(r, min(g, b));
             float chroma = maxc - minc;
@@ -72,10 +71,13 @@ public enum PhotoSkinMaskGenerator {
             float m = clamp(lumaMask * saturationMask * skinFamily, 0.0, 1.0);
             return vec4(m, m, m, 1.0);
         }
-        """
+        """)
 
+    public static func make(from image: CIImage, personMask: CIImage?, profile: PhotoSkinMaskProfile) -> CIImage {
+        let extent = image.extent
+        guard !extent.isEmpty, !extent.isInfinite else { return CIImage.empty() }
         let rawMask: CIImage
-        if let kernel = CIColorKernel(source: source),
+        if let kernel,
            let output = kernel.apply(extent: extent, arguments: [image]) {
             rawMask = output
         } else {
@@ -96,9 +98,9 @@ public enum PhotoSkinMaskGenerator {
         } ?? rawMask
 
         let radiusScale = radiusScale(for: extent, profile: profile)
-        return masked
-            .applyingFilter("CIGaussianBlur", parameters: [kCIInputRadiusKey: 2.8 * radiusScale])
-            .cropped(to: extent)
+        return PhotoGuidedMaskRefiner.refine(
+            masked, guidedBy: image, radius: max(2, 4 * radiusScale), epsilon: 0.0004
+        )
     }
 
     private static func radiusScale(for extent: CGRect, profile: PhotoSkinMaskProfile) -> Double {

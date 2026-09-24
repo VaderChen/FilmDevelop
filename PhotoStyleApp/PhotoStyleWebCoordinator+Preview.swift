@@ -5,6 +5,7 @@ struct PhotoStylePreviewJob {
     let request: PhotoStyleRenderRequest
     let cacheKey: String?
     let maskDetectionImage: PhotoImage
+    let photoGeneration: UUID
 }
 
 extension PhotoStyleWebCoordinator {
@@ -96,12 +97,14 @@ extension PhotoStyleWebCoordinator {
             return
         }
         pendingPreviewRender = PhotoStylePreviewJob(revision: previewRevision, request: request, cacheKey: cacheKey,
-                                                  maskDetectionImage: previewImage ?? request.image)
+                                                  maskDetectionImage: previewImage ?? request.image, photoGeneration: photoGeneration)
         startNextPreviewRender()
         updateActionAvailability()
     }
 
     func clearPreviewRender() {
+        let sourceCache = previewSourcePayloadCache
+        previewRenderQueue.async { sourceCache.begin(photoGeneration: UUID()) }
         cancelAdjustmentPreview()
         previewRevision &+= 1
         pendingPreviewRender = nil
@@ -116,8 +119,10 @@ extension PhotoStyleWebCoordinator {
         pendingPreviewRender = nil
         previewRenderRunning = true
         let renderer = renderer
+        let sourceCache = previewSourcePayloadCache
         let needsLoadingPreview = outputImage == nil && loadingPreviewImagePayload == nil
         previewRenderQueue.async { [weak self] in
+            sourceCache.begin(photoGeneration: job.photoGeneration)
             if needsLoadingPreview, let placeholder = imageDataURL(job.maskDetectionImage) {
                 DispatchQueue.main.async { [weak self] in
                     guard let self, !self.isLoadingImage, job.revision == self.previewRevision else { return }
@@ -133,10 +138,18 @@ extension PhotoStyleWebCoordinator {
                     image: job.request.image, subjectMask: subjectMask, shouldDetectSubjectMask: false, repairPatches: job.request.repairPatches
                 )).resizedForWebPreview(maxPixel: Self.processingPreviewMaxPixel)
                 var images: [String: String] = [:]
-                images["cropSourceImage"] = imageDataURL(job.request.image, maxPixel: PhotoImage.previewMaxPixel)
-                images["repairSourceImage"] = imageDataURL(PhotoStyleProcessor.repairedSource(job.maskDetectionImage, patches: job.request.repairPatches), maxPixel: PhotoImage.previewMaxPixel)
-                let comparisonImage = croppedImage(job.request.image, adjustment: job.request.adjustment)
-                images["sourceImage"] = imageDataURL(comparisonImage, maxPixel: Self.processingPreviewMaxPixel)
+                images["cropSourceImage"] = sourceCache.value(for: job.request.image, variant: "crop-source") {
+                    imageDataURL(job.request.image, maxPixel: PhotoImage.previewMaxPixel)
+                }
+                let repairs = job.request.repairPatches.map { $0.id.uuidString }.joined(separator: ",")
+                images["repairSourceImage"] = sourceCache.value(for: job.maskDetectionImage, variant: "repair:" + repairs) {
+                    imageDataURL(PhotoStyleProcessor.repairedSource(job.maskDetectionImage, patches: job.request.repairPatches), maxPixel: PhotoImage.previewMaxPixel)
+                }
+                let a = job.request.adjustment
+                let crop = "\(a.cropAspectRatio):\(a.cropRotation):\(a.cropScale):\(a.cropWidth):\(a.cropHeight):\(a.cropHorizontalPosition):\(a.cropVerticalPosition)"
+                images["sourceImage"] = sourceCache.value(for: job.request.image, variant: "comparison:" + crop) {
+                    imageDataURL(croppedImage(job.request.image, adjustment: a), maxPixel: Self.processingPreviewMaxPixel)
+                }
                 images["outputImage"] = imageDataURL(output, maxPixel: Self.processingPreviewMaxPixel)
                 return (output, images, subjectMask)
             }
@@ -148,10 +161,14 @@ extension PhotoStyleWebCoordinator {
                     self.photoPreviewCache.setObject(cached, forKey: cacheKey as NSString, cost: cached.cost)
                 }
                 if job.request.shouldDetectSubjectMask,
+                   job.photoGeneration == self.photoGeneration,
+                   job.request.repairPatches.map(\.id) == self.repairPatches.map(\.id),
                    self.isCurrentPhotoImage(job.request.image) {
                     self.sourceSubjectMask = subjectMask
                     self.subjectMaskAttemptedGeneration = self.photoGeneration
                     if let pending = self.pendingPreviewRender,
+                       pending.photoGeneration == job.photoGeneration,
+                       pending.request.repairPatches.map(\.id) == job.request.repairPatches.map(\.id),
                        self.isCurrentPhotoImage(pending.request.image) {
                         self.pendingPreviewRender = PhotoStylePreviewJob(
                             revision: pending.revision,
@@ -159,7 +176,7 @@ extension PhotoStyleWebCoordinator {
                                            image: pending.request.image, subjectMask: subjectMask,
                                            shouldDetectSubjectMask: false, repairPatches: pending.request.repairPatches),
                             cacheKey: pending.cacheKey,
-                            maskDetectionImage: pending.maskDetectionImage
+                            maskDetectionImage: pending.maskDetectionImage, photoGeneration: pending.photoGeneration
                         )
                     }
                 }
@@ -209,5 +226,40 @@ extension PhotoStyleWebCoordinator {
         let cancellable = cancellablePreviewWaiters.values
         cancellablePreviewWaiters.removeAll()
         cancellable.forEach { $0.resume() }
+    }
+}
+
+/// 僅由序列 previewRenderQueue 存取；保留影像身分，避免指標重用造成錯配。
+/// 切換照片即清除，最多六筆／16 MiB 編碼資料，不保留歷史照片。
+final class PhotoPreviewSourcePayloadCache {
+    private struct Entry {
+        let image: CGImage
+        let variant: String
+        let payload: String
+    }
+    private var generation: UUID?
+    private var entries: [Entry] = []
+    private(set) var encodingCount = 0
+
+    func begin(photoGeneration: UUID) {
+        guard generation != photoGeneration else { return }
+        generation = photoGeneration
+        entries.removeAll()
+    }
+
+    func value(for image: PhotoImage, variant: String, create: () -> String?) -> String? {
+        guard let bitmap = image.cgImage else { return create() }
+        if let index = entries.firstIndex(where: { $0.image === bitmap && $0.variant == variant }) {
+            let entry = entries.remove(at: index)
+            entries.append(entry)
+            return entry.payload
+        }
+        encodingCount += 1
+        guard let payload = create() else { return nil }
+        entries.append(Entry(image: bitmap, variant: variant, payload: payload))
+        while entries.count > 6 || entries.reduce(0, { $0 + $1.payload.utf8.count }) > 16 * 1024 * 1024 {
+            entries.removeFirst()
+        }
+        return payload
     }
 }

@@ -1759,6 +1759,11 @@
 
     app.querySelectorAll("[data-action]").forEach(function (button) {
       button.addEventListener("click", function () {
+        if (button.dataset.action === "retryPreview") {
+          // 使用者要求重試時，相同的資料 URL 也要重新解碼。
+          var failedPreview = app.querySelector(".preview-image");
+          if (failedPreview) failedPreview._requestedPreviewSource = null;
+        }
         if (button.dataset.action === "deleteCustomFilm") {
           if (photoIsBusy(state)) return;
           flushPhotoEdits("deleteCustomFilm", { id: button.dataset.filmId });

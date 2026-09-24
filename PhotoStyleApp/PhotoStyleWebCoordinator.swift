@@ -5,7 +5,7 @@ import AppKit
 import WebKit
 
 final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler, ObservableObject {
-    weak var webView: WKWebView?
+    weak var webView: WKWebView? { didSet { lastSentPreviewImages = nil } }
     lazy var filmHoverPreview = PhotoStyleFilmHoverPreview(coordinator: self)
     @MainActor lazy var appUpdater = PhotoAppUpdater(coordinator: self)
 
@@ -41,6 +41,8 @@ final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMe
     let customFilmStore: CustomFilmStore
     var selectedCustomFilmID: String?
     var customFilmBaseAdjustment: StyleAdjustment?
+    let previewSourcePayloadCache = PhotoPreviewSourcePayloadCache()
+    var lastSentPreviewImages: [String: String]?
     let photoPreviewCache = NSCache<NSString, PhotoEditPreview>()
     var currentPhotoEditKey: String?
     var isRestoringPhotoEdits = false
@@ -158,6 +160,7 @@ final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMe
     var computationStep = ""
     var computationCompletedItemCount = 0
     var isSavingImage = false
+    var exportWorker: Task<(size: CGSize, preview: String?), Error>?
     var savingStep = ""
     var shouldExpandAdjustmentsAfterComputation = false
     var inferenceTask: Task<Void, Never>?
@@ -244,6 +247,7 @@ final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMe
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        lastSentPreviewImages = nil
         isWebReady = true
         restoreLastPhotoDirectoryIfNeeded()
         if let url = pendingOpenURL {

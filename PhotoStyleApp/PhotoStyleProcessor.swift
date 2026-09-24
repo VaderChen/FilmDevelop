@@ -52,8 +52,12 @@ enum PhotoStyleProcessor {
         let amounts = PhotoToneZoneProcessor.resolvedGrainAmounts(
             globalAmount: adjustment.grain / 100 * strength, highlightAmount: adjustment.highlightGrain / 100 * strength,
             midtoneAmount: adjustment.midtoneGrain / 100 * strength, shadowAmount: adjustment.shadowGrain / 100 * strength)
-        let developed = PhotoFilmExposureProcessor.apply(to: calibratedInput, effects: adjustment.filmEffects,
+        let exposureGraph = PhotoFilmExposureProcessor.apply(to: calibratedInput, effects: adjustment.filmEffects,
             amounts: amounts, strength: strength, monochrome: style.isMonochrome)
+        // 膚色統計與最終渲染共用同一曝光結果；僅昂貴的乳劑／顯影分支物化。
+        let hasExposureEffects = amounts.shadows > 0 || amounts.midtones > 0 || amounts.highlights > 0
+            || adjustment.filmEffects.halationAmount > 0 || adjustment.filmEffects.developmentAmount > 0
+        let developed = hasExposureEffects ? exposureGraph.insertingIntermediate(cache: true) : exposureGraph
         // Film stocks own their exposure-to-density shoulder. Do not compress RAW
         // headroom before that curve; retain the legacy mapping for other looks.
         let oriented = image.requiresRAWDisplayMapping && style.filmStock == nil && style != .original

@@ -8,8 +8,9 @@ public enum PhotoHDRProcessor {
 
     private static let luminanceKernel = CIColorKernel(source: """
     kernel vec4 hdrLuminance(__sample source) {
-        float luminance = dot(source.rgb, vec3(0.2126, 0.7152, 0.0722));
-        return vec4(luminance, luminance, luminance, source.a);
+        vec3 color = source.rgb / max(source.a, 0.00001);
+        float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
+        return vec4(luminance, luminance, luminance, 1.0);
     }
     """)
 
@@ -17,33 +18,6 @@ public enum PhotoHDRProcessor {
     kernel vec4 hdrLogLuminance(__sample luminance) {
         float value = log2(max(luminance.r, 0.00001));
         return vec4(value, value, value, luminance.a);
-    }
-    """)
-
-    private static let squaredLuminanceKernel = CIColorKernel(source: """
-    kernel vec4 hdrSquaredLuminance(__sample source) {
-        float value = source.r * source.r;
-        return vec4(value, value, value, source.a);
-    }
-    """)
-
-    private static let guidedCoefficientsKernel = CIColorKernel(source: """
-    kernel vec4 hdrGuidedCoefficients(
-        __sample mean,
-        __sample correlation,
-        float epsilon
-    ) {
-        float variance = max(correlation.r - mean.r * mean.r, 0.0);
-        float slope = variance / (variance + epsilon);
-        float intercept = mean.r * (1.0 - slope);
-        return vec4(slope, intercept, 0.0, 1.0);
-    }
-    """)
-
-    private static let guidedBaseKernel = CIColorKernel(source: """
-    kernel vec4 hdrGuidedBase(__sample guide, __sample coefficients) {
-        float value = coefficients.r * guide.r + coefficients.g;
-        return vec4(value, value, value, guide.a);
     }
     """)
 
@@ -121,8 +95,9 @@ public enum PhotoHDRProcessor {
         float outputLogLuminance = mix(logLuminance.r, processedLogLuminance, amount);
         float sourceLuminance = max(exp2(logLuminance.r), 0.0);
         float outputLuminance = max(exp2(outputLogLuminance), 0.0);
-        vec3 chroma = source.rgb - vec3(sourceLuminance);
-        float channelCeiling = max(max(max(source.r, source.g), source.b), 1.0);
+        vec3 sourceColor = source.rgb / max(source.a, 0.00001);
+        vec3 chroma = sourceColor - vec3(sourceLuminance);
+        float channelCeiling = max(max(max(sourceColor.r, sourceColor.g), sourceColor.b), 1.0);
 
         float gamutScale = 1.0;
         if (chroma.r > 0.000001) {
@@ -142,7 +117,7 @@ public enum PhotoHDRProcessor {
         }
 
         vec3 outputColor = vec3(outputLuminance) + chroma * clamp(gamutScale, 0.0, 1.0);
-        return vec4(max(outputColor, vec3(0.0)), source.a);
+        return vec4(max(outputColor, vec3(0.0)) * source.a, source.a);
     }
     """)
 
@@ -191,6 +166,7 @@ public enum PhotoHDRProcessor {
         curve: PhotoStylePlan.HDRToneCurve?,
         amount: Double = 1
     ) -> CIImage {
+        guard amount.isFinite, !image.extent.isEmpty, !image.extent.isInfinite else { return image }
         let resolvedAmount = min(max(amount, 0), 1)
         guard let curve,
               resolvedAmount > 0.0001,
@@ -220,9 +196,8 @@ public enum PhotoHDRProcessor {
             return image
         }
 
-        let baseLogLuminance = makeBaseLayer(
-            logLuminance: logLuminance,
-            extent: normalizedImage.extent
+        let baseLogLuminance = PhotoFastGuidedFilter.smooth(
+            logLuminance, maximumSampleShortEdge: 256, epsilon: 0.0015
         )
         let points = resolvedControlPoints(curve)
         let detailGain = 1 + Double(clamped(curve.detail, to: 0...40)) / 40 * 0.10
@@ -251,82 +226,6 @@ public enum PhotoHDRProcessor {
                 )
             )
             .cropped(to: originalExtent)
-    }
-
-    private static func makeBaseLayer(
-        logLuminance: CIImage,
-        extent: CGRect
-    ) -> CIImage {
-        let shortEdge = max(min(extent.width, extent.height), 1)
-        let scale = min(256 / shortEdge, 0.5)
-        let sampledLogLuminance = logLuminance.transformed(
-            by: CGAffineTransform(scaleX: scale, y: scale)
-        )
-        let radius = min(max(shortEdge * scale / 32, 2), 8)
-
-        if let guidedBase = makeGuidedBaseLayer(
-            sampledLogLuminance: sampledLogLuminance,
-            fullResolutionLogLuminance: logLuminance,
-            radius: radius,
-            scale: scale,
-            extent: extent
-        ) {
-            return guidedBase
-        }
-
-        let fallbackRadius = min(max(shortEdge / 64, 2), 24)
-        return logLuminance
-            .clampedToExtent()
-            .applyingFilter("CIGaussianBlur", parameters: [
-                kCIInputRadiusKey: fallbackRadius
-            ])
-            .cropped(to: extent)
-    }
-
-    private static func makeGuidedBaseLayer(
-        sampledLogLuminance: CIImage,
-        fullResolutionLogLuminance: CIImage,
-        radius: CGFloat,
-        scale: CGFloat,
-        extent: CGRect
-    ) -> CIImage? {
-        guard let squaredLuminanceKernel,
-              let guidedCoefficientsKernel,
-              let guidedBaseKernel,
-              let squaredLuminance = squaredLuminanceKernel.apply(
-                extent: sampledLogLuminance.extent,
-                arguments: [sampledLogLuminance]
-              ) else {
-            return nil
-        }
-
-        let mean = boxBlur(sampledLogLuminance, radius: radius)
-        let correlation = boxBlur(squaredLuminance, radius: radius)
-        guard let coefficients = guidedCoefficientsKernel.apply(
-            extent: sampledLogLuminance.extent,
-            arguments: [mean, correlation, Float(0.0015)]
-        ) else {
-            return nil
-        }
-
-        let averagedCoefficients = boxBlur(coefficients, radius: radius)
-        let upsampledCoefficients = averagedCoefficients
-            .clampedToExtent()
-            .transformed(by: CGAffineTransform(scaleX: 1 / scale, y: 1 / scale))
-            .cropped(to: extent)
-        return guidedBaseKernel.apply(
-            extent: extent,
-            arguments: [fullResolutionLogLuminance, upsampledCoefficients]
-        )?.cropped(to: extent)
-    }
-
-    private static func boxBlur(_ image: CIImage, radius: CGFloat) -> CIImage {
-        image
-            .clampedToExtent()
-            .applyingFilter("CIBoxBlur", parameters: [
-                kCIInputRadiusKey: radius
-            ])
-            .cropped(to: image.extent)
     }
 
     private static func resolvedControlPoints(

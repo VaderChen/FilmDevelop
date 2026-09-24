@@ -45,6 +45,15 @@ extension PhotoStyleWebCoordinator {
         isCancellingComputation = activeInference != nil
         activeInference?.cancel()
         await activeInference?.value
+        // 結束前等候已接受的匯出與預覽；避免終止 GPU 工作或截斷檔案寫入。
+        // MCP 取消仍由原有取消處理器傳遞；使用者要求的正常匯出會完成。
+        let activeExport = exportWorker
+        _ = try? await activeExport?.value
+        await waitForPreviewRender()
+        // 滑鼠懸停底片的預覽也共用此佇列，但不計入 isRenderingPreview。
+        await withCheckedContinuation { continuation in
+            previewRenderQueue.async { continuation.resume() }
+        }
         persistCurrentPhotoEdits()
         await waitForSourcePersistence()
     }
