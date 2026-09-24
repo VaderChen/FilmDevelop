@@ -81,7 +81,11 @@ public struct PhotoStylizer: Sendable {
             highlightAmount: Double(plan.toneZones.highlights.grain) / 100 * strength,
             midtoneAmount: Double(plan.toneZones.midtones.grain) / 100 * strength,
             shadowAmount: Double(plan.toneZones.shadows.grain) / 100 * strength)
-        let developed = PhotoFilmExposureProcessor.apply(to: input, effects: plan.filmEffects,
+        // 感光雜訊先清理，再模擬乳劑顆粒，避免兩個控制項互相抵消。
+        let cleanedInput = PhotoToneZoneProcessor.applyDenoise(to: input,
+            masks: PhotoToneMasks(input: input, profile: .balanced),
+            amount: normalized(plan.postProcessing.denoise), strength: strength)
+        let developed = PhotoFilmExposureProcessor.apply(to: cleanedInput, effects: plan.filmEffects,
             amounts: amounts, strength: strength, monochrome: isMonochrome)
         let filteredInput = isMonochrome
             ? PhotoFilmEffectsProcessor.applyMonochromeFilter(to: developed, effects: plan.filmEffects, strength: strength)
@@ -226,12 +230,6 @@ public struct PhotoStylizer: Sendable {
         strength: Double
     ) -> CIImage {
         var output = image
-        output = PhotoToneZoneProcessor.applyDenoise(
-            to: output,
-            masks: masks,
-            amount: normalized(postProcessing.denoise),
-            strength: strength
-        )
         output = PhotoVignetteProcessor.applyDevignette(to: output, amount: normalized(postProcessing.devignette) * strength, profile: .plan)
         output = PhotoVignetteProcessor.applyVignette(to: output, amount: normalized(postProcessing.vignette) * strength, profile: .plan)
         return output

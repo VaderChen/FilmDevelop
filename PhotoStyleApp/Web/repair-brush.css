@@ -1,0 +1,30 @@
+.repair-toggle[aria-pressed="true"] { color: var(--accent,#ba5035); background: rgba(190,80,50,.12); border-color: rgba(190,80,50,.4); }
+.repair-panel { display:flex; align-items:center; justify-content:flex-end; flex-wrap:nowrap; gap:8px; margin:0; padding:5px 10px; min-width:0; border:1px solid var(--line,#ddd8cf); border-radius:10px; background:var(--panel,#fffdf9); font-size:12px; }
+.repair-panel label { font-weight:650; }
+.repair-panel input[type="range"] { width:120px; min-width:80px; margin:0; }
+.repair-panel output { min-width:42px; font-variant-numeric:tabular-nums; }
+.repair-panel .photo-directory-button { min-height:28px; padding:5px 9px; font-size:11px; }
+.repair-status { display:flex; align-items:center; gap:8px; min-width:0; color:var(--muted,#746e64); min-height:18px; }
+.repair-status .preview-spinner { width:14px; height:14px; border-width:2px; }
+.repair-overlay { position:absolute; inset:0; width:100%; height:100%; z-index:6; cursor:none; touch-action:none; }
+.repair-cursor { position:absolute; z-index:7; border:1px solid white; box-shadow:0 0 0 1px #333; border-radius:50%; transform:translate(-50%,-50%); pointer-events:none; }
+.home-workspace.repair-active .adjustment-pane { pointer-events:none; opacity:.6; }
+.home-workspace.repair-active .crop-quick-group,.home-workspace.repair-active .white-balance-picker { pointer-events:none; opacity:.45; }
+
+.repair-header .app-brand { display:none; }
+/* 與照片工作區共用欄寬及內距，收合側欄時一起對齊。 */
+.app-header.repair-header { display:grid; grid-template-columns:var(--film-sidebar-width) minmax(0,1fr) var(--inspector-width); gap:0; padding:10px 0; flex-basis:auto; min-height:64px; }
+.repair-header .repair-panel { grid-column:2; margin:0 var(--preview-gutter); flex-wrap:wrap; }
+.repair-header .tabs { grid-column:3; justify-self:center; max-width:calc(100% - 20px); }
+.repair-header .tab { flex:1 1 auto; padding:5px 8px; white-space:nowrap; }
+.repair-header .tab span { overflow:hidden; text-overflow:ellipsis; }
+.repair-panel label,.repair-panel output,.repair-panel button { flex-shrink:0; white-space:nowrap; }
+.repair-status > span:last-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.repair-status .preview-spinner { flex-shrink:0; }
+@media (max-width:1200px) {
+  .repair-panel { gap:6px; }
+  .repair-panel input[type="range"] { width:90px; }
+}
+
+.repair-download-progress { display:block; width:100%; height:8px; margin:14px 0 6px; accent-color:var(--accent); }
+.repair-download-progress[hidden] { display:none; }

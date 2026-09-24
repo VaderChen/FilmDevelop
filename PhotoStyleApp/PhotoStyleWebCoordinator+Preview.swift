@@ -80,7 +80,7 @@ extension PhotoStyleWebCoordinator {
         let request = PhotoStyleRenderRequest(
             style: request.style, adjustment: request.adjustment, image: request.image,
             subjectMask: request.subjectMask,
-            shouldDetectSubjectMask: request.shouldDetectSubjectMask || pendingDetection
+            shouldDetectSubjectMask: request.shouldDetectSubjectMask || pendingDetection, repairPatches: request.repairPatches
         )
         previewRevision &+= 1
         let cacheKey = previewCacheKey(for: request)
@@ -127,13 +127,14 @@ extension PhotoStyleWebCoordinator {
             }
             let (output, images, subjectMask) = autoreleasepool {
                 let subjectMask = job.request.subjectMask ?? (job.request.shouldDetectSubjectMask
-                    ? renderer.detectSubjectMask(for: job.maskDetectionImage) : nil)
+                    ? renderer.detectSubjectMask(for: PhotoStyleProcessor.repairedSource(job.maskDetectionImage, patches: job.request.repairPatches)) : nil)
                 let output = renderer.render(.init(
                     style: job.request.style, adjustment: job.request.adjustment,
-                    image: job.request.image, subjectMask: subjectMask, shouldDetectSubjectMask: false
+                    image: job.request.image, subjectMask: subjectMask, shouldDetectSubjectMask: false, repairPatches: job.request.repairPatches
                 )).resizedForWebPreview(maxPixel: Self.processingPreviewMaxPixel)
                 var images: [String: String] = [:]
                 images["cropSourceImage"] = imageDataURL(job.request.image, maxPixel: PhotoImage.previewMaxPixel)
+                images["repairSourceImage"] = imageDataURL(PhotoStyleProcessor.repairedSource(job.maskDetectionImage, patches: job.request.repairPatches), maxPixel: PhotoImage.previewMaxPixel)
                 let comparisonImage = croppedImage(job.request.image, adjustment: job.request.adjustment)
                 images["sourceImage"] = imageDataURL(comparisonImage, maxPixel: Self.processingPreviewMaxPixel)
                 images["outputImage"] = imageDataURL(output, maxPixel: Self.processingPreviewMaxPixel)
@@ -149,13 +150,14 @@ extension PhotoStyleWebCoordinator {
                 if job.request.shouldDetectSubjectMask,
                    self.isCurrentPhotoImage(job.request.image) {
                     self.sourceSubjectMask = subjectMask
+                    self.subjectMaskAttemptedGeneration = self.photoGeneration
                     if let pending = self.pendingPreviewRender,
                        self.isCurrentPhotoImage(pending.request.image) {
                         self.pendingPreviewRender = PhotoStylePreviewJob(
                             revision: pending.revision,
                             request: .init(style: pending.request.style, adjustment: pending.request.adjustment,
                                            image: pending.request.image, subjectMask: subjectMask,
-                                           shouldDetectSubjectMask: false),
+                                           shouldDetectSubjectMask: false, repairPatches: pending.request.repairPatches),
                             cacheKey: pending.cacheKey,
                             maskDetectionImage: pending.maskDetectionImage
                         )

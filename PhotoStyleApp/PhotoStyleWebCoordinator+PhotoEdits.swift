@@ -20,7 +20,7 @@ extension PhotoStyleWebCoordinator {
     func persistCurrentPhotoEdits() {
         guard !isRestoringPhotoEdits, sourceImage != nil, let key = currentPhotoEditKey else { return }
         photoEditStore.save(.init(style: selectedStyle, adjustments: adjustmentStore.adjustments, customFilmID: selectedCustomFilmID,
-                                  customFilmBaseAdjustment: customFilmBaseAdjustment),
+                                  customFilmBaseAdjustment: customFilmBaseAdjustment, repairPatches: repairPatches),
                             mask: sourceSubjectMask, for: key)
     }
 
@@ -30,7 +30,7 @@ extension PhotoStyleWebCoordinator {
         encoder.outputFormatting = .sortedKeys
         guard let data = try? encoder.encode(request.adjustment) else { return nil }
         let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
-        return "\(key):\(request.style.rawValue):\(request.image.size):\(request.image.requiresRAWDisplayMapping):\(digest)"
+        return "\(repairRevision):\(key):\(request.style.rawValue):\(request.image.size):\(request.image.requiresRAWDisplayMapping):\(digest)"
     }
 }
 
@@ -38,7 +38,7 @@ extension PhotoStyleWebCoordinator {
 extension PhotoStyleWebCoordinator {
     var currentEditSnapshot: EditSnapshot {
         EditSnapshot(style: selectedStyle, adjustments: adjustmentStore.adjustments, customFilmID: selectedCustomFilmID,
-                     customFilmBaseAdjustment: customFilmBaseAdjustment)
+                     customFilmBaseAdjustment: customFilmBaseAdjustment, repairPatches: repairPatches)
     }
 
     func resetEditHistory() {
@@ -67,7 +67,7 @@ extension PhotoStyleWebCoordinator {
 
     func restoreEditHistory(redo: Bool) {
         guard sourceImage != nil, !isLoadingImage, !isComputing, !isSavingImage,
-              !isTerminating, !isDetectingSubjectMask else { return }
+              !isTerminating, !isDetectingSubjectMask, !isRepairingImage else { return }
         let target: EditSnapshot
         if redo {
             guard let next = editRedoStack.popLast() else { return }
@@ -80,6 +80,11 @@ extension PhotoStyleWebCoordinator {
         }
         cancelAdjustmentPreview()
         isRestoringEditHistory = true
+        if repairPatches != target.repairPatches {
+            sourceSubjectMask = nil; subjectMaskAttemptedGeneration = nil
+            photoPreviewCache.removeAllObjects()
+        }
+        repairPatches = target.repairPatches
         selectedStyle = target.style
         selectedCustomFilmID = target.customFilmID
         customFilmBaseAdjustment = target.customFilmBaseAdjustment

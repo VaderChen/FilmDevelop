@@ -1,4 +1,5 @@
 import Combine
+import PhotoStyleShared
 import CoreImage
 import AppKit
 import WebKit
@@ -43,11 +44,19 @@ final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMe
     let photoPreviewCache = NSCache<NSString, PhotoEditPreview>()
     var currentPhotoEditKey: String?
     var isRestoringPhotoEdits = false
+    var repairPatches: [PhotoRepairPatch] = []
+    var isRepairingImage = false
+    var repairStep = ""
+    var repairModelProgress: PhotoRepairModelProgress?
+    var isCancellingRepair = false
+    var repairOperationID = UUID()
+    var repairTask: Task<Void, Never>?
     struct EditSnapshot: Equatable {
         var style: PhotoStyle
         var adjustments: [PhotoStyle: StyleAdjustment]
         var customFilmID: String? = nil
         var customFilmBaseAdjustment: StyleAdjustment? = nil
+        var repairPatches: [PhotoRepairPatch] = []
     }
     var editUndoStack: [EditSnapshot] = []
     var editRedoStack: [EditSnapshot] = []
@@ -121,6 +130,7 @@ final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMe
     var previewImage: PhotoImage?
     var outputImage: PhotoImage?
     var sourceSubjectMask: CIImage?
+    var subjectMaskAttemptedGeneration: UUID?
     let previewRenderQueue = DispatchQueue(label: "person.vader.PhotoStyleApp.preview", qos: .userInitiated)
     var adjustmentPreviewInteractionID: String?
     var adjustmentPreviewNeedsMask = false

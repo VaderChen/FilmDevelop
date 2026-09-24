@@ -49,6 +49,18 @@ Drag inside the crop to move it, handles to resize, or outside a corner to rotat
 
 Cropping uses a fast preview with the same fit-to-window behavior as normal editing. The completed result is calculated from the original; display previews have a maximum long edge of 2048 px.
 
+### Repair brush
+
+Use the eraser icon to the left of Crop, set the brush size in the top toolbar, and paint over an unwanted object. Releasing the mouse applies the repair automatically. Choose Done to return to the current film look. Repairs support undo/redo, are saved per photo, and are included in previews and full-resolution exports without changing the original file. Reset to defaults immediately removes applied repairs.
+
+First use downloads the approximately 217 MB LaMa model in a cancellable progress dialog showing percentage and downloaded bytes. Model preparation then continues automatically. Once cached, repairs work offline using Core ML on Apple Silicon; photos are not uploaded. Inspect large repairs for blurred or unnatural details.
+
+### Skin and rendering controls
+
+Skin warmth sits between lens blur and whitening: −100 is cooler, +100 warmer, and 0 neutral. It affects only the skin mask and supports per-photo saving, undo/redo, and reset. Smoothing now uses an edge-preserving guided filter without a separate model download. Noise reduction runs before film grain, and vignette compensation preserves black levels.
+
+HDR can be adjusted without an AI tone curve. Lens blur respects crop and depth alignment and reduces subject-edge color bleeding. Print illuminant is available in scan and reversal modes through output color compensation; Original Reference preserves the existing color. Non-scanned negatives retain spectral printing. The export button now uses the accent color.
+
 ### Adjustments and AI
 
 Film intensity defaults to 50. All built-in films, including Original, default to neutral scanning. Exposure and contrast remain available under Develop while scanning is enabled. Positive exposure brightens and negative darkens. Scan controls color density, layer separation, scanner flare and midtone/highlight warmth.

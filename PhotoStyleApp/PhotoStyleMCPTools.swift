@@ -5,7 +5,7 @@ enum PhotoStyleMCPTools {
     static let numericRanges: [String: ClosedRange<Double>] = {
         var ranges: [String: ClosedRange<Double>] = [:]
         for key in ["intensity", "brightness", "grain", "vignette", "denoise", "devignette", "backgroundBlur", "skinWhitening", "skinSmoothing", "hdrAmount"] { ranges[key] = 0...100 }
-        for key in ["exposure", "whiteBalanceWarmth", "whiteBalanceTint", "contrast", "vignetteBalance", "cropHorizontalPosition", "cropVerticalPosition"] { ranges[key] = -100...100 }
+        for key in ["skinWarmth", "exposure", "whiteBalanceWarmth", "whiteBalanceTint", "contrast", "vignetteBalance", "cropHorizontalPosition", "cropVerticalPosition"] { ranges[key] = -100...100 }
         ranges["cropRotation"] = -45...45
         for key in ["cropScale", "cropWidth", "cropHeight"] { ranges[key] = 20...100 }
         for region in ["highlight", "midtone", "shadow"] {

@@ -11,3 +11,12 @@ The package intentionally contains only app-safe code:
 The macOS app composes the shared processors with its named-style signatures, interactive adjustments, decorations, and preview pipeline.
 
 CLI-only process wrappers and llama.cpp command execution stay in `aiTest2`.
+
+
+## 2026-09-24 影像處理更新
+
+- 磨皮改用保留邊緣的導向濾波，新增僅作用於膚色遮罩的冷暖調整；既有呼叫預設冷暖為 0。
+- 去雜訊先於底片顆粒處理，避免附帶銳化放大雜訊；暗角補償保留黑位與透明度。
+- HDR 在沒有 AI 曲線時仍有手動效果；背景模糊改善深度裁切對齊及主體邊界滲色。
+- 掃描／正片的印相光源使用成品色彩補償，原始參考不改變既有輸出；非掃描負片保留光譜印相。
+- 修復區塊使用正規化座標保存，供預覽與完整解析度匯出共用。

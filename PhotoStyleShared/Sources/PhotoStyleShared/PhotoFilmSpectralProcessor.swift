@@ -42,7 +42,18 @@ public enum PhotoFilmSpectralProcessor {
             CIVector(x:0, y:(e.scanMidtoneWarmth + warmth)/100, z:(e.scanHighlightWarmth - warmth)/100, w:0),
             vector(calibration.base), vector(calibration.middle), scanRows[0], scanRows[1], scanRows[2]
         ]) else { return image }
-        return (result.matchedToWorkingSpace(from: linearSRGB) ?? image).cropped(to: image.extent)
+        var output = (result.matchedToWorkingSpace(from: linearSRGB) ?? image).cropped(to: image.extent)
+        // 掃描／正片略過光學負片印相，改在成品套用光源色彩補償。
+        // 只補光源，不重複套用已在 kernel 計算的曝光、反差或掃描設定。
+        if (e.scannerProfile != .off || stock.family == "reversal"), e.printIlluminant != .reference {
+            var lighting = PhotoFilmEffects.neutral
+            lighting.printIlluminant = e.printIlluminant
+            output = PhotoFilmEffectsProcessor.applyPrint(to: output, effects: lighting)
+            if stock.isMonochrome {
+                output = PhotoImageEffectsProcessor.monochrome(output, profile: .desaturate)
+            }
+        }
+        return output
     }
 
     static var kernelIsAvailable: Bool { compiled.kernel != nil }

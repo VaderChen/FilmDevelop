@@ -42,7 +42,7 @@ final class PhotoStyleFilmHoverPreview {
         } else { return }
         _ = adjustment.resolveHDRToneCurveFromAIAnalysisIfNeeded()
         let request = PhotoStyleRenderRequest(style: style, adjustment: coordinator.renderingAdjustment(adjustment),
-            image: image, subjectMask: coordinator.sourceSubjectMask, shouldDetectSubjectMask: false)
+            image: image, subjectMask: coordinator.sourceSubjectMask, shouldDetectSubjectMask: false, repairPatches: coordinator.repairPatches)
         let job = Job(id: id, look: look, photo: coordinator.photoGeneration, revision: coordinator.previewRevision,
                       selectedStyle: coordinator.selectedStyle, selectedCustomID: coordinator.selectedCustomFilmID, request: request)
         currentID = id
@@ -69,7 +69,7 @@ final class PhotoStyleFilmHoverPreview {
 
     private func isAvailable(_ coordinator: PhotoStyleWebCoordinator) -> Bool {
         !coordinator.isTerminating && !coordinator.isLoadingImage && !coordinator.isComputing
-            && !coordinator.isSavingImage && !coordinator.isMCPMutating && !coordinator.isRenderingPreview
+            && !coordinator.isSavingImage && !coordinator.isRepairingImage && !coordinator.isMCPMutating && !coordinator.isRenderingPreview
             && !coordinator.isDetectingSubjectMask && coordinator.sourceImage != nil
     }
 

@@ -10,6 +10,12 @@ import Vision
 enum PhotoStyleProcessor {
     private static let context = PhotoImageRenderPrecision.makeContext()
 
+    static func repairedSource(_ image: PhotoImage, patches: [PhotoRepairPatch]) -> PhotoImage {
+        guard !patches.isEmpty, let ci = CIImage(image: image) else { return image }
+        let output = PhotoRepairPatch.applying(patches, to: ci.oriented(forExifOrientation: image.cgImageOrientation))
+        return PhotoImageRenderPrecision.renderedImage(from: output, context: context, preserving: image) ?? image
+    }
+
     static var canDetectSubjectMask: Bool {
         PhotoSubjectMaskGenerator.isAvailable
     }
@@ -30,16 +36,18 @@ enum PhotoStyleProcessor {
         adjustment: StyleAdjustment,
         to image: PhotoImage,
         subjectMask: CIImage? = nil,
-        shouldDetectSubjectMask: Bool = true
+        shouldDetectSubjectMask: Bool = true,
+        repairPatches: [PhotoRepairPatch] = []
     ) -> PhotoImage {
         guard let ciImage = CIImage(image: image) else {
             return image
         }
 
-        let decoded = ciImage.oriented(forExifOrientation: image.cgImageOrientation)
+        let decoded = PhotoRepairPatch.applying(repairPatches, to: ciImage.oriented(forExifOrientation: image.cgImageOrientation))
         let strength = effectiveStyleIntensity(from: adjustment.intensity)
         // Scatter scene-linear highlight energy before RAW display companding.
-        let calibratedInput = PhotoColorCalibrationProcessor.apply(to: decoded,
+        let cleanedInput = applyDenoise(to: decoded, amount: adjustment.denoise / 100 * strength)
+        let calibratedInput = PhotoColorCalibrationProcessor.apply(to: cleanedInput,
             calibration: adjustment.colorCalibration?.stage == .input ? adjustment.colorCalibration : nil)
         let amounts = PhotoToneZoneProcessor.resolvedGrainAmounts(
             globalAmount: adjustment.grain / 100 * strength, highlightAmount: adjustment.highlightGrain / 100 * strength,
@@ -68,7 +76,8 @@ enum PhotoStyleProcessor {
             sourceForMask: oriented,
             subjectMask: resolvedSubjectMask,
             whitening: adjustment.skinWhitening / 100 * strength,
-            smoothing: adjustment.skinSmoothing / 100 * strength
+            smoothing: adjustment.skinSmoothing / 100 * strength,
+            warmth: adjustment.skinWarmth / 100 * strength
         )
         let correctedBaseImage = applyWhiteBalanceAdjustment(
             to: baseImage,
@@ -174,24 +183,25 @@ enum PhotoStyleProcessor {
         let zoneAdjusted = applyToneZoneAdjustments(to: toneAdjusted, style: style, adjustment: adjustment, strength: strength)
         let hdrAdjusted = PhotoHDRProcessor.apply(
             to: zoneAdjusted,
-            curve: adjustment.hdrToneCurve,
+            curve: adjustment.hdrToneCurve ?? PhotoHDRProcessor.manualCurve,
             amount: adjustment.hdrAmount / 100
         )
-        let denoised = applyDenoise(to: hdrAdjusted, amount: adjustment.denoise / 100 * strength)
-        let cropRect = adjustment.cropRect(in: denoised.extent, verticalAxisInverted: true)
-        let cropTransform = PhotoCropCalculator.rotationTransform(in: denoised.extent, clockwiseDegrees: adjustment.cropRotation)
-        let cropped = denoised.transformed(by: cropTransform).cropped(to: cropRect)
+        let cropRect = adjustment.cropRect(in: hdrAdjusted.extent, verticalAxisInverted: true)
+        let cropTransform = PhotoCropCalculator.rotationTransform(in: hdrAdjusted.extent, clockwiseDegrees: adjustment.cropRotation)
+        let cropped = hdrAdjusted.transformed(by: cropTransform).cropped(to: cropRect)
         let croppedSubjectMask = resolvedSubjectMask?.transformed(by: cropTransform).cropped(to: cropRect)
         let devignetted = PhotoVignetteProcessor.applyDevignette(to: cropped, amount: adjustment.devignette / 100 * strength, profile: .app)
         let withVignette = PhotoVignetteProcessor.applyVignette(to: devignetted, amount: adjustment.vignette / 100 * strength, profile: .app)
         let withLensBlur = applyDepthLensBlur(
             to: withVignette,
-            sourceForDepth: oriented,
+            sourceForDepth: image.requiresRAWDisplayMapping
+                ? PhotoRAWDynamicRangeProcessor.prepareForDisplayAdjustments(decoded) : decoded,
             subjectMask: croppedSubjectMask,
-            amount: adjustment.backgroundBlur / 100 * strength,
+            amount: adjustment.backgroundBlur / 100,
             sourceImage: image.cgImage,
             allowSubjectDetection: shouldDetectSubjectMask,
-            geometryTransform: cropTransform
+            geometryTransform: cropTransform,
+            depthRevision: repairPatches.map { $0.id.uuidString }.joined()
         )
 
         // Tone-plan fade and other adjustments can introduce a slight color cast.
@@ -731,11 +741,12 @@ enum PhotoStyleProcessor {
         sourceForMask: CIImage,
         subjectMask: CIImage?,
         whitening: Double,
-        smoothing: Double
+        smoothing: Double,
+        warmth: Double
     ) -> CIImage {
         let whitening = whitening.clamped(to: 0...1)
         let smoothing = smoothing.clamped(to: 0...1)
-        guard whitening > 0.005 || smoothing > 0.005 else { return image }
+        guard whitening > 0.005 || smoothing > 0.005 || abs(warmth) > 0.001 else { return image }
 
         let extent = image.extent
         let skinMask = makeSkinMask(from: sourceForMask, subjectMask: subjectMask, extent: extent)
@@ -744,7 +755,8 @@ enum PhotoStyleProcessor {
             skinMask: skinMask,
             whitening: whitening,
             smoothing: smoothing,
-            profile: .app
+            profile: .app,
+            warmth: warmth
         )
     }
 
@@ -878,14 +890,15 @@ enum PhotoStyleProcessor {
         amount: Double,
         sourceImage: CGImage?,
         allowSubjectDetection: Bool,
-        geometryTransform: CGAffineTransform = .identity
+        geometryTransform: CGAffineTransform = .identity,
+        depthRevision: String = ""
     ) -> CIImage {
         let amount = amount.clamped(to: 0...1)
         guard amount > 0.005 else { return image }
         guard let subjectMask,
               let depthMap = DepthAnythingV2DepthEstimator.shared.depthMap(
                 for: sourceForDepth,
-                sourceImage: sourceImage
+                sourceImage: sourceImage, revision: depthRevision
               ) else {
             let fallbackMask = subjectMask ?? (allowSubjectDetection
                 ? PhotoSubjectMaskGenerator.makeMask(from: sourceForDepth)?.transformed(by: geometryTransform) : nil)
@@ -906,37 +919,21 @@ enum PhotoStyleProcessor {
             )
         }
 
-        let radius = PhotoBackgroundBlurProcessor.blurRadius(
-            for: image.extent,
-            amount: amount
+        return PhotoBackgroundBlurProcessor.apply(
+            to: image, personMask: subjectMask, amount: amount, depthMask: blurMask
         )
-        let protectedSubject = PhotoBackgroundBlurProcessor.refinedSubjectMask(
-            subjectMask,
-            extent: image.extent,
-            blurRadius: radius
-        )
-            .applyingFilter("CIColorInvert")
-        let backgroundOnlyMask = blurMask.applyingFilter("CIMultiplyCompositing", parameters: [
-            kCIInputBackgroundImageKey: protectedSubject
-        ])
-
-        return image
-            .clampedToExtent()
-            .applyingFilter("CIMaskedVariableBlur", parameters: [
-                kCIInputRadiusKey: radius,
-                "inputMask": backgroundOnlyMask
-            ])
-            .cropped(to: image.extent)
     }
 
-    private static func depthBlurPlan(for depthMap: CIImage, subjectMask: CIImage, extent: CGRect) -> PhotoDepthBlurPlan? {
+    static func depthBlurPlan(for depthMap: CIImage, subjectMask: CIImage, extent: CGRect) -> PhotoDepthBlurPlan? {
         let maxSide = 96.0
         let scale = min(1.0, maxSide / max(extent.width, extent.height))
         let width = max(1, Int((extent.width * scale).rounded()))
         let height = max(1, Int((extent.height * scale).rounded()))
         let sampleBounds = CGRect(x: 0, y: 0, width: width, height: height)
-        let toSampleSpace = CGAffineTransform(translationX: -extent.minX, y: -extent.minY)
-            .scaledBy(x: scale, y: scale)
+        let toSampleSpace = CGAffineTransform(
+            a: scale, b: 0, c: 0, d: scale,
+            tx: -extent.minX * scale, ty: -extent.minY * scale
+        )
         let sampledDepth = depthMap
             .transformed(by: toSampleSpace)
             .cropped(to: sampleBounds)
@@ -1019,7 +1016,7 @@ enum PhotoStyleProcessor {
         return gamma.outputImage?.cropped(to: depthMap.extent)
     }
 
-    private final class DepthAnythingV2DepthEstimator {
+    final class DepthAnythingV2DepthEstimator {
         static let shared = DepthAnythingV2DepthEstimator()
 
         private let lock = NSLock()
@@ -1027,57 +1024,56 @@ enum PhotoStyleProcessor {
         private var unavailable = false
         // Keep the identity object alive; an address alone can be reused for a
         // newly opened image and accidentally return the previous depth map.
-        private var cachedSourceImage: CGImage?
-        private var cachedDepthMap: CIImage?
+        private var cachedDepthMaps: [(source: CGImage, extent: CGRect, revision: String, depth: CIImage)] = []
 
-        func depthMap(for image: CIImage, sourceImage: CGImage?) -> CIImage? {
+        func depthMap(for image: CIImage, sourceImage: CGImage?, revision: String = "") -> CIImage? {
             lock.lock()
             defer { lock.unlock() }
             guard !unavailable else { return nil }
-            if let sourceImage, let cachedSourceImage,
-               sourceImage === cachedSourceImage,
-               let cachedDepthMap {
-                return cachedDepthMap
+            if let sourceImage, let cached = cachedDepthMaps.first(where: {
+                $0.source === sourceImage && $0.extent == image.extent && $0.revision == revision
+            }) {
+                return cached.depth
             }
 
             do {
                 let model = try loadModel()
-                let rotatesForPortrait = image.extent.height > image.extent.width
-                let inferenceImage = rotatesForPortrait
-                    ? image.oriented(.right)
-                    : image
-                guard let cgImage = context.createCGImage(
-                    inferenceImage,
-                    from: inferenceImage.extent
-                ) else {
+                guard let constraint = model.modelDescription.inputDescriptionsByName["image"]?.imageConstraint else {
                     return nil
                 }
-                let inputImage = try MLFeatureValue(
-                    cgImage: cgImage,
-                    pixelsWide: 518,
-                    pixelsHigh: 392,
-                    pixelFormatType: kCVPixelFormatType_32BGRA,
-                    options: nil
-                )
+                // 保持照片直立，等比例縮放後補邊；推論完成再去除補邊。
+                let bounds = image.extent
+                let scale = min(CGFloat(constraint.pixelsWide) / bounds.width,
+                                CGFloat(constraint.pixelsHigh) / bounds.height)
+                let fittedSize = CGSize(width: bounds.width * scale, height: bounds.height * scale)
+                let fitRect = CGRect(x: (CGFloat(constraint.pixelsWide) - fittedSize.width) / 2,
+                                     y: (CGFloat(constraint.pixelsHigh) - fittedSize.height) / 2,
+                                     width: fittedSize.width, height: fittedSize.height)
+                let transform = CGAffineTransform(a: scale, b: 0, c: 0, d: scale,
+                    tx: fitRect.minX - bounds.minX * scale, ty: fitRect.minY - bounds.minY * scale)
+                let inferenceImage = image.transformed(by: transform).clampedToExtent().cropped(to:
+                    CGRect(x: 0, y: 0, width: constraint.pixelsWide, height: constraint.pixelsHigh))
+                guard let cgImage = context.createCGImage(inferenceImage, from: inferenceImage.extent) else { return nil }
+                let inputImage = try MLFeatureValue(cgImage: cgImage, constraint: constraint,
+                    options: [.cropAndScale: VNImageCropAndScaleOption.scaleFill.rawValue])
                 let input = try MLDictionaryFeatureProvider(dictionary: ["image": inputImage])
                 let output = try model.prediction(from: input)
                 guard let depthBuffer = output.featureValue(for: "depth")?.imageBufferValue else {
                     return nil
                 }
 
-                let depth = CIImage(cvPixelBuffer: depthBuffer)
-                let orientedDepth = rotatesForPortrait
-                    ? depth.oriented(.left)
-                    : depth
-                let fittedDepth = PhotoSubjectMaskGenerator.fitMask(
-                    orientedDepth,
-                    to: image.extent
-                )
-                cachedSourceImage = sourceImage
-                cachedDepthMap = fittedDepth
+                let depth = PhotoSubjectMaskGenerator.fitMask(
+                    CIImage(cvPixelBuffer: depthBuffer), to: inferenceImage.extent
+                ).cropped(to: fitRect)
+                let fittedDepth = PhotoSubjectMaskGenerator.fitMask(depth, to: image.extent)
+                if let sourceImage {
+                    cachedDepthMaps.insert((sourceImage, image.extent, revision, fittedDepth), at: 0)
+                    // 拖曳預覽與處理圖各留一份，避免切換解析度就重新推論。
+                    if cachedDepthMaps.count > 2 { cachedDepthMaps.removeLast() }
+                }
                 return fittedDepth
             } catch {
-                unavailable = true
+                // 單張照片或暫時的推論失敗不應永久停用整個工作階段。
                 return nil
             }
         }
@@ -1086,7 +1082,11 @@ enum PhotoStyleProcessor {
             if let model { return model }
 
             let configuration = MLModelConfiguration()
+            #if arch(arm64)
             configuration.computeUnits = .all
+            #else
+            configuration.computeUnits = .cpuOnly
+            #endif
 
             if let compiledURL = Bundle.main.url(
                 forResource: "DepthAnythingV2SmallF16P6",
@@ -1103,6 +1103,7 @@ enum PhotoStyleProcessor {
                 withExtension: "mlpackage",
                 subdirectory: "Models"
             ) else {
+                unavailable = true
                 throw PhotoStyleDepthError.modelNotFound
             }
 

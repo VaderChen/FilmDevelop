@@ -1,6 +1,11 @@
 import CoreImage
 
 public enum PhotoHDRProcessor {
+    /// 手動 HDR 不依賴 AI 分析；保留黑白端點，抬升暗部並壓縮亮部。
+    public static let manualCurve = PhotoStylePlan.HDRToneCurve(
+        black: 0, shadows: 38, midtones: 50, highlights: 64, white: 100, detail: 12
+    )
+
     private static let luminanceKernel = CIColorKernel(source: """
     kernel vec4 hdrLuminance(__sample source) {
         float luminance = dot(source.rgb, vec3(0.2126, 0.7152, 0.0722));
@@ -43,33 +48,34 @@ public enum PhotoHDRProcessor {
     """)
 
     private static let reconstructionKernel = CIColorKernel(source: """
+    float hdrSlope(float left, float right) {
+        return left > 0.0 && right > 0.0 ? 2.0 * left * right / (left + right) : 0.0;
+    }
+
+    float hdrSegment(float x, float y0, float y1, float m0, float m1) {
+        float t = clamp(x, 0.0, 1.0);
+        float t2 = t * t;
+        float t3 = t2 * t;
+        return (2.0*t3 - 3.0*t2 + 1.0)*y0 + (t3 - 2.0*t2 + t)*m0
+             + (-2.0*t3 + 3.0*t2)*y1 + (t3 - t2)*m1;
+    }
+
     float mapLocalHDRTone(
-        float value,
-        float black,
-        float shadows,
-        float midtones,
-        float highlights,
-        float white
+        float value, float black, float shadows, float midtones, float highlights, float white
     ) {
-        float mappedValue;
-        if (value <= 0.25) {
-            float t = clamp(value / 0.25, 0.0, 1.0);
-            t = t * t * (3.0 - 2.0 * t);
-            mappedValue = value + mix(black, shadows - 0.25, t);
-        } else if (value <= 0.50) {
-            float t = clamp((value - 0.25) / 0.25, 0.0, 1.0);
-            t = t * t * (3.0 - 2.0 * t);
-            mappedValue = value + mix(shadows - 0.25, midtones - 0.50, t);
-        } else if (value <= 0.75) {
-            float t = clamp((value - 0.50) / 0.25, 0.0, 1.0);
-            t = t * t * (3.0 - 2.0 * t);
-            mappedValue = value + mix(midtones - 0.50, highlights - 0.75, t);
-        } else {
-            float t = clamp((value - 0.75) / 0.25, 0.0, 1.0);
-            t = t * t * (3.0 - 2.0 * t);
-            mappedValue = value + mix(highlights - 0.75, white - 1.0, t);
-        }
-        return max(mappedValue, 0.0);
+        // 單調 Hermite 插值；相鄰控制點相等時不會反轉亮度。
+        float d0 = shadows - black;
+        float d1 = midtones - shadows;
+        float d2 = highlights - midtones;
+        float d3 = white - highlights;
+        float m1 = hdrSlope(d0, d1);
+        float m2 = hdrSlope(d1, d2);
+        float m3 = hdrSlope(d2, d3);
+        if (value <= 0.25) return hdrSegment(value * 4.0, black, shadows, d0, m1);
+        if (value <= 0.50) return hdrSegment((value-0.25)*4.0, shadows, midtones, m1, m2);
+        if (value <= 0.75) return hdrSegment((value-0.50)*4.0, midtones, highlights, m2, m3);
+        if (value <= 1.0) return hdrSegment((value-0.75)*4.0, highlights, white, m3, d3);
+        return white + value - 1.0;
     }
 
     kernel vec4 reconstructLocalHDR(

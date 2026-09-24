@@ -12,7 +12,8 @@ public enum PhotoNoiseProcessor {
 
         return image.applyingFilter("CINoiseReduction", parameters: [
             "inputNoiseLevel": min(0.08, amount * 0.08),
-            "inputSharpness": max(0.35, 0.85 - amount * 0.35)
+            // 去雜訊不附加銳化，避免低強度反而放大感光雜訊。
+            "inputSharpness": 0
         ])
     }
 
@@ -27,6 +28,6 @@ public enum PhotoNoiseProcessor {
     }
 
     private static func clamped(_ value: Double) -> Double {
-        min(max(value, 0), 1)
+        value.isFinite ? min(max(value, 0), 1) : 0
     }
 }

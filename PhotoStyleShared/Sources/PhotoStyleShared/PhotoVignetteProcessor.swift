@@ -52,19 +52,20 @@ public enum PhotoVignetteProcessor {
         let amount = min(max(amount, 0), 1)
         guard amount > 0.005, isUsableExtent(image.extent) else { return image }
 
-        let lifted = image.applyingFilter("CIColorControls", parameters: [
-            kCIInputBrightnessKey: min(0.12, amount * 0.12),
-            kCIInputContrastKey: max(0.88, 1.0 - amount * 0.06)
-        ])
-        let mask = PhotoMaskProcessor.opacity(
-            cornerMask(extent: image.extent, profile: profile),
-            value: min(0.72, amount * 0.72)
-        )
-        return lifted.applyingFilter("CIBlendWithMask", parameters: [
-            kCIInputBackgroundImageKey: image,
-            kCIInputMaskImageKey: mask
-        ])
+        // 角落曝光補償採乘法增益；不把純黑抬成灰，也不降低局部反差。
+        let linearSpace = CGColorSpace(name: CGColorSpace.extendedLinearSRGB)!
+        guard let linear = image.matchedFromWorkingSpace(to: linearSpace),
+              let corrected = devignetteKernel?.apply(extent: image.extent, arguments: [
+                linear, cornerMask(extent: image.extent, profile: profile), amount
+              ]) else { return image }
+        return (corrected.matchedToWorkingSpace(from: linearSpace) ?? image).cropped(to: image.extent)
     }
+
+    private static let devignetteKernel = CIColorKernel(source: """
+    kernel vec4 exposureCornerCompensation(__sample image, __sample mask, float amount) {
+        return vec4(image.rgb * exp2(amount * clamp(mask.r, 0.0, 1.0)), image.a);
+    }
+    """)
 
     public static func cornerMask(extent: CGRect, profile: PhotoVignetteProfile) -> CIImage {
         guard isUsableExtent(extent) else { return CIImage.empty() }

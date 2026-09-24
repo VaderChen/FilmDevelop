@@ -22,9 +22,9 @@ extension PhotoStyleWebCoordinator {
             sendToast("MCP 正在更新照片，請稍候。")
             return
         }
-        if (isLoadingImage || isComputing || isSavingImage),
+        if (isLoadingImage || isComputing || isSavingImage || isRepairingImage),
            ![PhotoStyleWebBridgeAction.getState, .requestPhotoThumbnails, .copyMCPConfiguration, .setMCPEnabled, .setLanguage,
-             .cancelDownload, .cancelImport, .cancelComputation, .cancelSubjectMaskDetection, .cancelModelDirectoryScan, .cancelModelRepositoryQuery].contains(bridgeMessage.action) {
+             .cancelRepairBrush, .cancelDownload, .cancelImport, .cancelComputation, .cancelSubjectMaskDetection, .cancelModelDirectoryScan, .cancelModelRepositoryQuery].contains(bridgeMessage.action) {
             sendToast("請等目前的處理完成後再操作。")
             return
         }
@@ -39,6 +39,10 @@ extension PhotoStyleWebCoordinator {
             commitAdjustmentPreview()
         }
         switch bridgeMessage.action {
+        case .applyRepairBrush:
+            applyRepairBrush(bridgeMessage.payload)
+        case .cancelRepairBrush:
+            cancelRepairBrush()
         case .previewFilmHover, .cancelFilmHover:
             break
         case .checkAppUpdate:

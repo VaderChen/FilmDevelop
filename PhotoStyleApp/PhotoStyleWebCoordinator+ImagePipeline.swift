@@ -62,6 +62,7 @@ extension PhotoStyleWebCoordinator {
         if !isSameSourceImage || previousPreviewSize != previewImage?.size {
             sourceSubjectMask = nil
         }
+        repairPatches = []
         // A known photo's recipe wins over the global last-look defaults.
         if let nextPhotoKey, let record = photoEditStore.record(for: nextPhotoKey),
            let restoredStyle = PhotoStyle(rawValue: record.selectedStyle) {
@@ -76,6 +77,7 @@ extension PhotoStyleWebCoordinator {
             let custom = customFilmStore.film(id: record.customFilmID)
             selectedCustomFilmID = custom?.baseStyle == restoredStyle.rawValue ? custom?.id : nil
             customFilmBaseAdjustment = selectedCustomFilmID == nil ? nil : record.customFilmBaseAdjustment
+            repairPatches = record.repairPatches ?? []
             selectedStyle = restoredStyle
             adjustmentStore.restorePhotoAdjustments(record.adjustments)
         } else if !isSameSourceImage {
@@ -432,6 +434,8 @@ extension PhotoStyleWebCoordinator {
 
     func applySelectedStyle(detectSubjectMask: Bool = false, interactive: Bool = false, cropPreview: Bool = false) {
         let needsMask = detectSubjectMask || adjustmentPreviewNeedsMask
+            || (adjustmentStore.adjustment(for: selectedStyle).requiresSubjectMask
+                && subjectMaskAttemptedGeneration != photoGeneration)
         if interactive {
             adjustmentPreviewNeedsMask = needsMask
         } else {
@@ -452,7 +456,8 @@ extension PhotoStyleWebCoordinator {
             adjustment: renderingAdjustment(adjustment),
             image: image,
             subjectMask: sourceSubjectMask,
-            shouldDetectSubjectMask: !interactive && needsMask && sourceSubjectMask == nil && renderer.canDetectSubjectMask
+            shouldDetectSubjectMask: !interactive && needsMask && sourceSubjectMask == nil && renderer.canDetectSubjectMask,
+            repairPatches: repairPatches
         ))
     }
 
@@ -473,6 +478,7 @@ extension PhotoStyleWebCoordinator {
 
                 self.subjectMaskWorkItem = nil
                 self.sourceSubjectMask = mask
+                self.subjectMaskAttemptedGeneration = self.photoGeneration
                 self.isDetectingSubjectMask = false
                 self.applySelectedStyle()
                 self.sendState(includeImages: true)
@@ -487,6 +493,7 @@ extension PhotoStyleWebCoordinator {
         guard isDetectingSubjectMask else { return }
         cancelCurrentSubjectMaskDetection()
         sourceSubjectMask = nil
+        subjectMaskAttemptedGeneration = photoGeneration
         applySelectedStyle()
         sendState(includeImages: true)
     }

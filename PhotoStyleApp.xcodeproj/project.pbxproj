@@ -75,6 +75,8 @@
 		BC2401012C00100100000001 /* zh-Hant.lproj in Resources */ = {isa = PBXBuildFile; fileRef = BC2402012C00100100000001; };
 		BC2401022C00100100000001 /* ja.lproj in Resources */ = {isa = PBXBuildFile; fileRef = BC2402022C00100100000001; };
 		BC2401032C00100100000001 /* ko.lproj in Resources */ = {isa = PBXBuildFile; fileRef = BC2402032C00100100000001; };
+		AC2409240000000000000010 /* PhotoRepairService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC2409240000000000000000 /* PhotoRepairService.swift */; };
+		AC2409240000000000000011 /* PhotoStyleWebCoordinator+Repair.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC2409240000000000000001 /* PhotoStyleWebCoordinator+Repair.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -147,6 +149,8 @@
 		BC2402012C00100100000001 /* zh-Hant.lproj */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "zh-Hant.lproj"; sourceTree = "<group>"; };
 		BC2402022C00100100000001 /* ja.lproj */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "ja.lproj"; sourceTree = "<group>"; };
 		BC2402032C00100100000001 /* ko.lproj */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "ko.lproj"; sourceTree = "<group>"; };
+		AC2409240000000000000000 /* PhotoRepairService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoRepairService.swift"; sourceTree = "<group>"; };
+		AC2409240000000000000001 /* PhotoStyleWebCoordinator+Repair.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleWebCoordinator+Repair.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -226,6 +230,8 @@
 				44F8E5152C00100100000001 /* PhotoStyleWebCoordinator+Bridge.swift */,
 				44F8E51F2C00100100000001 /* PhotoStyleWebBridgeMessage.swift */,
 					44F8E5032C00100100000001 /* PhotoStyle.swift */,
+				AC2409240000000000000001 /* PhotoStyleWebCoordinator+Repair.swift */,
+				AC2409240000000000000000 /* PhotoRepairService.swift */,
 				44F8E5232C00100100000001 /* Comparable+Clamped.swift */,
 					44F8E5042C00100100000001 /* PhotoStyleProcessor.swift */,
 				44F8E5242C00100100000001 /* PhotoStyleRendering.swift */,
@@ -378,6 +384,8 @@
 				AD2302012C00100100000001 /* PhotoAppRelease.swift in Sources */,
 				44F8E6022C00100100000001 /* ContentView.swift in Sources */,
 				44F8E6032C00100100000001 /* PhotoStyle.swift in Sources */,
+				AC2409240000000000000011 /* PhotoStyleWebCoordinator+Repair.swift in Sources */,
+				AC2409240000000000000010 /* PhotoRepairService.swift in Sources */,
 				44F8E6222C00100100000001 /* Comparable+Clamped.swift in Sources */,
 				44F8E6042C00100100000001 /* PhotoStyleProcessor.swift in Sources */,
 				44F8E6232C00100100000001 /* PhotoStyleRendering.swift in Sources */,

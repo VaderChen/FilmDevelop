@@ -195,8 +195,14 @@ extension PhotoStyleWebCoordinator {
 
     func resetAdjustments(_ payload: [String: Any]) {
         guard sourceImage != nil, !isTerminating, !isLoadingImage, !isComputing,
-              !isSavingImage, !isMCPMutating, !isDetectingSubjectMask,
+              !isSavingImage, !isMCPMutating, !isDetectingSubjectMask, !isRepairingImage,
               payload["style"] as? String == selectedStyle.rawValue else { return }
+        if !repairPatches.isEmpty {
+            repairPatches.removeAll()
+            sourceSubjectMask = nil
+            subjectMaskAttemptedGeneration = nil
+            photoPreviewCache.removeAllObjects()
+        }
         adjustmentStore.setAdjustment(currentFilmDefaults, for: selectedStyle)
         if let url = sourceFileURL { photoEditStore.clearEdited(at: url) }
         resetEditHistory()
@@ -360,6 +366,8 @@ extension PhotoStyleWebCoordinator {
                     adjustment.devignette = max(-balance, 0.0)
                 case "backgroundBlur":
                     adjustment.backgroundBlur = doubleValue(from: value) ?? adjustment.backgroundBlur
+                case "skinWarmth":
+                    adjustment.skinWarmth = doubleValue(from: value) ?? adjustment.skinWarmth
                 case "skinWhitening":
                     adjustment.skinWhitening = doubleValue(from: value) ?? adjustment.skinWhitening
                 case "skinSmoothing":
@@ -367,6 +375,9 @@ extension PhotoStyleWebCoordinator {
                 case "hdrAmount":
                     guard let number = doubleValue(from: value) else { continue }
                     adjustment.hdrAmount = number
+                    if number > 0, adjustment.hdrToneCurve?.hasVisibleEffect != true {
+                        adjustment.hdrToneCurve = PhotoHDRProcessor.manualCurve
+                    }
                 case "cropAspectRatio":
                     if let value = value as? String,
                        let cropAspectRatio = CropAspectRatio(rawValue: value) {
@@ -444,6 +455,7 @@ extension PhotoStyleWebCoordinator {
                 if style == selectedStyle {
                     needsSubjectMask = needsSubjectMask
                         || (adjustment.backgroundBlur > 0 && adjustment.backgroundBlur != previous.backgroundBlur)
+                        || (abs(adjustment.skinWarmth) > 0 && adjustment.skinWarmth != previous.skinWarmth)
                         || (adjustment.skinWhitening > 0 && adjustment.skinWhitening != previous.skinWhitening)
                         || (adjustment.skinSmoothing > 0 && adjustment.skinSmoothing != previous.skinSmoothing)
                 }

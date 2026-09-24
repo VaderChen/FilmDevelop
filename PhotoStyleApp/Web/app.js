@@ -21,6 +21,8 @@
     sourceFileName: "",
     histogramVisible: false,
     whiteBalancePicking: false,
+    repairEditing: false,
+    isRepairingImage: false,
     sidebarCollapsed: localStorage.getItem("photoStyle.sidebarCollapsed") === "true",
     showHelp: localStorage.getItem("photoStyle.showHelp") !== "false",
     appearance: localStorage.getItem("photoStyle.appearance") || "comfortable",
@@ -89,13 +91,20 @@
 
   var app = document.getElementById("app");
   var busyDialog = document.getElementById("busyDialog");
+  var repairBrush = new window.PhotoRepairBrush({
+    root: app, state: function () { return state; }, text: function (s) { return L.text(s); }, escape: escapeHtml,
+    busy: function () { return photoIsBusy(state); }, render: render, post: post,
+    image: function () { return app.querySelector('.preview-image'); }, cancelGesture: cancelPreviewGesture,
+    prepare: function () { flushPhotoEdits(); cancelPreviewGesture(); state.cropEditing = false; state.whiteBalancePicking = false; }
+  });
+  window.handleRepairResult = function (result) { repairBrush.result(result); };
   var filmHoverPreview = new window.PhotoFilmHoverPreview({
     root: app,
     context: function () { return { photoGeneration: state.photoGeneration, previewRevision: state.previewRevision, selectedLook: currentLookID() }; },
     available: function () {
       return state.page === 'home' && state.hasImage && !!state.outputImage && !photoIsBusy(state)
         && !state.isRenderingPreview && !(state.subjectMask && state.subjectMask.detecting)
-        && !state.cropEditing && !state.whiteBalancePicking && !state.promptDialog.open
+        && !state.repairEditing && !state.cropEditing && !state.whiteBalancePicking && !state.promptDialog.open
         && !pendingStyleSelection && !pendingLiveAdjustment && !pendingCropValues && !isDraggingAdjustment
         && !(exportDevelopment && exportDevelopment.isVisible());
     },
@@ -407,6 +416,7 @@
       denoise: 0,
       devignette: 0,
       backgroundBlur: 0,
+      skinWarmth: 0,
       skinWhitening: 0,
       skinSmoothing: 0,
       hdrAmount: 25,
@@ -643,11 +653,12 @@
       ["settings", L.text("設定"), "settings"]
     ];
     return [
-      '<header class="app-header">',
+      '<header class="app-header' + (state.page === 'home' && state.repairEditing ? ' repair-header' : '') + '">',
       '<div class="app-brand" aria-label="' + escapeHtml(text("appName")) + '">',
       '<img class="brand-mark" src="app-icon.png" alt="" width="32" height="32">',
       '<span class="brand-copy"><strong>' + escapeHtml(text("appName")) + '</strong><small>' + escapeHtml(text("brandTagline")) + '</small></span>',
       "</div>",
+      state.page === 'home' ? repairBrush.panel() : '',
       L.html('<nav class="tabs" aria-label="主要功能">'),
       tabs.map(function (tab) {
         var active = state.page === tab[0];
@@ -687,11 +698,11 @@
 
   function renderHome() {
     var adjustment = currentAdjustment();
-    var cropEditorVisible = !state.isLoadingImage && !!state.outputImage && isCropEditorVisible(adjustment);
-    var previewSource = state.isLoadingImage ? state.loadingPreviewImage : (filmHoverPreview.imageSource() || state.outputImage || state.loadingPreviewImage);
+    var cropEditorVisible = !state.repairEditing && !state.isLoadingImage && !!state.outputImage && isCropEditorVisible(adjustment);
+    var previewSource = state.repairEditing ? (state.repairSourceImage || state.cropSourceImage) : (state.isLoadingImage ? state.loadingPreviewImage : (filmHoverPreview.imageSource() || state.outputImage || state.loadingPreviewImage));
     var busy = state.isLoadingImage || state.isComputing || state.isSavingImage;
     return [
-      '<div class="home-workspace' + (state.sidebarCollapsed ? ' sidebar-collapsed' : '') + '">',
+      '<div class="home-workspace' + (state.repairEditing ? ' repair-active' : '') + (state.sidebarCollapsed ? ' sidebar-collapsed' : '') + '">',
       renderStyleSidebar(),
       '<div class="preview-pane">',
       '<div class="preview-head"><div class="preview-file"><p class="eyebrow">' + escapeHtml(L.text('照片工作台')) + '</p><h1 class="section-title" title="' + escapeHtml(state.sourceFileName) + '">' + escapeHtml(state.sourceFileName || L.text("照片預覽")) + '</h1></div>',
@@ -702,23 +713,24 @@
         var label = index ? L.text('下一步') : L.text('上一步');
         return '<button class="photo-directory-button edit-history-button" data-action="' + action + '" type="button" aria-label="' + label + '" title="' + label + '"' + (!available || photoIsBusy(state) ? ' disabled' : '') + '>' + iconSvg(index ? 'redo' : 'undo') + '</button>';
       }).join('') + '</div>',
-      renderCropQuickControl(adjustment) + L.html('<button type="button" class="photo-directory-button white-balance-picker" data-white-balance-picker aria-label="白平衡滴管" title="白平衡滴管：點選照片中的灰色或白色區域" aria-pressed="') + state.whiteBalancePicking + '"' + (!state.hasImage || photoIsBusy(state) || state.isRenderingPreview || state.cropEditing ? ' disabled' : '') + '>' + iconSvg('eyedropper') + '</button></div></div>',
+      repairBrush.toolbar() + renderCropQuickControl(adjustment) + L.html('<button type="button" class="photo-directory-button white-balance-picker" data-white-balance-picker aria-label="白平衡滴管" title="白平衡滴管：點選照片中的灰色或白色區域" aria-pressed="') + state.whiteBalancePicking + '"' + (!state.hasImage || photoIsBusy(state) || state.isRenderingPreview || state.cropEditing || state.repairEditing ? ' disabled' : '') + '>' + iconSvg('eyedropper') + '</button></div></div>',
       L.html('<div class="preview-frame" aria-label="照片預覽區">'),
       previewSource
         ? (cropEditorVisible ? renderCropEditor() : [
           state.outputImage && state.loadingPreviewImage && !state.isLoadingImage ? '<img class="preview-loading-image" src="' + state.loadingPreviewImage + '" alt="" aria-hidden="true" draggable="false">' : "",
           '<img class="preview-image" src="' + previewSource + L.html('" alt="照片預覽" draggable="false">'),
-          state.sourceImage && !state.isLoadingImage && state.outputImage ? previewCompareButton() : ""
+          !state.repairEditing && state.sourceImage && !state.isLoadingImage && state.outputImage ? previewCompareButton() : ""
         ].join(""))
         : (!state.hasImage && !state.isLoadingImage && !state.isRenderingPreview ? '<div class="empty-preview">' + iconSvg("photos") + '<strong>' + renderHelp(L.text("選取目錄後，從下方縮圖開啟照片；也可以直接拖入照片。支援 JPEG、PNG、HEIC 與 RAW。"), L.text("給照片一點底片的溫度")) + '</strong>' +
           '<button class="empty-open" data-action="browsePhotoDirectory" type="button" ' + (busy ? "disabled" : "") + L.html('>選取目錄 <kbd>⇧⌘O</kbd></button></div>') : ""),
+      repairBrush.overlay(),
       L.html('<aside class="preview-histogram" aria-label="RGB 三原色直方圖"') + (state.histogramVisible && !cropEditorVisible ? '' : ' hidden') + L.html('><div class="histogram-heading"><button type="button" data-close-histogram aria-label="關閉直方圖">×</button></div><canvas width="256" height="100" role="img" aria-label="目前預覽的紅、綠、藍亮度分布"></canvas><div class="histogram-scale"><span>0</span><span>255</span></div></aside>'),
       L.html('<div class="preview-feedback" data-preview-feedback role="status" aria-live="polite" hidden><span class="preview-spinner" aria-hidden="true"></span><strong data-preview-feedback-title></strong><small data-preview-feedback-detail></small><button class="empty-open" data-action="retryPreview" type="button" hidden>重新載入預覽</button></div>'),
       '</div>',
       '<footer class="canvas-footer"><span class="preview-status">' + previewStatusText() + '</span>',
       state.hasImage ? '<span class="canvas-hint">' + renderHelp(L.text("滾輪可放大縮小，放大後按住滑鼠左鍵拖曳移動；按「符合視窗」還原。按住空白鍵或右下角的比較按鈕可看原圖。"), L.text("原圖比較")) + L.html('</span><div class="canvas-actions"><button class="canvas-export" data-action="saveImage" type="button" title="匯出照片（⌘S）"') + (!state.canSave || photoIsBusy(state) ? ' disabled' : '') + '>' + iconSvg("exportImage") + L.html('匯出</button><div class="zoom-controls"><button data-zoom="zoomOut" aria-label="縮小" title="縮小（⌘−）">−</button><button data-zoom="zoomFit" title="符合視窗（⌘0）">符合視窗</button><button data-zoom="zoomIn" aria-label="放大" title="放大（⌘+）">＋</button></div></div>') : '<span class="canvas-hint">' + renderHelp(L.text("影像處理皆在這部 Mac 上完成。"), L.text("本機處理")) + '</span>',
       '</footer>', renderPhotoDirectory(), '</div>',
-      L.html('<aside class="adjustment-pane" aria-label="影像調整" data-scroll-region="adjustments">'),
+      L.html('<aside class="adjustment-pane" aria-label="影像調整" data-scroll-region="adjustments"') + (state.repairEditing ? ' inert' : '') + '>',
       L.html('<div class="inspector-heading"><span class="eyebrow">沖洗</span><div class="inspector-heading-row"><h2>影像調整</h2>'),
       L.html('<div class="inspector-actions"><button class="preview-ai-button adjustment-reset-button" data-action="resetAdjustments" type="button" title="將目前風格的影像、裁切、外框與日期調整恢復預設。"') + (!state.hasImage || photoIsBusy(state) ? ' disabled' : '') + L.html('>恢復預設值</button>'),
       L.html('<button id="previewRecompute" class="preview-ai-button" data-action="applyStyle" type="button" title="AI 輔助計算（⌘Return）" aria-keyshortcuts="Meta+Enter" ') +
@@ -826,7 +838,7 @@
     return [
       '<div class="crop-quick-group">',
       L.html('<label class="crop-quick-control" for="previewCropAspectRatio"><span>裁切</span>'),
-      '<select id="previewCropAspectRatio" data-select="cropAspectRatio" ' + (!state.hasImage ? "disabled" : "") + '>',
+      '<select id="previewCropAspectRatio" data-select="cropAspectRatio" ' + (!state.hasImage || state.repairEditing ? "disabled" : "") + '>',
       (state.cropAspectRatios || []).map(function (option) {
         return '<option value="' + option.id + '" ' + (option.id === value ? "selected" : "") + '>' + escapeHtml(L.text(option.title)) + "</option>";
       }).join(""),
@@ -1101,6 +1113,7 @@
       renderRange(L.text("對比"), "contrast", adjustment.contrast == null ? 0 : adjustment.contrast, -100, 100),
       renderRange(L.text("降噪"), "denoise", adjustment.denoise || 0),
       renderRange(L.text("模擬鏡頭模糊"), "backgroundBlur", adjustment.backgroundBlur || 0),
+      renderRange(L.text("膚色冷暖"), "skinWarmth", adjustment.skinWarmth || 0, -100, 100, 1, "", L.text("只調整膚色區域：負值偏冷、正值偏暖，0 為中性。")),
       renderRange(L.text("美白"), "skinWhitening", adjustment.skinWhitening || 0),
       renderRange(L.text("磨皮"), "skinSmoothing", adjustment.skinSmoothing || 0)
     ];
@@ -1158,11 +1171,11 @@
     var printHelp = filmStock
       ? (reversal ? L.text('正片直接觀看，略過印相光源；曝光正值變亮、負值變暗。') : L.text('負片成像、印相與觀看分開計算；曝光正值變亮、負值變暗。'))
       : L.text('在目前風格上調整印相與觀看光源、曝光及反差；原始參考、0 EV 與反差 50 保留原有外觀。黑白風格維持灰階。');
-    if (scanning) printHelp = L.text("調整掃描成品的曝光；正值變亮、負值變暗。");
+    if (scanning || reversal) printHelp = L.text("掃描或正片模式在成品上套用印相光源色彩補償；曝光正值變亮、負值變暗。原始參考不改變光源色調。");
     var lights = state.filmIlluminants;
     sections.unshift([
       '<div class="film-section">',
-      renderSelect(L.text("印相光源"), "printIlluminant", value("printIlluminant", "reference"), lights, reversal || scanning, printHelp),
+      renderSelect(L.text("印相光源"), "printIlluminant", value("printIlluminant", "reference"), lights, false, printHelp),
       renderRange(reversal ? L.text("觀看曝光") : L.text("印相曝光補償"), "printExposure", value("printExposure", 0), -4, 4, 0.05, " EV", printHelp),
       renderRange(reversal ? L.text("觀看反差") : L.text("印相反差"), "printContrast", value("printContrast", 50), 0, 100, 1, "", L.text("50 為目前風格或底片的基準；提高數值增加明暗反差，降低數值讓階調更柔和。")),
       renderRange(L.text("暗角"), "vignetteBalance", vignetteBalance(adjustment), -100, 100),
@@ -1776,6 +1789,7 @@
     bindCropEditor();
     bindPreviewGestures();
     bindWhiteBalancePicker();
+    repairBrush.bind();
     var previewMenuFrame = app.querySelector(".preview-frame");
     if (previewMenuFrame) previewMenuFrame.addEventListener("contextmenu", function (event) {
       event.preventDefault();
@@ -2586,7 +2600,7 @@
     }, { passive: false });
 
     frame.addEventListener("pointerdown", function (event) {
-      if (isPreviewControl(event) || event.button !== 0) return;
+      if (state.repairEditing || isPreviewControl(event) || event.button !== 0) return;
       event.preventDefault();
       lockPreviewScroll();
       rememberPointer(event);
@@ -2804,6 +2818,7 @@
     previewTransform.x = pointX - unitX * nextWidth - (previewFit.frameWidth - nextWidth) / 2;
     previewTransform.y = pointY - unitY * nextHeight - (previewFit.frameHeight - nextHeight) / 2;
     applyPreviewTransform();
+    repairBrush.redraw();
   }
 
   function togglePreviewOneToOne(clientX, clientY) {
@@ -2839,8 +2854,8 @@
       var cropMode = isCropEditorVisible(currentAdjustment());
       var padding = 0;
       var comparingOriginal = image._requestedPreviewSource === state.sourceImage && state.sourceImage !== state.outputImage;
-      var outputSize = cropMode ? (state.cropSourceImageSize || {}) : ((comparingOriginal ? state.sourceImageSize : state.previewOutputSize) || {});
-      if (!cropMode) outputSize = filmHoverPreview.displaySize(image.currentSrc || image.src) || outputSize;
+      var outputSize = (cropMode || state.repairEditing) ? (state.cropSourceImageSize || {}) : ((comparingOriginal ? state.sourceImageSize : state.previewOutputSize) || {});
+      if (!cropMode && !state.repairEditing) outputSize = filmHoverPreview.displaySize(image.currentSrc || image.src) || outputSize;
       var geometryWidth = Number(outputSize.width) || naturalWidth;
       var geometryHeight = Number(outputSize.height) || naturalHeight;
       var scale = Math.min(
@@ -2864,6 +2879,7 @@
       };
       applyPreviewTransform();
       updatePreviewHistogram();
+      repairBrush.redraw();
     }
 
     if (image.complete) {
@@ -2981,7 +2997,7 @@
     var image = app.querySelector(".preview-image:not(.crop-source-image)");
     if (!image) return;
 
-    var nextSource = showOriginal ? state.sourceImage : (filmHoverPreview.imageSource() || state.outputImage);
+    var nextSource = state.repairEditing ? (state.repairSourceImage || state.cropSourceImage) : (showOriginal ? state.sourceImage : (filmHoverPreview.imageSource() || state.outputImage));
     if (!nextSource) return;
 
     updatePreviewImage(image, nextSource);
@@ -3096,7 +3112,7 @@
   }
 
   function photoIsBusy(value) {
-    return !!(value.isLoadingImage || value.isComputing || value.isSavingImage || value.isMCPMutating ||
+    return !!(value.isRepairingImage || value.isLoadingImage || value.isComputing || value.isSavingImage || value.isMCPMutating ||
       (value.subjectMask && value.subjectMask.detecting));
   }
 
@@ -3152,8 +3168,29 @@
 
   function updateBusyDialog() {
     var isDetectingSubjectMask = !!(state.subjectMask && state.subjectMask.detecting);
-    app.inert = exportDevelopment.isVisible() || !!(state.isLoadingImage || state.isComputing || state.isSavingImage || state.isMCPMutating || isDetectingSubjectMask);
-    if (state.isLoadingImage) {
+    var modelDownload = state.isRepairingImage && state.repairModelProgress;
+    var downloadBar = document.getElementById('repairDownloadProgress');
+    var downloadBytes = document.getElementById('repairDownloadBytes');
+    downloadBar.hidden = downloadBytes.hidden = !modelDownload;
+    app.inert = !!modelDownload || exportDevelopment.isVisible() || !!(state.isLoadingImage || state.isComputing || state.isSavingImage || state.isMCPMutating || isDetectingSubjectMask);
+    if (modelDownload) {
+      computeStartedAt = null;
+      if (computeTimer) { clearInterval(computeTimer); computeTimer = null; }
+      busyTitle.textContent = L.text(modelDownload.preparing ? '正在準備本機修復工具…' : '正在下載修復模型');
+      setBusyStep(state.isCancellingRepair ? L.text('正在取消…') : L.text(modelDownload.preparing ? '下載完成，正在準備模型。' : '首次使用需下載模型，之後可離線修復。'));
+      setBusyItems([]);
+      var total = Math.max(0, Number(modelDownload.total) || 0);
+      var received = Math.min(total, Math.max(0, Number(modelDownload.received) || 0));
+      if (modelDownload.preparing || !total) downloadBar.removeAttribute('value');
+      else downloadBar.value = received / total;
+      downloadBar.setAttribute('aria-label', busyTitle.textContent);
+      downloadBytes.textContent = (total ? Math.floor(received / total * 100) + '% · ' : '') + (received / 1000000).toFixed(1) + ' / ' + (total / 1000000).toFixed(1) + ' MB';
+      busyTime.hidden = true;
+      busyCancel.hidden = false;
+      busyCancel.disabled = !!state.isCancellingRepair;
+      busyCancel.textContent = L.text(state.isCancellingRepair ? '正在取消…' : '取消下載');
+      if (busyDialog.hidden) { busyDialog.hidden = false; busyCancel.focus({preventScroll:true}); }
+    } else if (state.isLoadingImage) {
       computeStartedAt = null;
       busyTitle.textContent = L.text("正在讀取圖片");
       setBusyStep("");
@@ -3272,6 +3309,7 @@
     }
     var hadImages = !!state.outputImage;
     var previousSourceImage = state.sourceImage;
+    repairBrush.receive(nextState);
     state = Object.assign({}, state, payload || {});
     if (pendingCropValues && pendingCropGeneration === photoEditGeneration && pendingCropStyle === state.selectedStyle) {
       updateLocalCropValues(pendingCropValues);
@@ -3357,7 +3395,7 @@
     initializeAutoHideScrollbars();
     if (busyCancel) {
       busyCancel.addEventListener("click", function () {
-        post(state.isComputing ? "cancelComputation" : "cancelSubjectMaskDetection");
+        post(state.isRepairingImage && state.repairModelProgress ? "cancelRepairBrush" : (state.isComputing ? "cancelComputation" : "cancelSubjectMaskDetection"));
       });
     }
     document.addEventListener("keydown", function (event) {
@@ -3367,6 +3405,7 @@
         event.preventDefault();
         setPreviewImageSource(true);
       }
+      if (event.key === "Escape" && repairBrush.escape()) { event.preventDefault(); return; }
       if (event.key === "Escape" && state.whiteBalancePicking) {
         state.whiteBalancePicking = false; render();
       }

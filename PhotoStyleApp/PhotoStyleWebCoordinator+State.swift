@@ -4,7 +4,7 @@ import AppKit
 
 extension PhotoStyleWebCoordinator {
     func updateActionAvailability() {
-        canImport = !isTerminating && !isMCPMutating && !isLoadingImage && !isComputing && !isSavingImage
+        canImport = !isTerminating && !isMCPMutating && !isLoadingImage && !isComputing && !isSavingImage && !isRepairingImage
         canExport = canImport && !isRenderingPreview && sourceImage != nil && outputImage != nil
         canCompute = selectedStyle != .original && canImport && sourceImage != nil && aiModelStore.status.ready && !aiModelStore.isBusy
     }
@@ -16,7 +16,7 @@ extension PhotoStyleWebCoordinator {
         payload["externalEdit"] = externalEdit
         if includeImages {
             payload["loadingPreviewImage"] = loadingPreviewImagePayload ?? NSNull()
-            for key in ["cropSourceImage", "sourceImage", "outputImage"] {
+            for key in ["cropSourceImage", "repairSourceImage", "sourceImage", "outputImage"] {
                 payload[key] = previewImagePayload[key] ?? NSNull()
             }
         }
@@ -25,6 +25,12 @@ extension PhotoStyleWebCoordinator {
 
     func baseStatePayload() -> [String: Any] {
         [
+            "isRepairingImage": isRepairingImage,
+            "repairStep": repairStep,
+            "repairModelProgress": repairModelProgress.map { $0.payload } as Any? ?? NSNull(),
+            "isCancellingRepair": isCancellingRepair,
+            "repairRevision": repairRevision,
+            "repairCount": repairPatches.count,
             "canUndo": !editUndoStack.isEmpty,
             "canRedo": !editRedoStack.isEmpty,
             "sourceFileName": sourceFileName,
@@ -171,6 +177,7 @@ extension PhotoStyleWebCoordinator {
             "denoise": adjustment.denoise,
             "devignette": adjustment.devignette,
             "backgroundBlur": adjustment.backgroundBlur,
+            "skinWarmth": adjustment.skinWarmth,
             "skinWhitening": adjustment.skinWhitening,
             "skinSmoothing": adjustment.skinSmoothing,
             "hdrAmount": adjustment.hdrAmount,

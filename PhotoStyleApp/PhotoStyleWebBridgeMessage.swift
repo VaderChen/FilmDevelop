@@ -1,6 +1,8 @@
 import Foundation
 
 enum PhotoStyleWebBridgeAction: String {
+    case applyRepairBrush
+    case cancelRepairBrush
     case previewFilmHover
     case cancelFilmHover
     case checkAppUpdate

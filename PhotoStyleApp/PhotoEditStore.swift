@@ -1,6 +1,7 @@
 import AppKit
 import CoreImage
 import CryptoKit
+import PhotoStyleShared
 
 /// Photo recipes are documents, not a discardable thumbnail cache.
 struct PhotoEditRecord: Codable, Equatable {
@@ -9,8 +10,10 @@ struct PhotoEditRecord: Codable, Equatable {
     var customFilmID: String?
     var customFilmBaseAdjustment: StyleAdjustment?
     let adjustments: [String: StyleAdjustment]
+    var repairPatches: [PhotoRepairPatch]?
 
-    init(style: PhotoStyle, adjustments: [PhotoStyle: StyleAdjustment], customFilmID: String? = nil, customFilmBaseAdjustment: StyleAdjustment? = nil) {
+    init(style: PhotoStyle, adjustments: [PhotoStyle: StyleAdjustment], customFilmID: String? = nil, customFilmBaseAdjustment: StyleAdjustment? = nil, repairPatches: [PhotoRepairPatch] = []) {
+        self.repairPatches = repairPatches.isEmpty ? nil : repairPatches
         selectedStyle = style.rawValue
         self.customFilmID = customFilmID
         self.customFilmBaseAdjustment = customFilmBaseAdjustment
@@ -124,7 +127,7 @@ final class PhotoEditStore {
             guard failedWrites.contains(key) || previous?.record != record || previous?.mask !== mask else { return }
             let entry = Entry(record, mask: mask)
             let maskCost = mask.map { Int($0.extent.width * $0.extent.height) * 16 } ?? 0
-            cache.setObject(entry, forKey: key as NSString, cost: maskCost + 64 * 1024)
+            cache.setObject(entry, forKey: key as NSString, cost: maskCost + 64 * 1024 + (record.repairPatches ?? []).reduce(0) { $0 + $1.imageData.count + $1.maskData.count })
             guard let directory else { volatileRecords[key] = entry; return }
             do {
                 try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

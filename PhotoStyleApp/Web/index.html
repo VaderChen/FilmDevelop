@@ -7,15 +7,18 @@
   <title>照片沖洗</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="desktop.css">
+  <link rel="stylesheet" href="repair-brush.css">
 </head>
 <body>
   <main id="app" class="app"></main>
   <div id="toast" class="toast" hidden></div>
-  <div id="busyDialog" class="busy-dialog" hidden>
+  <div id="busyDialog" class="busy-dialog" role="dialog" aria-modal="true" aria-labelledby="busyTitle" hidden>
     <div class="busy-panel">
       <div class="spinner"></div>
       <div id="busyTitle" class="busy-title">AI 正在重新計算中</div>
       <div id="busyStep" class="busy-step" hidden></div>
+      <progress id="repairDownloadProgress" class="repair-download-progress" max="1" hidden></progress>
+      <div id="repairDownloadBytes" class="busy-step" role="status" hidden></div>
       <ul id="busyItems" class="busy-items" data-l10n-aria="AI 計算項目" aria-label="AI 計算項目" hidden></ul>
       <div id="busyTime" class="busy-time"><span id="busySeconds">0</span> <span data-l10n="秒">秒</span></div>
       <button id="busyCancel" class="busy-cancel" type="button" hidden>取消</button>
@@ -34,6 +37,7 @@
   <script src="localization.js"></script>
   <script src="export-development.js"></script>
   <script src="film-hover-preview.js"></script>
+  <script src="repair-brush.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

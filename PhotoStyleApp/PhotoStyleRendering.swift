@@ -1,5 +1,6 @@
 import CoreImage
 import AppKit
+import PhotoStyleShared
 
 struct PhotoStyleRenderRequest {
     let style: PhotoStyle
@@ -7,6 +8,7 @@ struct PhotoStyleRenderRequest {
     let image: PhotoImage
     let subjectMask: CIImage?
     let shouldDetectSubjectMask: Bool
+    var repairPatches: [PhotoRepairPatch] = []
 }
 
 protocol PhotoStyleRendering: Sendable {
@@ -32,7 +34,8 @@ struct CoreImagePhotoStyleRenderer: PhotoStyleRendering {
             adjustment: request.adjustment,
             to: request.image,
             subjectMask: request.subjectMask,
-            shouldDetectSubjectMask: request.shouldDetectSubjectMask
+            shouldDetectSubjectMask: request.shouldDetectSubjectMask,
+            repairPatches: request.repairPatches
         )
     }
 }

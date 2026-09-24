@@ -34,6 +34,9 @@ extension PhotoStyleWebCoordinator {
     func prepareForTermination() async {
         isTerminating = true
         cancelAdjustmentPreview()
+        let activeRepair = repairTask
+        activeRepair?.cancel()
+        await activeRepair?.value
         updateActionAvailability()
         mcpServer.stop()
         // Do not use the UI's cancel guard: it intentionally disables cancellation

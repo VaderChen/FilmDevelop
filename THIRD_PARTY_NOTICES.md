@@ -10,6 +10,7 @@ FilmDevelop 的[原始碼公開・禁止商業販售授權](LICENSE.md) 適用�
 | mlx-swift 0.31.6 | MIT | [上游 LICENSE](https://github.com/ml-explore/mlx-swift/blob/0.31.6/LICENSE) |
 | mlx-swift-lm 3.31.4 | MIT | [上游 LICENSE](https://github.com/ml-explore/mlx-swift-lm/blob/3.31.4/LICENSE) |
 | swift-transformers 1.1.9 | Apache-2.0 | [上游 LICENSE](https://github.com/huggingface/swift-transformers/blob/1.1.9/LICENSE) |
+| LaMa 修復模型（Core ML） | Apache-2.0 | [LaMa](https://github.com/advimman/lama)；[Core ML 轉換模型](https://huggingface.co/mlboydaisuke/LaMa-CoreML/tree/5ed76e3799ab4cad31381750d29880c267477e18)；[隨附授權](PhotoStyleApp/Models/LaMa-LICENSE.txt) |
 | Depth Anything V2 Small（Core ML） | Apache-2.0 | [上游模型說明](https://github.com/DepthAnything/Depth-Anything-V2#license)；[Apple Core ML 模型頁](https://huggingface.co/apple/coreml-depth-anything-v2-small) |
 
 Swift 套件版本取自 [MLXRuntime/Package.swift](MLXRuntime/Package.swift)，授權已核對本機 checkout；子模組以 Git 記錄的版本及隨附授權為準。
@@ -25,3 +26,5 @@ Swift 套件版本取自 [MLXRuntime/Package.swift](MLXRuntime/Package.swift)，
 散布原始碼時，保留本專案 LICENSE.md，以及第三方元件原有的著作權、授權、NOTICE 與專利聲明；子模組內的其他第三方內容也需保留自己的聲明。
 
 散布 App 或執行檔時，需隨附實際包含元件所要求的完整授權與通知。本表是索引，不能取代那些文件。現有 WebP 建置流程會將 `WebPLicenses` 加入 App，MLX 建置流程會收集 checkout 的 LICENSE／COPYING／NOTICE。其他元件與模型需依實際發佈內容補齊；本次設定版本庫授權，未重新製作或稽核發佈套件。
+
+修復筆刷使用固定版本的 LaMa Core ML 模型，首次使用時下載約 217 MB，並以 SHA-256 核對三個模型檔案。模型在本機執行；不傳送照片。此模型不是 Apple 隨系統附送的「清除」功能。

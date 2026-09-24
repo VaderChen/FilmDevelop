@@ -290,6 +290,7 @@ struct StyleAdjustment: Codable, Equatable {
     var denoise: Double
     var devignette: Double
     var backgroundBlur: Double
+    var skinWarmth: Double
     var skinWhitening: Double
     var skinSmoothing: Double
     var hdrAmount: Double
@@ -317,6 +318,10 @@ struct StyleAdjustment: Codable, Equatable {
     var frameStyle: FrameStyle
     var dateEnabled: Bool
     var dateStyle: DateStampStyle
+
+    var requiresSubjectMask: Bool {
+        backgroundBlur > 0.001 || abs(skinWarmth) > 0.001 || skinWhitening > 0.001 || skinSmoothing > 0.001
+    }
 
     var needsHDRToneCurveComputation: Bool {
         hdrAmount > 0.001 && hdrToneCurve == nil
@@ -363,6 +368,7 @@ struct StyleAdjustment: Codable, Equatable {
         case denoise
         case devignette
         case backgroundBlur
+        case skinWarmth
         case skinWhitening
         case skinSmoothing
         case hdrAmount
@@ -407,6 +413,7 @@ struct StyleAdjustment: Codable, Equatable {
         denoise: Double,
         devignette: Double,
         backgroundBlur: Double,
+        skinWarmth: Double = 0,
         skinWhitening: Double,
         skinSmoothing: Double,
         hdrAmount: Double,
@@ -451,6 +458,7 @@ struct StyleAdjustment: Codable, Equatable {
         self.denoise = denoise
         self.devignette = devignette
         self.backgroundBlur = backgroundBlur
+        self.skinWarmth = skinWarmth
         self.skinWhitening = skinWhitening
         self.skinSmoothing = skinSmoothing
         self.hdrAmount = hdrAmount
@@ -508,6 +516,7 @@ struct StyleAdjustment: Codable, Equatable {
         denoise = try container.decodeIfPresent(Double.self, forKey: .denoise) ?? 0
         devignette = try container.decodeIfPresent(Double.self, forKey: .devignette) ?? 0
         backgroundBlur = try container.decodeIfPresent(Double.self, forKey: .backgroundBlur) ?? 0
+        skinWarmth = try container.decodeIfPresent(Double.self, forKey: .skinWarmth) ?? 0
         skinWhitening = try container.decodeIfPresent(Double.self, forKey: .skinWhitening) ?? 0
         skinSmoothing = try container.decodeIfPresent(Double.self, forKey: .skinSmoothing) ?? 0
         let legacyHDREnabled = try container.decodeIfPresent(Bool.self, forKey: .hdrEnabled) ?? false
@@ -557,6 +566,7 @@ struct StyleAdjustment: Codable, Equatable {
         try container.encode(denoise, forKey: .denoise)
         try container.encode(devignette, forKey: .devignette)
         try container.encode(backgroundBlur, forKey: .backgroundBlur)
+        try container.encode(skinWarmth, forKey: .skinWarmth)
         try container.encode(skinWhitening, forKey: .skinWhitening)
         try container.encode(skinSmoothing, forKey: .skinSmoothing)
         try container.encode(hdrAmount, forKey: .hdrAmount)
@@ -952,6 +962,7 @@ private extension StyleAdjustment {
             denoise: bounded(denoise, to: 0...100),
             devignette: max(-vignetteBalance, 0),
             backgroundBlur: bounded(backgroundBlur, to: 0...100),
+            skinWarmth: bounded(skinWarmth, to: -100...100),
             skinWhitening: bounded(skinWhitening, to: 0...100),
             skinSmoothing: bounded(skinSmoothing, to: 0...100),
             hdrAmount: bounded(hdrAmount, to: 0...100),

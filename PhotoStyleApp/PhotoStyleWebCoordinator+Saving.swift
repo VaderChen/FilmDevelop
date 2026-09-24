@@ -62,15 +62,16 @@ extension PhotoStyleWebCoordinator {
         guard format.supportedBitDepths.contains(bitDepth) else {
             throw PhotoStyleMCPTools.failure("\(format.displayName) 不支援 \(bitDepth) bit 匯出；可用色深為 \(format.supportedBitDepths.map(String.init).joined(separator: "、")) bit。")
         }
-        guard let sourceImage, !isLoadingImage, !isComputing, !isSavingImage else {
+        guard let sourceImage, !isLoadingImage, !isComputing, !isSavingImage, !isRepairingImage else {
             throw PhotoStyleMCPTools.failure("目前沒有可匯出的照片，或影像仍在處理中。")
         }
         if !overwrite && FileManager.default.fileExists(atPath: url.path) {
             throw PhotoStyleMCPTools.failure("輸出檔案已存在；若要覆寫，請指定 overwrite: true。")
         }
         let style = selectedStyle
+        let patches = repairPatches
         let adjustment = renderingAdjustment(adjustmentStore.adjustment(for: style))
-        let shouldUseSubjectMask = sourceSubjectMask != nil
+        let shouldUseSubjectMask = sourceSubjectMask != nil || adjustment.requiresSubjectMask
         let animationID = UUID().uuidString
         let needsDisplayPreview = webView != nil && isWebReady
         let startedAt = ProcessInfo.processInfo.systemUptime
@@ -100,12 +101,12 @@ extension PhotoStyleWebCoordinator {
                 let scoped = url.startAccessingSecurityScopedResource()
                 defer { if scoped { url.stopAccessingSecurityScopedResource() } }
                 let mask = shouldUseSubjectMask && renderer.canDetectSubjectMask
-                    ? renderer.detectSubjectMask(for: sourceImage) : nil
+                    ? renderer.detectSubjectMask(for: PhotoStyleProcessor.repairedSource(sourceImage, patches: patches)) : nil
                 try Task.checkCancellation()
                 reportStage("render")
                 let output = renderer.render(.init(
                     style: style, adjustment: adjustment, image: sourceImage,
-                    subjectMask: mask, shouldDetectSubjectMask: false
+                    subjectMask: mask, shouldDetectSubjectMask: false, repairPatches: patches
                 ))
                 try Task.checkCancellation()
                 reportStage("encode")

@@ -62,7 +62,7 @@ extension PhotoStyleWebCoordinator {
             return ["content": [["type": "image", "mimeType": "image/jpeg", "data": String(url.dropFirst("data:image/jpeg;base64,".count))]], "isError": false]
         default: break
         }
-        guard !isMCPMutating, !isLoadingImage, !isComputing, !isSavingImage, webView?.window?.attachedSheet == nil else {
+        guard !isMCPMutating, !isLoadingImage, !isComputing, !isSavingImage, !isRepairingImage, webView?.window?.attachedSheet == nil else {
             throw PhotoStyleMCPTools.failure("目前有照片處理或檔案對話框進行中，請稍後再試。")
         }
         commitAdjustmentPreview()
