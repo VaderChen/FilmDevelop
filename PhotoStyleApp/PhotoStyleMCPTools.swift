@@ -87,7 +87,7 @@ enum PhotoStyleMCPTools {
         tool("list_styles", "列出可套用的照片風格與底片模型，包括底片分類與演算法描述。", readOnly: true),
         tool("get_preview", "取得目前處理結果的 JPEG 預覽影像。", readOnly: true),
         tool("open_image", "開啟本機照片並同步更新 App 的預覽、檔名與參數。", properties: ["path": ["type": "string", "description": "照片的絕對檔案路徑"]], required: ["path"]),
-        tool("set_style", "選取風格並同步更新 App。", properties: ["style": ["type": "string", "enum": PhotoStyle.allCases.map(\.rawValue)]], required: ["style"]),
+        tool("set_style", "選取風格並同步更新 App。", properties: ["style": ["type": "string", "enum": PhotoStyle.catalogCases.map(\.rawValue)]], required: ["style"]),
         tool("update_adjustments", "更新目前風格的參數並同步預覽與滑桿。所有參數會先驗證再套用。", properties: ["changes": ["type": "object", "properties": adjustmentProperties, "additionalProperties": false, "minProperties": 1]], required: ["changes"]),
         tool("import_color_calibration", "匯入量測色彩校準 JSON 並同步預覽；不由 AI 臆造係數。", properties: ["path": ["type": "string"]], required: ["path"]),
         tool("clear_color_calibration", "移除目前照片／風格的色彩校準並同步預覽。"),

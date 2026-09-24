@@ -1920,3 +1920,32 @@ progress {
 
 /* Shared artwork with the macOS AppIcon asset. */
 img.brand-mark { display: block; object-fit: contain; flex-shrink: 0; background: transparent; border-radius: 0; box-shadow: none; padding: 0; }
+
+/* 底片收藏：依分類分隔，桌面每列五張，窄視窗保留可操作寬度。 */
+.desktop-page .library-grid.compact-film-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+.compact-film-grid .film-stock-card { min-height: 86px; border-radius: 12px; }
+.compact-film-grid .film-stock-band { flex-basis: 36px; min-height: 36px; padding: 0 10px; gap: 4px; }
+.compact-film-grid .film-stock-band > span { letter-spacing: 0; padding: 4px 6px; }
+.compact-film-grid .film-stock-select { gap: 4px; padding: 4px 6px; letter-spacing: 0; }
+.compact-film-grid .film-stock-body { padding: 8px 10px; }
+.compact-film-grid .film-stock-body h2 { font-size: 14px; }
+.compact-film-grid .film-stock-actions { padding-top: 4px; gap: 4px; justify-content: flex-end; }
+.compact-film-grid .film-stock-actions:empty { display: none; }
+.compact-film-grid .film-stock-actions .button { min-height: 32px; padding: 6px 8px; font-size: 11px; border-radius: 8px; }
+.compact-film-grid .film-prompt-edit { flex: 0 0 auto; min-height: 26px; padding: 3px 0; font-size: 11px; }
+.compact-film-grid .film-group-divider { margin-top: 8px; padding-top: 10px; }
+@media (max-width: 1099px) {
+  .desktop-page .library-grid.compact-film-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 899px) {
+  .desktop-page .library-grid.compact-film-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 649px) {
+  .desktop-page .library-grid.compact-film-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 449px) {
+  .desktop-page .library-grid.compact-film-grid { grid-template-columns: minmax(0, 1fr); }
+}

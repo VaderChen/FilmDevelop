@@ -35,13 +35,38 @@ enum PhotoStyle: String, CaseIterable, Identifiable {
     case filmCineStill800T
     case filmPolaroidSX70
     case filmDelta3200
+    case gr3Negative = "gr3-negative"
+    case gr3HardMono = "gr3-hardmono"
+    case gr4Yellow = "gr4-yellow"
+    case gr4Green = "gr4-green"
+
     case filmLomoPurple
+
+    /// 精簡收藏入口；舊識別碼與配方保留，避免改變已儲存照片及自訂底片。
+    var mergedInto: PhotoStyle? {
+        switch self {
+        case .filmPortra160, .filmPortra800: return .filmPortra400
+        case .filmVision250D: return .filmVision50D
+        case .filmVision200T: return .filmVision500T
+        case .filmFP4: return .filmHP5
+        default: return nil
+        }
+    }
+
+    static var catalogCases: [PhotoStyle] { allCases.filter { $0.mergedInto == nil } }
+
+    var cameraProfile: PhotoCameraProfile? { PhotoCameraProfile.profile(id: rawValue) }
+    var isLibraryLook: Bool { filmStock != nil || cameraProfile != nil }
+    var libraryFamily: String { cameraProfile != nil ? "camera" : (filmStock?.family ?? "") }
+    var libraryFamilyTitle: String { cameraProfile != nil ? "模擬相機" : (filmStock?.familyTitle ?? "") }
+    var libraryAlgorithm: String { cameraProfile != nil ? "以 Oklab 明度曲線、色相分離、陰影與亮部色調模擬相機風格；獨立近似，並非原廠 LUT。" : (filmStock?.algorithmDescription ?? "") }
 
     var filmStock: PhotoFilmStock? { PhotoFilmStock(rawValue: rawValue) }
 
     var id: String { rawValue }
 
     var isMonochrome: Bool {
+        if let camera = cameraProfile { return camera.isMonochrome }
         if let stock = filmStock { return stock.isMonochrome }
         switch self {
         case .japaneseBWStrong, .japaneseBWStandard, .japaneseBWSoft:
@@ -74,7 +99,7 @@ enum PhotoStyle: String, CaseIterable, Identifiable {
         case .fujiClassicNeg:
             "底片 Classic Neg."
         default:
-            filmStock?.title ?? rawValue
+            cameraProfile?.title ?? filmStock?.title ?? rawValue
         }
     }
 
@@ -101,7 +126,7 @@ enum PhotoStyle: String, CaseIterable, Identifiable {
         case .fujiClassicNeg:
             "青綠陰影、柔和負片感"
         default:
-            filmStock?.subtitle ?? ""
+            cameraProfile?.subtitle ?? filmStock?.subtitle ?? ""
         }
     }
 
@@ -931,7 +956,7 @@ extension StyleAdjustment {
         adjustment.shadowGrain = 0
         adjustment.filmEffects = .neutral
         adjustment.filmEffects.monochromeFilterStrength = 0
-        if style == .original {
+        if style == .original || style.cameraProfile != nil {
             adjustment.hdrAmount = 0
             adjustment.filmEffects.scannerProfile = .neutral
         }

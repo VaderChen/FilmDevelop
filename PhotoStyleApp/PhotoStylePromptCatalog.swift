@@ -16,6 +16,14 @@ extension PhotoStyle {
 
     func llmDescription(for language: String) -> String {
         if self == .original { return "Preserve the source exposure and color. Do not apply automatic corrections or film effects." }
+        if let camera = cameraProfile {
+            switch language {
+            case "traditionalChinese": return "\(camera.title)：\(camera.subtitle)。相機模擬已套用，只視需要修正曝光與局部階調，避免重複疊加其他底片效果。建議強度 75–100。"
+            case "japanese": return "\(camera.title)。カメラの色調は適用済みです。選択した特徴を保ち、必要な露出と局所階調のみ補正してください。別のフィルム効果を重ねないでください。推奨強度 75–100。"
+            case "korean": return "\(camera.title). 카메라 색조가 이미 적용되었습니다. 선택한 특성을 유지하며 필요한 노출과 부분 계조만 보정하세요. 다른 필름 효과를 겹치지 마세요. 권장 강도 75–100."
+            default: return "\(camera.title): \(camera.subtitle). Camera-inspired color and tone are already applied. Preserve the selected signature; adjust exposure and local tones only as needed. Avoid adding another film look. Strength 75...100 when useful."
+            }
+        }
         switch language {
         case "traditionalChinese":
             return llmTraditionalChineseDescription
@@ -29,6 +37,7 @@ extension PhotoStyle {
     }
 
     var llmParameterGuidance: String {
+        if cameraProfile != nil { return "Camera color and tone are already applied. Strength 75...100. Keep extra contrast, saturation, fade and grain near zero unless requested; preserve explicit user settings." }
         switch self {
         case .autoDetection:
             return "Strength 45...70. Mapping 0...15. Use only corrections required by the image. Keep fade, softness, grain, skin retouching, and background blur near zero unless clearly needed."

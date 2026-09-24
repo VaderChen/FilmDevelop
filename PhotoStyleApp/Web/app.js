@@ -447,10 +447,26 @@
     };
   }
 
+  // 收藏偏好合併至代表款式；照片與自訂底片的配方 ID 維持原樣。
+  function catalogStyleID(id) {
+    var style = (state.styles || []).find(function (item) { return item.id === id; });
+    return style && style.mergedInto ? style.mergedInto : id;
+  }
+
+  function catalogStyleIDs(ids) {
+    return ids.map(catalogStyleID).filter(function (id, index, all) {
+      return typeof id === "string" && all.indexOf(id) === index;
+    });
+  }
+
+  function catalogStyles() {
+    return (state.styles || []).filter(function (style) { return !style.mergedInto; });
+  }
+
   function readStyleOrder() {
     try {
       var stored = JSON.parse(localStorage.getItem(styleOrderKey) || "[]");
-      return Array.isArray(stored) ? stored.filter(function (id) { return typeof id === "string"; }) : [];
+      return Array.isArray(stored) ? catalogStyleIDs(stored) : [];
     } catch (_) {
       return [];
     }
@@ -473,12 +489,13 @@
   }
 
   function persistStyleOrder(ids) {
+    ids = catalogStyleIDs(ids);
     localStorage.setItem(styleOrderKey, JSON.stringify(ids));
     state.styles = applyStyleOrder(state.styles, ids);
   }
 
   function readEnabledStyleIDs() {
-    var ordered = applyStyleOrder(state.styles || [], readStyleOrder()).filter(function (style) { return style.isOriginal || style.isFilmStock || style.isCustom; });
+    var ordered = applyStyleOrder(catalogStyles(), readStyleOrder()).filter(function (style) { return style.isOriginal || style.isFilmStock || style.isCustom; });
     var allIDs = ordered.map(function (style) { return style.id; });
     if (allIDs.length === 0) return [];
     var defaults = allIDs;
@@ -488,7 +505,7 @@
       if (raw == null) return defaults;
       var stored = JSON.parse(raw);
       var enabled = Array.isArray(stored)
-        ? stored.filter(function (id) { return allIDs.indexOf(id) >= 0; })
+        ? catalogStyleIDs(stored).filter(function (id) { return allIDs.indexOf(id) >= 0; })
         : [];
       return enabled.length > 0 ? enabled : [allIDs[0]];
     } catch (_) {
@@ -497,7 +514,8 @@
   }
 
   function persistEnabledStyleIDs(ids) {
-    var allIDs = applyStyleOrder(state.styles || [], readStyleOrder()).map(function (style) { return style.id; });
+    var allIDs = applyStyleOrder(catalogStyles(), readStyleOrder()).map(function (style) { return style.id; });
+    ids = catalogStyleIDs(ids);
     var filtered = ids.filter(function (id, index) {
       return allIDs.indexOf(id) >= 0 && ids.indexOf(id) === index;
     });
@@ -508,7 +526,7 @@
 
   function enabledStyles() {
     var enabled = readEnabledStyleIDs();
-    return applyStyleOrder(state.styles || [], readStyleOrder()).filter(function (style) {
+    return applyStyleOrder(catalogStyles(), readStyleOrder()).filter(function (style) {
       return (style.isOriginal || style.isFilmStock || style.isCustom) && enabled.indexOf(style.id) >= 0;
     }).sort(function (a, b) {
       function group(style) { return style.id === "original" ? 0 : style.isCustom ? 1 : 2; }
@@ -542,7 +560,7 @@
   function ensureCurrentStyleEnabled(notifyNative) {
     var enabled = readEnabledStyleIDs();
     if (enabled.length === 0) return;
-    if (enabled.indexOf(currentLookID()) < 0) {
+    if (enabled.indexOf(catalogStyleID(currentLookID())) < 0) {
       setCurrentStyle(enabled[0], notifyNative);
     }
   }
@@ -558,7 +576,7 @@
     }
 
     enabled = persistEnabledStyleIDs(enabled);
-    if (enabled.indexOf(currentLookID()) < 0) {
+    if (enabled.indexOf(catalogStyleID(currentLookID())) < 0) {
       setCurrentStyle(enabled[0], true);
     }
   }
@@ -648,7 +666,7 @@
   function renderTabs() {
     var tabs = [
       ["home", L.text("工作台"), "home"],
-      ["films", L.text("底片"), "film"],
+      ["films", L.text("底片庫"), "film"],
       ["ai", L.text("AI 核心"), "cpu"],
       ["settings", L.text("設定"), "settings"]
     ];
@@ -1021,16 +1039,16 @@
       '<div class="film-stock-band" style="background:linear-gradient(110deg,' + colors.map(escapeHtml).join(',') + ')"><span>' + escapeHtml(isFilm ? L.text(style.filmFamilyTitle) : (style.isMonochrome ? L.text('黑白風格') : L.text('彩色風格'))) + '</span>' +
       '<label class="film-stock-select"><input id="' + (isFilm ? 'film' : 'style') + '-choice-' + id + '" type="checkbox" data-toggle-' + (isFilm ? 'film' : 'style') + '="' + id + L.html('" aria-label="將 ') + escapeHtml(styleTitle(style)) + L.html(' 加入工作台"') + (included ? ' checked' : '') + (locked ? ' disabled' : '') + '><span>' + (included ? L.text('已選取') : L.text('選取')) + '</span></label></div>' +
       '<div class="film-stock-body"><div class="library-card-heading"><h2>' + renderHelp(details, styleTitle(style)) + (active ? L.html('<span class="film-applied-badge">使用中</span>') : '') +
-      (isPromptCustomizedForLanguage(style) ? '<span class="style-prompt-badge">' + escapeHtml(text("promptCustomized")) + '</span>' : '') + '</h2></div>' +
-      '<div class="film-stock-actions"><button class="button' + (active ? ' primary' : '') + '" data-select-style="' + id + '" type="button" aria-pressed="' + active + '"' + (busy ? ' disabled' : '') + '>' +
-       (style.isCustom ? (active ? L.text("重新套用") : L.text("套用底片")) : style.isOriginal ? (active ? L.text("已套用") : L.text("套用原片")) : !state.ai.ready || state.ai.busy ? (active ? L.text('重套預設') : L.text('套用預設')) : (active ? L.text('已套用') : (isFilm ? L.text('套用底片') : L.text('套用風格')))) + '</button>' +
+      (isPromptCustomizedForLanguage(style) ? '<span class="style-prompt-badge">' + escapeHtml(text("promptCustomized")) + '</span>' : '') + '</h2>' +
+      ((style.isOriginal || style.isCustom) ? "" : '<button class="film-prompt-edit" data-edit-style-prompt="' + id + L.html('" type="button" aria-label="編輯 ') + escapeHtml(styleTitle(style)) + L.html(' 的 AI 提示詞">AI 描述</button>')) + '</div>' +
+      '<div class="film-stock-actions">' +
       (style.isCustom ? '<button class="button custom-film-delete" data-action="deleteCustomFilm" data-film-id="' + id + '" type="button"' + (busy ? ' disabled' : '') + '>' + iconSvg('trash') + '<span>' + L.text('刪除') + '</span></button>' : '') +
-      ((style.isOriginal || style.isCustom) ? "" : '<button class="film-prompt-edit" data-edit-style-prompt="' + id + L.html('" type="button" aria-label="編輯 ') + escapeHtml(styleTitle(style)) + L.html(' 的 AI 提示詞">AI 描述</button>')) + '</div></div></article>';
+      '</div></div></article>';
   }
 
   function renderStylePage() {
     var selected = state.styles.find(function (style) { return style.id === state.selectedStyle && !style.isFilmStock; });
-    var styles = applyStyleOrder(state.styles, readStyleOrder()).filter(function (style) { return !style.isFilmStock; });
+    var styles = applyStyleOrder(catalogStyles(), readStyleOrder()).filter(function (style) { return !style.isFilmStock; });
     var enabled = readEnabledStyleIDs();
     var count = styles.filter(function (style) { return enabled.indexOf(style.id) >= 0; }).length;
     return [
@@ -1044,23 +1062,29 @@
   }
 
   function renderFilmPage() {
-    var films = (state.styles || []).filter(function (style) { return style.isFilmStock || style.isOriginal || style.isCustom; })
-      .sort(function (a, b) { return Number(!!b.isCustom) - Number(!!a.isCustom) || Number(!!b.isOriginal) - Number(!!a.isOriginal); });
+    var groups = [["custom", L.text("自訂底片")], ["original", L.text("原始影像")],
+      ["negative", L.text("彩色負片")], ["cinema", L.text("電影負片")],
+      ["reversal", L.text("反轉片")], ["monochrome", L.text("黑白")],
+      ["instant", L.text("即影即有")], ["creative", L.text("特殊底片／製程")], ["camera", L.text("模擬相機")]];
+    function groupID(film) { return film.isCustom ? "custom" : film.isOriginal ? "original" : film.filmFamily; }
+    function groupIndex(film) { return groups.findIndex(function (group) { return group[0] === groupID(film); }); }
+    var films = catalogStyles().filter(function (style) { return style.isFilmStock || style.isOriginal || style.isCustom; })
+      .sort(function (a, b) {
+        return groupIndex(a) - groupIndex(b) || styleTitle(a).localeCompare(styleTitle(b), L.locale(state.language), { numeric: true, sensitivity: "base" }) || a.id.localeCompare(b.id);
+      });
     var enabled = readEnabledStyleIDs();
     var enabledFilmCount = films.filter(function (film) { return enabled.indexOf(film.id) >= 0; }).length;
     var categories = [["all", L.text("全部")], ["negative", L.text("彩色負片")], ["cinema", L.text("電影負片")],
-      ["reversal", L.text("反轉片")], ["monochrome", L.text("黑白")], ["instant", L.text("即影即有")], ["creative", L.text("特殊底片／製程")]];
+      ["reversal", L.text("反轉片")], ["monochrome", L.text("黑白")], ["instant", L.text("即影即有")], ["creative", L.text("特殊底片／製程")], ["camera", L.text("模擬相機")]];
     var family = state.filmFamily || "all";
     var query = (state.filmQuery || "").trim().toLocaleLowerCase();
     var visible = films.filter(function (film) {
       return (family === "all" || film.filmFamily === family) &&
         (styleTitle(film) + " " + L.text(film.subtitle) + " " + L.text(film.filmFamilyTitle) + " " + film.title).toLocaleLowerCase().indexOf(query) >= 0;
     });
-    var selected = films.find(function (film) { return film.id === currentLookID(); });
     var busy = photoIsBusy(state);
     return [
       renderPageHeading("底片收藏", L.text("底片收藏"), L.text("複選喜歡的底片加入工作台，隨時切換並調整各自的效果。\n\n底片靈感模擬：參數為自行設計，尚未經原廠實測校準。紅外線款使用可見光 RGB 近似，不會還原實際紅外線資訊。")),
-      renderLibraryCurrent(selected, true),
       L.html('<div class="film-library-tools"><div class="film-categories" role="group" aria-label="底片分類">'),
       categories.map(function (category) {
         var count = films.filter(function (film) { return category[0] === "all" || film.filmFamily === category[0]; }).length;
@@ -1068,10 +1092,11 @@
       }).join(""),
       '</div><label class="film-search">' + iconSvg("search") + L.html('<input id="filmSearch" type="search" aria-label="搜尋底片" placeholder="搜尋底片名稱或特色" value="') + escapeHtml(state.filmQuery || "") + '"></label></div>',
       '<p class="film-result-count" role="status">' + visible.length + L.text(' 款底片與製程 · 已選 ') + enabledFilmCount + L.html(' 款加入工作台</p>'),
-      L.html('<section class="film-stock-grid library-grid" aria-label="底片選擇">'),
+      L.html('<section class="film-stock-grid library-grid compact-film-grid" aria-label="底片選擇">'),
       visible.map(function (film, index) {
-        var groupStart = index === 0 || !!visible[index - 1].isCustom !== !!film.isCustom;
-        return (groupStart ? '<h3 class="film-group-divider">' + (film.isCustom ? L.text('自訂底片') : L.text('內建底片')) + '</h3>' : '') + renderLibraryCard(film, enabled, busy);
+        var groupStart = index === 0 || groupID(visible[index - 1]) !== groupID(film);
+        var group = groups[groupIndex(film)];
+        return (groupStart ? '<h3 class="film-group-divider">' + escapeHtml(group ? group[1] : L.text(film.filmFamilyTitle)) + '</h3>' : '') + renderLibraryCard(film, enabled, busy);
       }).join(''),
       visible.length ? '' : L.html('<div class="film-empty">沒有符合的底片。試試其他分類或關鍵字。</div>'),
       '</section>'
@@ -1567,27 +1592,52 @@
 
   function initializeAutoHideScrollbars() {
     var timers = new WeakMap();
-    function reveal(node) {
-      if (!(node instanceof Element) || node.scrollHeight <= node.clientHeight) return;
-      var overflow = getComputedStyle(node).overflowY;
-      if (overflow !== 'auto' && overflow !== 'scroll') return;
-      node.classList.add('vertical-scroll-active');
+    var active = new Set();
+    function hide(node) {
       clearTimeout(timers.get(node));
-      timers.set(node, setTimeout(function () {
-        node.classList.remove('vertical-scroll-active');
-        timers.delete(node);
-      }, 1000));
+      node.classList.remove('scroll-active');
+      timers.delete(node);
+      active.delete(node);
     }
-    document.addEventListener('scroll', function (event) { reveal(event.target); }, true);
-    // Reveal the existing scrollbar lane when approached, so it remains draggable.
-    document.addEventListener('pointermove', function (event) {
-      var node = event.target instanceof Element ? event.target : null;
-      while (node) {
-        var rect = node.getBoundingClientRect();
-        if (event.clientX >= rect.right - 10 && event.clientX <= rect.right) reveal(node);
-        node = node.parentElement;
-      }
+    function reveal(node) {
+      if (!(node instanceof Element)) return;
+      var css = getComputedStyle(node);
+      var vertical = node.scrollHeight > node.clientHeight && /^(auto|scroll)$/.test(css.overflowY);
+      var horizontal = node.scrollWidth > node.clientWidth && /^(auto|scroll)$/.test(css.overflowX);
+      if (!vertical && !horizontal) return;
+      node.classList.add('scroll-active');
+      active.add(node);
+      clearTimeout(timers.get(node));
+      timers.set(node, setTimeout(function () { hide(node); }, 1000));
+    }
+    function ancestors(target, visit) {
+      var node = target instanceof Element ? target : null;
+      while (node) { visit(node); node = node.parentElement; }
+    }
+    // 只有使用者操作才喚醒；重繪後還原 scrollTop 不應重新顯示捲軸。
+    document.addEventListener('wheel', function (event) {
+      ancestors(event.target, reveal);
     }, { passive: true });
+    document.addEventListener('keydown', function (event) {
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Home', 'End', ' '].indexOf(event.key) < 0) return;
+      if (event.target instanceof Element && event.target.closest('input, textarea, select, [contenteditable=true]')) return;
+      ancestors(event.target, reveal);
+    });
+    document.addEventListener('touchmove', function (event) {
+      ancestors(event.target, reveal);
+    }, { passive: true });
+    document.addEventListener('scroll', function (event) {
+      if (active.has(event.target)) reveal(event.target);
+    }, true);
+    // 接近固定寬度的捲軸軌道時顯示，保留滑鼠拖曳操作。
+    document.addEventListener('pointermove', function (event) {
+      ancestors(event.target, function (node) {
+        var rect = node.getBoundingClientRect();
+        if ((event.clientX >= rect.right - 10 && event.clientX <= rect.right) ||
+            (event.clientY >= rect.bottom - 10 && event.clientY <= rect.bottom)) reveal(node);
+      });
+    }, { passive: true });
+    window.addEventListener('blur', function () { active.forEach(hide); });
   }
 
   function initializeTooltips() {
@@ -3333,7 +3383,7 @@
     }
     // Native and MCP selection is authoritative, including styles hidden in the library.
     var enabled = readEnabledStyleIDs();
-    if (enabled.indexOf(currentLookID()) < 0 && state.styles.some(function (style) { return style.id === currentLookID(); })) {
+    if (enabled.indexOf(catalogStyleID(currentLookID())) < 0 && state.styles.some(function (style) { return style.id === currentLookID(); })) {
       persistEnabledStyleIDs(enabled.concat([currentLookID()]));
     }
     if ((currentAdjustment().cropAspectRatio || "original") === "original") {

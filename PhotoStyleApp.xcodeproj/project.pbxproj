@@ -567,7 +567,7 @@
 				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 1107;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = 8QB2QM35YM;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -579,7 +579,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.26.0923;
+				MARKETING_VERSION = 1.26.0924;
 				OTHER_LDFLAGS = ("$(inherited)", "-lllama", "-lphotowebp", "-lc++", "-framework", Accelerate, "-framework", Metal, "-framework", MetalKit);
                 SWIFT_INCLUDE_PATHS = ("$(PROJECT_DIR)/Vendor/llama.cpp/macos/include", "$(PROJECT_DIR)/Vendor/libwebp/macos/include");
                 ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -599,7 +599,7 @@
 				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 1107;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = 8QB2QM35YM;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -611,7 +611,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.26.0923;
+				MARKETING_VERSION = 1.26.0924;
 				OTHER_LDFLAGS = ("$(inherited)", "-lllama", "-lphotowebp", "-lc++", "-framework", Accelerate, "-framework", Metal, "-framework", MetalKit);
                 SWIFT_INCLUDE_PATHS = ("$(PROJECT_DIR)/Vendor/llama.cpp/macos/include", "$(PROJECT_DIR)/Vendor/libwebp/macos/include");
                 ENABLE_USER_SCRIPT_SANDBOXING = NO;

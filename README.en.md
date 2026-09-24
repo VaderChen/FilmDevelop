@@ -8,6 +8,14 @@ A film-inspired photo editor for Apple Silicon Mac. Open a photo folder, choose 
 
 Requires macOS 14 or later. AI features require a compatible local model, downloaded separately.
 
+## Latest changes — 1.26.0924 build 1826
+
+- Added Camera Simulation: GR III Negative / Hard Monochrome and GR IV Cinema Yellow / Green, all at default strength 50. GR III Positive was excluded after five-scene comparisons because it overlaps with Velvia 50. These are independently designed approximations, not manufacturer LUTs.
+- Consolidated the film catalog to 18: Portra 160 / 800 → 400, VISION 250D → 50D, 200T → 500T, and FP4 → HP5. Favorites and ordering map to representative entries; saved photos and custom films retain their original recipes.
+- Fixed neutral scanning bypassing stock-specific print contrast, maximum density and retained-silver characteristics, improving separation while retaining FP32 precision.
+- The Film Library now uses compact five-column cards, category dividers and alphabetical ordering within each category. Removed apply buttons and the current-film overview; AI descriptions sit beside smaller names. Select checked looks from the workspace.
+- Fixed the Traditional Chinese sorting locale that prevented the library from opening, GR hover previews being rejected, and restored scroll positions waking scrollbars. Scrollbars hide after about one second of inactivity.
+
 ## Download and languages
 
 Download the Apple Silicon DMG from [GitHub Releases](https://github.com/VaderChen/FilmDevelop/releases/latest), open it, and drag `照片沖洗.app` into Applications. Official installers are Developer ID signed and notarized by Apple.

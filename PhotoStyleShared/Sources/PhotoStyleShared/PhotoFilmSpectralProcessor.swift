@@ -87,6 +87,7 @@ public enum PhotoFilmSpectralProcessor {
         tables += array("float", "spBase", profiles.flatMap(\.baseDensity).map(f))
         tables += array("float4", "spCurve", profiles.map { v4($0.toe, $0.shoulder, $0.bend, $0.maxDensity) })
         tables += array("float4", "spPaper", profiles.map { v4($0.printSlope, $0.printMaxDensity, $0.printBias, $0.retainedSilver) })
+        tables += array("float", "spScanChroma", profiles.map { f($0.scannerChroma) })
         tables += array("float4", "spMode", profiles.map { v4($0.monochrome ? 1 : 0, $0.reversal ? 1 : 0, $0.reversalShift, 0) })
         tables += array("float3", "spGain", profiles.map { v3($0.layerGain) })
         tables += array("float3", "spEV", profiles.map { v3($0.layerEV) })
@@ -185,6 +186,7 @@ public enum PhotoFilmSpectralProcessor {
                     float3 unmixed=float3(dot(logD,scanRow0),dot(logD,scanRow1),dot(logD,scanRow2));
                     float3 stops=mix(logD,unmixed,scanTone.w)/scanSettings.z+scanTone.x;
                     positive=1/(1+exp(-clamp(-1.516347489f+stops*0.693147181f*scanTone.y,float3(-40),float3(40))));
+                    positive=scanRenderIntent(positive,paper,spScanChroma[stock],mode.x);
                 }
                 return float4(spOutputTone(scanGrade(positive,scanTone,scanLook,mode.x),controls)*alpha,alpha);
             }

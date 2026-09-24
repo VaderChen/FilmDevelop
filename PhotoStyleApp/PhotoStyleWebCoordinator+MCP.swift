@@ -45,12 +45,12 @@ extension PhotoStyleWebCoordinator {
         switch name {
         case "get_state": return PhotoStyleMCPTools.result(mcpState)
         case "list_styles":
-            return PhotoStyleMCPTools.result(["styles": PhotoStyle.allCases.map { style -> [String: Any] in
+            return PhotoStyleMCPTools.result(["styles": PhotoStyle.catalogCases.map { style -> [String: Any] in
                 ["id": style.rawValue, "title": style.title, "subtitle": style.subtitle,
-                 "isMonochrome": style.isMonochrome, "isFilmStock": style.filmStock != nil,
-                 "filmFamily": style.filmStock?.family ?? "",
-                 "filmFamilyTitle": style.filmStock?.familyTitle ?? "",
-                 "filmAlgorithm": style.filmStock?.algorithmDescription ?? ""]
+                 "isMonochrome": style.isMonochrome, "isFilmStock": style.isLibraryLook,
+                 "filmFamily": style.libraryFamily,
+                 "filmFamilyTitle": style.libraryFamilyTitle,
+                 "filmAlgorithm": style.libraryAlgorithm]
             }])
         case "cancel_ai":
             cancelStyleComputation()

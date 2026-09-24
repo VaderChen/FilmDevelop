@@ -1,13 +1,9 @@
 /* 垂直與水平捲軸共用尺寸與明暗主題配色。 */
 *::-webkit-scrollbar { width:6px; height:6px; }
 *::-webkit-scrollbar-track, *::-webkit-scrollbar-corner { background:transparent; }
-*::-webkit-scrollbar-thumb { min-width:24px; min-height:24px; border-radius:999px; background:color-mix(in srgb, var(--muted) 55%, transparent); }
-*::-webkit-scrollbar-thumb:hover { background:var(--muted); }
-/* Keep the lane width fixed while hiding only the vertical thumb. */
-*::-webkit-scrollbar-thumb:vertical { background:transparent; }
-.vertical-scroll-active::-webkit-scrollbar-thumb:vertical { background:color-mix(in srgb, var(--muted) 55%, transparent); }
-.vertical-scroll-active::-webkit-scrollbar-thumb:vertical:hover { background:var(--muted); }
-
+*::-webkit-scrollbar-thumb { min-width:24px; min-height:24px; border-radius:999px; background:transparent; }
+.scroll-active::-webkit-scrollbar-thumb { background:color-mix(in srgb, var(--muted) 55%, transparent); }
+.scroll-active::-webkit-scrollbar-thumb:hover { background:var(--muted); }
 
 /* The macOS window owns its height; utility panes scroll independently. */
 html, body { height: 100%; min-height: 0; overflow: hidden; }

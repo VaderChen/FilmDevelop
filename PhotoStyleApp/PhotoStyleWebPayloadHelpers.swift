@@ -68,6 +68,7 @@ func croppedImageForAnalysis(
 }
 
 func palette(for style: PhotoStyle) -> [String] {
+    if let camera = style.cameraProfile { return camera.palette }
     if let stock = style.filmStock { return stock.palette }
     switch style {
     case .original:

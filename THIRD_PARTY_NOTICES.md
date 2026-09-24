@@ -15,6 +15,10 @@ FilmDevelop 的[原始碼公開・禁止商業販售授權](LICENSE.md) 適用�
 
 Swift 套件版本取自 [MLXRuntime/Package.swift](MLXRuntime/Package.swift)，授權已核對本機 checkout；子模組以 Git 記錄的版本及隨附授權為準。
 
+## Oklab 色彩轉換
+
+相機模擬核心的線性 sRGB／Oklab 矩陣轉換改寫自 Björn Ottosson 的[公開實作](https://bottosson.github.io/posts/oklab/)。作者將該程式碼提供為 public domain，亦提供 MIT 授權選項；此處採 public domain 版本，並保留來源註記。GR 配方、明度曲線、色相權重及色調參數由本專案設計，不是 Ricoh 原廠 LUT、量測資料或原廠背書。
+
 ## 模型與影像
 
 版本庫包含 `PhotoStyleApp/Models/DepthAnythingV2SmallF16P6.mlpackage`；對應 `.mlmodelc` 為本機編譯產物，不納入版本控制。其 metadata 標示作者為 Lihe Yang 等人、授權為 Apache 2，精度為 Float16／6-bit palettized；它們依模型原始授權提供。Small 的授權不能推廣到其他尺寸或其他模型。轉換來源、修改及散布通知仍應依實際模型版本保留。

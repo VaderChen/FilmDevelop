@@ -157,6 +157,9 @@ enum PhotoStyleProcessor {
                 // Sensitivity weights must see RGB before any grayscale conversion.
                 filtered = PhotoFilmStockProcessor.apply(to: monochromeSource, stock: stock,
                                                         effects: adjustment.filmEffects, strength: strength)
+            } else if let camera = style.cameraProfile {
+                let simulated = PhotoCameraProcessor.apply(to: monochromeSource, profile: camera)
+                filtered = camera.isMonochrome ? simulated : PhotoPositiveScannerProcessor.apply(to: simulated, effects: adjustment.filmEffects)
             } else {
                 filtered = correctedBaseImage
             }

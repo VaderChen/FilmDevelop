@@ -36,7 +36,7 @@ final class PhotoStyleFilmHoverPreview {
         if let film = coordinator.customFilmStore.film(id: look), let base = PhotoStyle(rawValue: film.baseStyle) {
             style = base
             adjustment = film.adjustment
-        } else if let builtin = PhotoStyle(rawValue: look), builtin == .original || builtin.filmStock != nil {
+        } else if let builtin = PhotoStyle(rawValue: look), builtin == .original || builtin.isLibraryLook {
             style = builtin
             adjustment = coordinator.adjustmentForSelectingStyle(builtin)
         } else { return }

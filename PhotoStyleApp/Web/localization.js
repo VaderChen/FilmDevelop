@@ -12,6 +12,7 @@
     var system = (window.__appInfo && window.__appInfo.systemLanguage) || navigator.language || 'zh-Hant';
     return /^en/i.test(system) ? 'english' : /^ja/i.test(system) ? 'japanese' : /^ko/i.test(system) ? 'korean' : 'traditionalChinese';
   }
+  function locale(value) { return locales[resolve(value)]; }
   function regexEscape(value) { return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
   var templates = Object.keys(catalog).filter(function (key) { return /\{\d+\}/.test(key); }).sort(function (a,b) { return b.replace(/\{\d+\}/g,'').length-a.replace(/\{\d+\}/g,'').length; }).map(function (key) {
     var order = [], offset = 0, pattern = '^';
@@ -54,6 +55,6 @@
     document.querySelectorAll('[data-l10n-aria]').forEach(function (node) { node.setAttribute('aria-label', text(node.dataset.l10nAria)); });
     document.querySelectorAll('[data-l10n-alt]').forEach(function (node) { node.alt = text(node.dataset.l10nAlt); });
   }
-  window.PhotoL10n = { text: text, html: html, setLanguage: setLanguage, resolve: resolve, preference: preference };
+  window.PhotoL10n = { text: text, html: html, setLanguage: setLanguage, resolve: resolve, locale: locale, preference: preference };
   setLanguage(preference());
 })();

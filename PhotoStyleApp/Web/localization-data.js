@@ -1,4 +1,14 @@
 window.PhotoLocalizationData = {
+  "GR III・負片": ["GR III · Negative", "GR III・ネガ", "GR III · 네거티브"],
+  "GR III・高反差黑白": ["GR III · Hard Monochrome", "GR III・ハードモノトーン", "GR III · 고대비 흑백"],
+  "柔和反差、略浮黑位、褪色印相與暖亮部": ["Soft contrast, lifted blacks, faded prints and warm highlights", "柔らかなコントラスト、浮かせた黒、褪色したプリントと暖かいハイライト", "부드러운 대비, 살짝 올린 블랙, 바랜 인화와 따뜻한 밝은 영역"],
+  "深黑與亮白、強化明暗幾何；強度 50 仍維持黑白": ["Deep blacks and bright whites; monochrome at strength 50", "深い黒と明るい白。強度50でもモノクロを維持", "깊은 검정과 밝은 흰색. 강도 50에서도 흑백 유지"],
+  "黃色亮部、冷陰影、收斂彩度的電影反差": ["Yellow highlights, cool shadows and restrained cinematic color", "黄色いハイライト、冷たい影、抑えた彩度の映画調", "노란 밝은 영역, 차가운 그림자와 절제된 영화 색감"],
+  "偏綠陰影、偏冷亮部與低彩度都市色調": ["Green shadows, cool highlights and muted urban color", "緑寄りの影、冷たいハイライト、低彩度の都市色調", "녹색 그림자, 차가운 밝은 영역과 저채도 도시 색감"],
+  "以 Oklab 明度曲線、色相分離、陰影與亮部色調模擬相機風格；獨立近似，並非原廠 LUT。": ["Camera-inspired Oklab tone, hue separation and split toning; independently designed, not a manufacturer LUT.", "Oklabの明度曲線、色相分離、シャドウとハイライトでカメラの色調を近似。メーカー純正LUTではありません。", "Oklab 명도 곡선, 색상 분리와 분할 색조로 카메라 색감을 근사합니다. 제조사 LUT가 아닙니다."],
+
+  "模擬相機": ["Camera Simulation", "カメラシミュレーション", "카메라 시뮬레이션"],
+  "底片庫": ["Film Library", "フィルムライブラリ", "필름 라이브러리"],
   "修復筆刷": ["Repair brush", "修復ブラシ", "복구 브러시"],
   "正在下載修復模型": ["Downloading repair model", "修復モデルをダウンロード中", "복구 모델 다운로드 중"],
   "下載完成，正在準備模型。": ["Download complete. Preparing the model.", "ダウンロード完了。モデルを準備中です。", "다운로드 완료. 모델을 준비하고 있습니다."],

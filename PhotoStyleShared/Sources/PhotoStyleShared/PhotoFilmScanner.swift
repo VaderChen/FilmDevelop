@@ -72,7 +72,36 @@ enum PhotoFilmScanner {
                 return 1 / (1 + exp(-max(-40, min(40, log(0.18 / 0.82) + stops * log(2) * contrast))))
             })
         }
+        if !p.reversal { rgb = renderIntent(rgb, profile: p) }
         return grade(rgb, effects:e, monochrome:p.monochrome)
+    }
+
+    /// 負片掃描的輸出意圖：共用片種反差、紙黑與保留銀設定，
+    /// 不關閉掃描、不重跑整套光學印相，也不重複套用使用者曝光／反差。
+    /// 無保留銀時維持 18% 灰；彩度沿等亮度 RGB 軸壓回色域。
+    static func renderIntent(_ input: SIMD3<Double>, profile p: PhotoFilmSpectralProfile) -> SIMD3<Double> {
+        let weights = SIMD3<Double>(0.2126, 0.7152, 0.0722)
+        let black = pow(10, -p.printMaxDensity)
+        let anchor = (0.18 - black) / (1 - black)
+        let bias = log(anchor / (1 - anchor))
+        var rgb = SIMD3<Double>((0..<3).map { c in
+            let x = min(1, max(0, input[c]))
+            if x == 0 { return black }
+            if x == 1 { return 1 }
+            let z = p.printSlope * (log(x / (1 - x)) - log(0.18 / 0.82)) + bias
+            return black + (1 - black) / (1 + exp(-max(-80, min(80, z))))
+        })
+        let density = SIMD3<Double>((0..<3).map { -log10(max(rgb[$0], 1e-12)) })
+        rgb *= pow(10, -p.retainedSilver * simd_dot(density, weights))
+        if p.monochrome { return .init(repeating: simd_dot(rgb, weights)) }
+        let y = simd_dot(rgb, weights)
+        let delta = (rgb - SIMD3<Double>(repeating: y)) * (p.scannerChroma / (1 + 2 * p.retainedSilver))
+        var scale = 1.0
+        for c in 0..<3 {
+            if delta[c] < 0 { scale = min(scale, y / -delta[c]) }
+            if delta[c] > 0 { scale = min(scale, (1 - y) / delta[c]) }
+        }
+        return .init(repeating: y) + delta * max(0, scale)
     }
 
     static func grade(_ input: SIMD3<Double>, effects e: PhotoFilmEffects, monochrome: Bool) -> SIMD3<Double> {
@@ -90,6 +119,28 @@ enum PhotoFilmScanner {
     }
 
     static let metal = """
+    float3 scanRenderIntent(float3 rgb, float4 paper, float chroma, float mono) {
+        float3 w=float3(0.2126,0.7152,0.0722);
+        float black=pow(10.0f,-paper.y);
+        float anchor=(0.18f-black)/(1.0f-black);
+        float bias=log(anchor/(1.0f-anchor));
+        float3 x=clamp(rgb,float3(1e-12f),float3(1.0f-1e-7f));
+        float3 z=paper.x*(log(x/(1.0f-x))-log(0.18f/0.82f))+bias;
+        float3 tone=black+(1.0f-black)/(1.0f+exp(-clamp(z,float3(-80),float3(80))));
+        tone=select(tone,float3(black),rgb<=0.0f);
+        tone=select(tone,float3(1.0f),rgb>=1.0f);
+        float silver=paper.w*dot(-log10(max(tone,float3(1e-12f))),w);
+        tone*=pow(10.0f,-silver);
+        float y=dot(tone,w);
+        if(mono>0.5f) return float3(y);
+        float3 delta=(tone-y)*(chroma/(1.0f+2.0f*paper.w));
+        float scale=1.0f;
+        for(int c=0;c<3;++c) {
+            if(delta[c]<0.0f) scale=min(scale,y/-delta[c]);
+            if(delta[c]>0.0f) scale=min(scale,(1.0f-y)/delta[c]);
+        }
+        return float3(y)+delta*max(0.0f,scale);
+    }
     float3 scanGrade(float3 rgb, float4 scanTone, float4 scanLook, float mono) {
         float3 w=float3(0.2126,0.7152,0.0722);
         float y=dot(rgb,w);

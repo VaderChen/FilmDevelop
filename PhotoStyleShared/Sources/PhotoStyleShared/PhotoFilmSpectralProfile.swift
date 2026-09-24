@@ -20,6 +20,9 @@ struct PhotoFilmSpectralProfile: Sendable {
     var printSlope = 1.0
     var printMaxDensity = 2.6
     var retainedSilver = 0.0
+    /// 掃描完成後的藝術性彩度意圖；避免染料分離校正將片種特色一起中和。
+    /// 由原有染料頻寬設定推導，並非量測得到的物理彩度。
+    var scannerChroma = 1.0
     var layerGain = SIMD3<Double>(repeating: 1)
     var layerEV = SIMD3<Double>(repeating: 0)
     var sensitivity: [SIMD3<Double>] = []
@@ -128,6 +131,7 @@ struct PhotoFilmSpectralProfile: Sendable {
             toe = -6.8; shoulder = 4.1; printSlope = 1.10; bend = 1.2
             dyeWidth = 0.90; sensitivityWidth = 0.95
         }
+        scannerChroma = 1 / (dyeWidth * dyeWidth)
         sensitivity = Self.normalizeChannels(Self.wavelengths.map { lambda in
             SIMD3<Double>(Self.gaussian(lambda, 625, 30 * sensitivityWidth),
                           Self.gaussian(lambda, 540, 27 * sensitivityWidth),

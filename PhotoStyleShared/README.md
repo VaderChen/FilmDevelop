@@ -38,3 +38,9 @@ CLI-only process wrappers and llama.cpp command execution stay in `aiTest2`.
 HDR、局部明暗與膚色判定先解除預乘 alpha，輸出仍保留原透明度；背景散景的有效權重包含來源 alpha，再以原 alpha 重建輸出，避免半透明邊緣變暗及完全透明區殘留 RGB。這些修正不更動控制項、強度預設或匯出格式。
 
 這是依論文公式自行實作，沒有複製第三方程式碼。膚色初始判定仍是色彩規則、人物初始遮罩仍由 Vision 提供；無法修復整塊漏辨識的部位，深度散景仍使用原有的分層近似。
+
+## 相機模擬與掃描特徵
+
+`PhotoCameraProcessor` 使用共用 Oklab Metal 核心，提供 GR III 負片／高反差黑白與 GR IV Cinema Yellow／Green。輸入為已完成顯示映射的影像，內部轉到 extended linear sRGB，保留預乘透明度，以固定明度／色相縮減超出色域的彩度。核心輸出完整效果，由 App 外層統一混合強度一次；預設 50。這是獨立風格近似，不是原廠校準。
+
+中性底片掃描現會套用各款的印相斜率、最大密度、保留銀與色層彩度特徵；CPU／Metal 共用相同設計，避免中性掃描抹平款式差異。已儲存的配方 ID 保留，但重新渲染會反映此核心修正。
