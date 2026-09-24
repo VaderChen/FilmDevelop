@@ -68,6 +68,10 @@ extension PhotoStyleWebCoordinator {
             sendState(includeImages: true)
         case .browseFiles:
             openFilePicker()
+        case .importCustomFilm:
+            importCustomFilm()
+        case .exportCustomFilm:
+            exportCustomFilm(bridgeMessage.payload)
         case .saveCustomFilm:
             promptToSaveCustomFilm()
         case .deleteCustomFilm:

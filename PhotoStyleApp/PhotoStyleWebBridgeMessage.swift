@@ -13,6 +13,8 @@ enum PhotoStyleWebBridgeAction: String {
     case setMCPEnabled
     case copyMCPConfiguration
     case browseFiles
+    case importCustomFilm
+    case exportCustomFilm
     case saveCustomFilm
     case deleteCustomFilm
     case sampleWhiteBalance

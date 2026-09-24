@@ -8,8 +8,10 @@ A film-inspired photo editor for Apple Silicon Mac. Open a photo folder, choose 
 
 Requires macOS 14 or later. AI features require a compatible local model, downloaded separately.
 
-## Latest changes — 1.26.0924 build 2228
+## Latest changes — 1.26.0924 build 2244
 
+- Custom film cards now include Export to save recipes as JSON files. Import is available beside the Film Library heading.
+- Import replaces an existing recipe with the same ID and adds recipes with different IDs. Matching names with different IDs receive a number. Importing does not automatically change the current photo.
 - Thumbnail filenames now have a right-aligned index such as `#0001`. The folder heading shows the current photo position and total count.
 - The thumbnail strip keeps its horizontal scrollbar visible for easy navigation. Vertical scrollbars still hide after inactivity.
 - Choosing a photo folder opens its first photo automatically. Restarting the app still restores the previously edited photo.

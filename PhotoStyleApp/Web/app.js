@@ -1046,7 +1046,7 @@
       (isPromptCustomizedForLanguage(style) ? '<span class="style-prompt-badge">' + escapeHtml(text("promptCustomized")) + '</span>' : '') + '</h2>' +
       ((style.isOriginal || style.isCustom) ? "" : '<button class="film-prompt-edit" data-edit-style-prompt="' + id + L.html('" type="button" aria-label="編輯 ') + escapeHtml(styleTitle(style)) + L.html(' 的 AI 提示詞">AI 描述</button>')) + '</div>' +
       '<div class="film-stock-actions">' +
-      (style.isCustom ? '<button class="button custom-film-delete" data-action="deleteCustomFilm" data-film-id="' + id + '" type="button"' + (busy ? ' disabled' : '') + '>' + iconSvg('trash') + '<span>' + L.text('刪除') + '</span></button>' : '') +
+      (style.isCustom ? '<button class="button custom-film-export" data-action="exportCustomFilm" data-film-id="' + id + '" type="button"' + (busy ? ' disabled' : '') + '>' + iconSvg('exportImage') + '<span>' + L.text('匯出') + '</span></button><button class="button custom-film-delete" data-action="deleteCustomFilm" data-film-id="' + id + '" type="button"' + (busy ? ' disabled' : '') + '>' + iconSvg('trash') + '<span>' + L.text('刪除') + '</span></button>' : '') +
       '</div></div></article>';
   }
 
@@ -1088,7 +1088,7 @@
     });
     var busy = photoIsBusy(state);
     return [
-      renderPageHeading("底片收藏", L.text("底片收藏"), L.text("複選喜歡的底片加入工作台，隨時切換並調整各自的效果。\n\n底片靈感模擬：參數為自行設計，尚未經原廠實測校準。紅外線款使用可見光 RGB 近似，不會還原實際紅外線資訊。")),
+      renderPageHeading("底片收藏", L.text("底片收藏"), L.text("複選喜歡的底片加入工作台，隨時切換並調整各自的效果。\n\n底片靈感模擬：參數為自行設計，尚未經原廠實測校準。紅外線款使用可見光 RGB 近似，不會還原實際紅外線資訊。"), '<button class="button film-import-button" data-action="importCustomFilm" type="button"' + (busy ? ' disabled' : '') + '>' + iconSvg("folderOpen") + '<span>' + L.text("匯入") + '</span></button>'),
       L.html('<div class="film-library-tools"><div class="film-categories" role="group" aria-label="底片分類">'),
       categories.map(function (category) {
         var count = films.filter(function (film) { return category[0] === "all" || film.filmFamily === category[0]; }).length;
@@ -1817,6 +1817,10 @@
           // 使用者要求重試時，相同的資料 URL 也要重新解碼。
           var failedPreview = app.querySelector(".preview-image");
           if (failedPreview) failedPreview._requestedPreviewSource = null;
+        }
+        if (button.dataset.action === "exportCustomFilm") {
+          if (!photoIsBusy(state)) post("exportCustomFilm", { id: button.dataset.filmId });
+          return;
         }
         if (button.dataset.action === "deleteCustomFilm") {
           if (photoIsBusy(state)) return;

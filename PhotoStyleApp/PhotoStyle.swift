@@ -965,7 +965,7 @@ extension StyleAdjustment {
     }
 }
 
-private extension StyleAdjustment {
+extension StyleAdjustment {
     func clamped() -> StyleAdjustment {
         func bounded(_ value: Double, to range: ClosedRange<Double>, fallback: Double = 0) -> Double {
             guard value.isFinite else { return fallback }

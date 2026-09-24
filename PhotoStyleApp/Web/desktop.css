@@ -216,3 +216,8 @@ img.brand-mark { display: block; object-fit: contain; flex-shrink: 0; background
 
 .custom-film-delete { margin-left:auto; display:inline-flex; align-items:center; gap:7px; color:var(--danger); }
 .custom-film-delete svg { width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+
+.desktop-page .page-heading:has(.film-import-button) { max-width:none; }
+.page-title-row:has(.film-import-button) { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.film-import-button, .custom-film-export { display:inline-flex; align-items:center; gap:7px; flex:0 0 auto; white-space:nowrap; }
+.film-import-button svg, .custom-film-export svg { width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }

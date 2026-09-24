@@ -39,6 +39,49 @@ extension PhotoStyleWebCoordinator {
         }
     }
 
+    func exportCustomFilm(_ payload: [String: Any]) {
+        guard canImport, let id = payload["id"] as? String,
+              let film = customFilmStore.film(id: id), let window = webView?.window,
+              window.attachedSheet == nil else { return }
+        do {
+            let data = try customFilmStore.exportData(id: id)
+            let panel = NSSavePanel()
+            panel.title = PhotoL10n.text("匯出自訂底片")
+            panel.allowedContentTypes = [.json]
+            panel.nameFieldStringValue = film.name.components(separatedBy: CharacterSet(charactersIn: "/:\\")).joined(separator: "-") + ".json"
+            panel.beginSheetModal(for: window) { [weak self] response in
+                guard response == .OK, let url = panel.url else { return }
+                do {
+                    try data.write(to: url, options: .atomic)
+                    self?.sendToast("底片已匯出。")
+                } catch { self?.sendToast("底片匯出失敗。") }
+            }
+        } catch { sendToast(error.localizedDescription) }
+    }
+
+    func importCustomFilm() {
+        guard canImport, let window = webView?.window, window.attachedSheet == nil else { return }
+        let panel = NSOpenPanel()
+        panel.title = PhotoL10n.text("匯入自訂底片")
+        panel.allowedContentTypes = [.json]
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.beginSheetModal(for: window) { [weak self] response in
+            guard response == .OK, let self, self.canImport, let url = panel.url else { return }
+            let access = url.startAccessingSecurityScopedResource()
+            defer { if access { url.stopAccessingSecurityScopedResource() } }
+            do {
+                let handle = try FileHandle(forReadingFrom: url)
+                defer { try? handle.close() }
+                let data = try handle.read(upToCount: 1_048_577) ?? Data()
+                let film = try self.customFilmStore.importData(data)
+                self.filmHoverPreview.cancel(clearCache: true)
+                self.sendState(includeImages: false)
+                self.sendToast("已匯入「\(film.name)」。")
+            } catch { self.sendToast(PhotoL10n.text(error.localizedDescription)) }
+        }
+    }
+
     func promptToDeleteCustomFilm(_ payload: [String: Any]) {
         guard canImport, let id = payload["id"] as? String, let film = customFilmStore.film(id: id),
               let window = webView?.window, window.attachedSheet == nil else { return }
