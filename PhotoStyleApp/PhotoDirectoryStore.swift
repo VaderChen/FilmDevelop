@@ -177,7 +177,7 @@ final class PhotoDirectoryStore {
         thumbnailWork.values.forEach { $0.cancel() }
     }
 
-    func selectDirectory(_ url: URL, preferredPhotoURL: URL? = nil) {
+    func selectDirectory(_ url: URL, preferredPhotoURL: URL? = nil, onScanComplete: ((URL?) -> Void)? = nil) {
         scanOperation?.cancel()
         thumbnailOperation?.cancel()
         thumbnailPublication?.cancel()
@@ -213,6 +213,7 @@ final class PhotoDirectoryStore {
                     self.urlsByID = Dictionary(urls.map { ($0.id, $0.url) }, uniquingKeysWith: { first, _ in first })
                     self.message = urls.isEmpty ? "此目錄沒有可讀取的照片或 RAW 檔案。" : ""
                     self.prepareItems()
+                    onScanComplete?(urls.first?.url)
                 case .failure(let error):
                     self.message = "無法讀取照片目錄：\(error.localizedDescription)"
                     self.onChange?()

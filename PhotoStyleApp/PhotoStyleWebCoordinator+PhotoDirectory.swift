@@ -83,9 +83,21 @@ extension PhotoStyleWebCoordinator {
                 self.sendToast("請等目前的處理完成後再選取照片目錄。")
                 return
             }
-            self.photoDirectoryStore.selectDirectory(url)
+            self.selectNewPhotoDirectory(url)
             // A fresh panel selection also renews access when its path is unchanged.
             self.rememberPhotoDirectory(forceBookmark: true)
+        }
+    }
+
+    /// Explicit folder selection opens its first photo; launch restoration keeps the remembered photo.
+    func selectNewPhotoDirectory(_ url: URL) {
+        let generation = photoGeneration
+        photoDirectoryStore.selectDirectory(url) { [weak self] firstPhoto in
+            guard let self, let firstPhoto, self.canImport,
+                  self.photoGeneration == generation else { return }
+            guard self.sourceFileURL?.standardizedFileURL.resolvingSymlinksInPath()
+                != firstPhoto.standardizedFileURL.resolvingSymlinksInPath() else { return }
+            self.loadPickedImage(from: firstPhoto)
         }
     }
 

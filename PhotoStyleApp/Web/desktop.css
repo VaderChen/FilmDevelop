@@ -4,6 +4,9 @@
 *::-webkit-scrollbar-thumb { min-width:24px; min-height:24px; border-radius:999px; background:transparent; }
 .scroll-active::-webkit-scrollbar-thumb { background:color-mix(in srgb, var(--muted) 55%, transparent); }
 .scroll-active::-webkit-scrollbar-thumb:hover { background:var(--muted); }
+/* Keep the photo navigation scrollbar discoverable while vertical panes fade. */
+.photo-thumbnail-list::-webkit-scrollbar-thumb { background:color-mix(in srgb, var(--muted) 55%, transparent); }
+.photo-thumbnail-list::-webkit-scrollbar-thumb:hover { background:var(--muted); }
 
 /* The macOS window owns its height; utility panes scroll independently. */
 html, body { height: 100%; min-height: 0; overflow: hidden; }
@@ -136,7 +139,9 @@ textarea, input:not([type=range]) { -webkit-user-select: text; user-select: text
 .photo-thumbnail { width:var(--photo-thumbnail-width); height:var(--photo-thumbnail-card-height); flex:0 0 var(--photo-thumbnail-width); padding:4px; border:1px solid var(--line); border-radius:7px; background:var(--surface); color:var(--muted); text-align:left; }
 .photo-thumbnail img, .photo-thumbnail-placeholder { display:block; width:100%; height:var(--photo-thumbnail-height); object-fit:contain; border-radius:3px; background:var(--canvas); }
 .photo-thumbnail-placeholder { display:grid; place-items:center; }
-.photo-thumbnail-name { display:block; width:100%; margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:9px; line-height:12px; }
+.photo-thumbnail-caption { display:flex; align-items:baseline; gap:4px; margin-top:4px; font-size:9px; line-height:12px; white-space:nowrap; }
+.photo-thumbnail-name { display:block; flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.photo-thumbnail-index { flex:0 0 auto; margin-left:auto; font-variant-numeric:tabular-nums; }
 .photo-thumbnail:hover:not(:disabled) { border-color:var(--accent); }
 .photo-thumbnail.selected { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); color:var(--accent-strong); background:var(--accent-soft); }
 .photo-thumbnail:disabled { cursor:default; opacity:.65; }

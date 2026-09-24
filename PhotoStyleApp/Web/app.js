@@ -769,19 +769,23 @@
     var directory = state.photoDirectory || {};
     if (!directory.path && !directory.isScanning && !L.text(directory.message)) return "";
     var items = directory.items || [];
-    var selected = items.find(function (item) { return item.selected; });
+    var selectedIndex = items.findIndex(function (item) { return item.selected; });
+    var selected = selectedIndex >= 0 ? items[selectedIndex] : null;
+    var countLabel = selectedIndex >= 0
+      ? L.text('第 ' + (selectedIndex + 1) + ' 張／共 ' + (directory.totalCount || 0) + ' 張')
+      : L.text('共 ' + (directory.totalCount || 0) + ' 張');
     var busy = photoIsBusy(state);
     var loading = !!(directory.isScanning || directory.isLoadingThumbnails);
     var spinner = '<span class="photo-directory-spinner" aria-hidden="true"></span>';
     return '<section class="photo-directory" data-directory-path="' + escapeHtml(directory.path || '') + '" data-selected-photo="' + escapeHtml(selected ? selected.id : '') + '" data-thumbnail-size="' + normalizedThumbnailSize(state.thumbnailSize) + L.html('" aria-label="目錄照片縮圖">') +
       '<div class="photo-directory-heading"><div class="photo-directory-summary"><strong tabindex="0" data-tooltip="' + escapeHtml(directory.path || '') + '">' + escapeHtml(directory.name || L.text('照片目錄')) + '</strong><span class="photo-directory-status" role="status">' + (loading ? spinner : '') +
-      (directory.isScanning ? L.text('正在掃描目錄…') : ((directory.totalCount || 0) + L.text(' 張照片') + (directory.isLoadingThumbnails ? L.text(' · 正在載入縮圖…') : ''))) + '</span></div>' +
+      (directory.isScanning ? L.text('正在掃描目錄…') : (escapeHtml(countLabel) + (directory.isLoadingThumbnails ? L.text(' · 正在載入縮圖…') : ''))) + '</span></div>' +
       L.html('<div class="photo-directory-controls"><label class="photo-thumbnail-size" for="photoThumbnailSize"><span>縮圖</span><select id="photoThumbnailSize" aria-label="縮圖大小">') +
       option('small', L.text('小'), state.thumbnailSize) + option('medium', L.text('中'), state.thumbnailSize) + option('large', L.text('大'), state.thumbnailSize) + '</select></label></div></div>' +
       (items.length ? L.html('<div class="photo-thumbnail-browser"><button class="photo-thumbnail-arrow" type="button" data-thumbnail-scroll="-1" aria-label="向左移動一張縮圖">‹</button>') +
-        '<div class="photo-thumbnail-list" data-scroll-region="photo-thumbnails" aria-busy="' + loading + '">' + items.map(function (item) {
+        '<div class="photo-thumbnail-list" data-scroll-region="photo-thumbnails" aria-busy="' + loading + '">' + items.map(function (item, index) {
         return '<button class="photo-thumbnail' + (item.edited ? ' edited' : '') + (item.selected ? ' selected' : '') + '" id="photo-choice-' + escapeHtml(item.id) + '" data-directory-photo="' + escapeHtml(item.id) + '" type="button" aria-pressed="' + !!item.selected + '" data-tooltip="' + escapeHtml(item.name) + '"' + (busy || directory.isScanning ? ' disabled' : '') + '>' +
-          renderPhotoThumbnail(item) + '<span class="photo-thumbnail-name">' + escapeHtml(item.name) + '</span></button>';
+          renderPhotoThumbnail(item) + '<span class="photo-thumbnail-caption"><span class="photo-thumbnail-name">' + escapeHtml(item.name) + '</span><span class="photo-thumbnail-index">#' + String(index + 1).padStart(4, '0') + '</span></span></button>';
       }).join('') + L.html('</div><button class="photo-thumbnail-arrow" type="button" data-thumbnail-scroll="1" aria-label="向右移動一張縮圖">›</button></div>') : '<p class="photo-directory-empty">' + escapeHtml(L.text(directory.message) || (directory.isScanning ? L.text('正在尋找照片…') : L.text('這個目錄沒有可開啟的照片。'))) + '</p>') + '</section>';
   }
 

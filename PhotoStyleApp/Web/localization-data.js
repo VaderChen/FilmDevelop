@@ -1,4 +1,6 @@
 window.PhotoLocalizationData = {
+  "第 {0} 張／共 {1} 張": ["Photo {0} of {1}", "{1} 枚中 {0} 枚目", "총 {1}장 중 {0}번째"],
+  "共 {0} 張": ["{0} photos", "全 {0} 枚", "총 {0}장"],
   "GR III・負片": ["GR III · Negative", "GR III・ネガ", "GR III · 네거티브"],
   "GR III・高反差黑白": ["GR III · Hard Monochrome", "GR III・ハードモノトーン", "GR III · 고대비 흑백"],
   "柔和反差、略浮黑位、褪色印相與暖亮部": ["Soft contrast, lifted blacks, faded prints and warm highlights", "柔らかなコントラスト、浮かせた黒、褪色したプリントと暖かいハイライト", "부드러운 대비, 살짝 올린 블랙, 바랜 인화와 따뜻한 밝은 영역"],

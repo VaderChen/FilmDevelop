@@ -29,19 +29,27 @@ final class CustomFilmStore {
     func film(id: String?) -> CustomFilm? { films.first { $0.id == id } }
 
     @discardableResult
-    func save(name: String, baseStyle: PhotoStyle, adjustment: StyleAdjustment) throws -> CustomFilm {
+    func save(name: String, baseStyle: PhotoStyle, adjustment: StyleAdjustment, sourceID: String? = nil) throws -> CustomFilm {
         if let loadingError { throw loadingError }
         let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty, name.count <= 80,
               !name.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains) else {
             throw Self.failure("請輸入 1～80 個字的底片名稱。")
         }
-        guard !films.contains(where: { $0.name.compare(name, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame }) else {
+        // Only an unchanged name from the selected recipe authorizes replacement.
+        let original = film(id: sourceID)
+        let replacementID = original?.name == name ? original?.id : nil
+        guard !films.contains(where: { $0.id != replacementID && $0.name.compare(name, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame }) else {
             throw Self.failure("已有同名的自訂底片，請使用其他名稱。")
         }
-        let film = CustomFilm(id: "custom-" + UUID().uuidString, name: name,
+        let film = CustomFilm(id: replacementID ?? "custom-" + UUID().uuidString, name: name,
                               baseStyle: baseStyle.rawValue, adjustment: adjustment)
-        let next = films + [film]
+        var next = films
+        if let index = next.firstIndex(where: { $0.id == replacementID }) {
+            next[index] = film
+        } else {
+            next.append(film)
+        }
         if let fileURL {
             try FileManager.default.createDirectory(at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
             try JSONEncoder().encode(next).write(to: fileURL, options: .atomic)

@@ -9,12 +9,14 @@ extension PhotoStyleWebCoordinator {
         let generation = photoGeneration
         let style = selectedStyle
         let recipe = adjustmentStore.adjustment(for: style)
+        let sourceID = selectedCustomFilmID
+        let sourceFilm = customFilmStore.film(id: sourceID)
         let alert = NSAlert()
         alert.messageText = PhotoL10n.text("儲存自訂底片")
         alert.informativeText = PhotoL10n.text("為目前的調整參數命名，之後即可從底片庫套用。")
         let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 300, height: 26))
         field.placeholderString = PhotoL10n.text("底片名稱")
-        field.stringValue = name
+        field.stringValue = name.isEmpty ? sourceFilm?.name ?? "" : name
         alert.accessoryView = field
         alert.addButton(withTitle: PhotoL10n.text("儲存"))
         alert.addButton(withTitle: PhotoL10n.text("取消"))
@@ -22,10 +24,12 @@ extension PhotoStyleWebCoordinator {
         alert.beginSheetModal(for: window) { [weak self] response in
             guard response == .alertFirstButtonReturn, let self, self.canImport,
                   self.photoGeneration == generation, self.selectedStyle == style,
+                  self.selectedCustomFilmID == sourceID,
                   self.adjustmentStore.adjustment(for: style) == recipe else { return }
             do {
-                let film = try self.customFilmStore.save(name: field.stringValue, baseStyle: style, adjustment: recipe)
+                let film = try self.customFilmStore.save(name: field.stringValue, baseStyle: style, adjustment: recipe, sourceID: sourceID)
                 if self.selectedCustomFilmID == nil { self.customFilmBaseAdjustment = recipe }
+                self.filmHoverPreview.cancel(clearCache: true)
                 self.selectedCustomFilmID = film.id
                 self.recordEditHistory()
                 self.persistCurrentPhotoEdits()

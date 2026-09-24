@@ -8,13 +8,12 @@ A film-inspired photo editor for Apple Silicon Mac. Open a photo folder, choose 
 
 Requires macOS 14 or later. AI features require a compatible local model, downloaded separately.
 
-## Latest changes — 1.26.0924 build 1826
+## Latest changes — 1.26.0924 build 2228
 
-- Added Camera Simulation: GR III Negative / Hard Monochrome and GR IV Cinema Yellow / Green, all at default strength 50. GR III Positive was excluded after five-scene comparisons because it overlaps with Velvia 50. These are independently designed approximations, not manufacturer LUTs.
-- Consolidated the film catalog to 18: Portra 160 / 800 → 400, VISION 250D → 50D, 200T → 500T, and FP4 → HP5. Favorites and ordering map to representative entries; saved photos and custom films retain their original recipes.
-- Fixed neutral scanning bypassing stock-specific print contrast, maximum density and retained-silver characteristics, improving separation while retaining FP32 precision.
-- The Film Library now uses compact five-column cards, category dividers and alphabetical ordering within each category. Removed apply buttons and the current-film overview; AI descriptions sit beside smaller names. Select checked looks from the workspace.
-- Fixed the Traditional Chinese sorting locale that prevented the library from opening, GR hover previews being rejected, and restored scroll positions waking scrollbars. Scrollbars hide after about one second of inactivity.
+- Thumbnail filenames now have a right-aligned index such as `#0001`. The folder heading shows the current photo position and total count.
+- The thumbnail strip keeps its horizontal scrollbar visible for easy navigation. Vertical scrollbars still hide after inactivity.
+- Choosing a photo folder opens its first photo automatically. Restarting the app still restores the previously edited photo.
+- Saving the active custom film prefills its name. Keeping that name updates the film; a new name saves a separate film. Other films with matching names are protected.
 
 ## Download and languages
 
