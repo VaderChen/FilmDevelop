@@ -117,7 +117,8 @@ struct PhotoImage {
             image, from: bounds, format: pixelFormat,
             colorSpace: format == .jpeg || format == .webp || opaquePNG
                 ? CGColorSpace(name: CGColorSpace.sRGB)!
-                : (cgImage.colorSpace ?? CGColorSpace(name: CGColorSpace.sRGB)!)
+                : (cgImage.colorSpace ?? CGColorSpace(name: CGColorSpace.sRGB)!),
+            deferred: false
         ) else { return nil }
         if format == .webp {
             return PhotoWebPEncoder.encode(bitmap, quality: Float(min(1, max(0, quality)) * 100))
@@ -229,7 +230,7 @@ enum PhotoImageRenderPrecision {
 
     static func renderedImage(
         from image: CIImage, context: CIContext, highPrecision: Bool,
-        colorSpace: CGColorSpace? = nil, scale: CGFloat = 1
+        colorSpace: CGColorSpace? = nil, scale: CGFloat = 1, deferred: Bool = true
     ) -> PhotoImage? {
         // The legacy highPrecision argument marks scene-referred RAW only.
         // Every working image is FP32, including those originating in 8-bit files.
@@ -238,7 +239,7 @@ enum PhotoImageRenderPrecision {
         )!
         guard let cgImage = context.createCGImage(
             image, from: image.extent, format: .RGBAf,
-            colorSpace: resolvedColorSpace
+            colorSpace: resolvedColorSpace, deferred: deferred
         ) else { return nil }
         return PhotoImage(cgImage: cgImage, requiresRAWDisplayMapping: highPrecision)
     }

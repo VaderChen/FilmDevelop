@@ -224,7 +224,8 @@ struct PhotoFilmSpectralProfile: Sendable {
         baseline.printContrast = 50
         let rgb = referenceBaselineRGB(input, effects: baseline, strength: strength)
         let contrast = pow(2, (effects.printContrast - 50) / 50)
-        return SIMD3<Double>((0..<3).map { 0.18 * pow(max(rgb[$0], 0) / 0.18, contrast) * pow(2, effects.printExposure) })
+        let contrasted = SIMD3<Double>((0..<3).map { 0.18 * pow(max(rgb[$0], 0) / 0.18, contrast) })
+        return PhotoExposureProtection.apply(contrasted, gain: pow(2, effects.printExposure))
     }
 
     private func referenceBaselineRGB(_ input: SIMD3<Double>, effects: PhotoFilmEffects, strength: Double) -> SIMD3<Double> {

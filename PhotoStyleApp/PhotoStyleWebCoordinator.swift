@@ -160,7 +160,7 @@ final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMe
     var computationStep = ""
     var computationCompletedItemCount = 0
     var isSavingImage = false
-    var exportWorker: Task<(size: CGSize, preview: String?), Error>?
+    var exportWorker: Task<CGSize, Error>?
     var savingStep = ""
     var shouldExpandAdjustmentsAfterComputation = false
     var inferenceTask: Task<Void, Never>?

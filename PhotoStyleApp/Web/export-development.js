@@ -97,8 +97,8 @@
           root.dataset.phase = 'fixed';
           title.textContent = L.text('輸出完成');
           detail.textContent = L.text('定影完成');
-          later(job, reducedMotion.matches ? 0 : 900, function () {
-            var fade = reducedMotion.matches ? 100 : 450;
+          later(job, reducedMotion.matches ? 0 : 500, function () {
+            var fade = reducedMotion.matches ? 100 : 200;
             root.animate([{ opacity: 1 }, { opacity: 0 }], { duration: fade, fill: 'forwards' });
             later(job, fade, close);
           });
@@ -109,7 +109,8 @@
         var elapsed = Math.max(0, now - job.stageStarted);
         var budget = Math.max(1000, job.estimated * stage.share);
         // A slow stage keeps developing gently, but can never impersonate completed work.
-        var target = stage.floor + (stage.ceiling - stage.floor) * elapsed / (elapsed + budget);
+        var target = stage.floor + (stage.ceiling - stage.floor) * (
+          job.stageProgress == null ? elapsed / (elapsed + budget) : job.stageProgress);
         var visualAge = now - job.visualStarted;
         var visibleLimit = 0.94 * smooth(clamp((visualAge - 500) / minimumReveal, 0, 1));
         if (reducedMotion.matches) target = Math.min(target, 0.88);
@@ -151,12 +152,18 @@
       });
     };
 
-    this.update = function (id, stageName) {
+    this.update = function (id, stageName, fraction) {
       var job = current;
       var stage = stages[stageName];
-      if (!job || job.id !== id || job.finishing || !stage || stage.order <= stages[job.stage].order) return;
-      job.stage = stageName;
-      job.stageStarted = performance.now();
+      if (!job || job.id !== id || job.finishing || !stage || stage.order < stages[job.stage].order) return;
+      if (stageName !== job.stage) {
+        job.stage = stageName;
+        job.stageProgress = null;
+        job.stageStarted = performance.now();
+      }
+      if (typeof fraction === 'number' && Number.isFinite(fraction)) {
+        job.stageProgress = Math.max(job.stageProgress || 0, clamp(fraction, 0, 1));
+      }
       detail.textContent = L.text(stage.text);
     };
 
@@ -166,13 +173,15 @@
       job.finishing = true;
       // Learn native processing time, excluding the visual hold and Web image decode.
       remember(job, Number(durationMs));
-      Promise.resolve(job.loading).then(function () { return load(job, source); }).then(function () {
+      // Keep the same cached image. Completion only reveals it fully after the
+      // native writer succeeds; it never requests a second full-size decode.
+      Promise.resolve(job.loading).then(function () {
         if (current !== job) return;
         var now = performance.now();
         job.finishFrom = job.progress;
         job.finishStarted = now;
         job.finishDuration = reducedMotion.matches ? 140 : Math.max(
-          1800, minimumReveal - (now - job.visualStarted), (1 - job.progress) * 6000
+          500, minimumReveal - (now - job.visualStarted), (1 - job.progress) * 1600
         );
         job.finishReady = true;
         root.dataset.phase = 'fixing';

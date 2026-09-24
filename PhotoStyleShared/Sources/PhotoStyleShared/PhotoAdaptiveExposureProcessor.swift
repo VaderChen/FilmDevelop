@@ -3,12 +3,14 @@ import CoreImage
 public enum PhotoAdaptiveExposureProcessor {
     private static let illuminationKernel = CIColorKernel(source: """
     kernel vec4 exposureIllumination(__sample source) {
-        float value = max(source.r, max(source.g, source.b));
-        return vec4(value, value, value, source.a);
+        vec3 rgb = source.rgb / max(source.a, 0.000001);
+        float value = max(rgb.r, max(rgb.g, rgb.b));
+        return vec4(value, value, value, 1.0);
     }
     """)
 
     private static let exposureKernel = CIColorKernel(source: """
+    \(PhotoExposureProtection.kernel)
     float bimefResponse(float value, float exposureRatio) {
         float gamma = pow(exposureRatio, -0.3293);
         float beta = exp((1.0 - gamma) * 1.1258);
@@ -20,7 +22,9 @@ public enum PhotoAdaptiveExposureProcessor {
         __sample illumination,
         float exposureValue
     ) {
-        float sourcePeak = max(source.r, max(source.g, source.b));
+        if (source.a <= 0.0) { return vec4(0.0); }
+        vec3 straight = source.rgb / source.a;
+        float sourcePeak = max(straight.r, max(straight.g, straight.b));
         if (sourcePeak <= 0.00001) {
             return source;
         }
@@ -31,14 +35,16 @@ public enum PhotoAdaptiveExposureProcessor {
             float exposureRatio = exp2(exposureValue);
             float candidatePeak = bimefResponse(sourcePeak, exposureRatio);
             float originalWeight = pow(clamp(localIllumination, 0.0, 1.0), 0.5);
-            outputPeak = mix(candidatePeak, sourcePeak, originalWeight);
+            outputPeak = min(mix(candidatePeak, sourcePeak, originalWeight),
+                             protectedExposurePeak(sourcePeak, exposureRatio));
         } else {
             float physicalTarget = sourcePeak * exp2(exposureValue);
             float participation = pow(
                 smoothstep(0.015, 0.85, localIllumination),
                 0.65
             );
-            outputPeak = mix(sourcePeak, physicalTarget, participation);
+            outputPeak = max(mix(sourcePeak, physicalTarget, participation),
+                             protectedExposurePeak(sourcePeak, exp2(exposureValue)));
         }
 
         float scale = max(outputPeak, 0.0) / sourcePeak;

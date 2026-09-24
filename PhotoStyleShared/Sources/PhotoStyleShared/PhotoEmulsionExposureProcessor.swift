@@ -10,7 +10,7 @@ public enum PhotoEmulsionExposureProcessor {
     static var kernelsAreAvailable: Bool { field != nil && transmission != nil && composite != nil && returned != nil }
     public static func apply(to image: CIImage, effects: PhotoFilmEffects,
                              amounts: PhotoToneZoneGrainAmounts, strength: Double = 1,
-                             monochrome: Bool = false, seed: UInt32 = 0) -> CIImage {
+                             monochrome: Bool = false, seed: UInt32 = 0, renderContext: CIContext? = nil) -> CIImage {
         let e = effects.clamped()
         guard e.grainMode == .emulsion,
               max(amounts.shadows, max(amounts.midtones, amounts.highlights)) > 0 || e.halationAmount * strength > 0,
@@ -31,7 +31,9 @@ public enum PhotoEmulsionExposureProcessor {
             arguments: [source.clampedToExtent(), e.grainSize, e.grainClumping / 100,
                         monochrome ? 0 : e.grainChroma / 100, Double(seed & 0xffff), Double(seed >> 16)]) else { return image }
         // 紅暈與成品共用同一個捕獲場，避免分支重算晶體取樣。
-        let captured = captureGraph.insertingIntermediate(cache: true)
+        let captured = renderContext.map { context in
+            autoreleasepool { PhotoFilmFieldSnapshot.resolve(captureGraph, context: context) }
+        } ?? captureGraph.insertingIntermediate(cache: true)
         let halo = min(1, max(0, strength.isFinite ? strength : 0)) * PhotoFilmEffects.effectAmount(e.halationAmount)
         let bounced: CIImage
         if halo > 0 {

@@ -194,10 +194,12 @@ public enum PhotoFilmEffectsProcessor {
             vec3 source = image.rgb / image.a;
             vec3 rgb = vec3(dot(source, printR), dot(source, printG), dot(source, printB));
             // 反差以線性 18% 灰為中心；保留負通道與 HDR，不裁切到 SDR。
-            rgb = sign(rgb) * 0.18 * pow(abs(rgb) / 0.18, vec3(controls.y)) * controls.x;
+            rgb = sign(rgb) * 0.18 * pow(abs(rgb) / 0.18, vec3(controls.y));
             rgb = vec3(dot(rgb, viewR), dot(rgb, viewG), dot(rgb, viewB));
+            float peak = max(rgb.r, max(rgb.g, rgb.b));
+            rgb *= peak > 0.00000001 ? protectedExposurePeak(peak, controls.x) / peak : controls.x;
             return vec4(mix(source, rgb, controls.z) * image.a, image.a);
-            """)
+            """, helpers: PhotoExposureProtection.kernel)
         return FilmKernels(extract: extract, scatter: scatter, print: print)
     }()
 }

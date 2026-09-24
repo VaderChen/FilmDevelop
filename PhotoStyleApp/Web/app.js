@@ -128,8 +128,8 @@
     }
   });
   window.handleExportDevelopment = function (payload) {
-    if (payload.phase === 'begin') { deferredExportToast = null; exportDevelopment.start(payload.id, state.outputImage, payload.timing); }
-    else if (payload.phase === 'progress') exportDevelopment.update(payload.id, payload.stage);
+    if (payload.phase === 'begin') { deferredExportToast = null; exportDevelopment.start(payload.id, payload.image, payload.timing); }
+    else if (payload.phase === 'progress') exportDevelopment.update(payload.id, payload.stage, payload.progress);
     else if (payload.phase === 'complete') exportDevelopment.finish(payload.id, payload.image, payload.durationMs);
     else if (payload.phase === 'cancel') exportDevelopment.cancel(payload.id);
   };
@@ -247,9 +247,8 @@
     var list = section && section.querySelector(".photo-thumbnail-list");
     if (!list) { scheduleThumbnailRequest(); return; }
     var selected = list.querySelector(".selected");
-    var selectedID = selected ? selected.dataset.directoryPhoto : "";
-    if (thumbnailViewport.path === section.dataset.directoryPath &&
-        (!selectedID || selectedID === thumbnailViewport.selectedID)) {
+    // Selection changes must not reposition the current directory viewport.
+    if (thumbnailViewport.path === section.dataset.directoryPath) {
       list.scrollLeft = Math.max(0, Number(thumbnailViewport.left) || 0);
     } else if (selected) {
       list.scrollLeft = Math.max(0, selected.offsetLeft - list.offsetLeft - (list.clientWidth - selected.offsetWidth) / 2);
@@ -1201,6 +1200,7 @@
       ? (reversal ? L.text('正片直接觀看，略過印相光源；曝光正值變亮、負值變暗。') : L.text('負片成像、印相與觀看分開計算；曝光正值變亮、負值變暗。'))
       : L.text('在目前風格上調整印相與觀看光源、曝光及反差；原始參考、0 EV 與反差 50 保留原有外觀。黑白風格維持灰階。');
     if (scanning || reversal) printHelp = L.text("掃描或正片模式在成品上套用印相光源色彩補償；曝光正值變亮、負值變暗。原始參考不改變光源色調。");
+    printHelp += " " + L.text("提高 EV 時柔和壓縮高光，降低 EV 時保留暗部層次；0 EV 保留原有外觀。");
     var lights = state.filmIlluminants;
     sections.unshift([
       '<div class="film-section">',

@@ -1,4 +1,5 @@
 window.PhotoLocalizationData = {
+  "提高 EV 時柔和壓縮高光，降低 EV 時保留暗部層次；0 EV 保留原有外觀。": ["Positive EV gently compresses highlights; negative EV preserves shadow detail. Zero EV keeps the original appearance.", "EVを上げるとハイライトを穏やかに圧縮し、下げると暗部の階調を保護します。0 EVでは元の見え方を保ちます。", "EV를 높이면 밝은 영역을 부드럽게 압축하고, 낮추면 어두운 영역의 계조를 보호합니다. 0 EV는 기존 모습을 유지합니다."],
   "匯入自訂底片": ["Import custom film", "カスタムフィルムを読み込む", "사용자 필름 가져오기"],
   "匯出自訂底片": ["Export custom film", "カスタムフィルムを書き出す", "사용자 필름 내보내기"],
   "底片已匯出。": ["Film exported.", "フィルムを書き出しました。", "필름을 내보냈습니다."],

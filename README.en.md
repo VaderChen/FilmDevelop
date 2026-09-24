@@ -8,14 +8,13 @@ A film-inspired photo editor for Apple Silicon Mac. Open a photo folder, choose 
 
 Requires macOS 14 or later. AI features require a compatible local model, downloaded separately.
 
-## Latest changes — 1.26.0924 build 2244
+## Latest changes — 1.26.0925 build 0134
 
-- Custom film cards now include Export to save recipes as JSON files. Import is available beside the Film Library heading.
-- Import replaces an existing recipe with the same ID and adds recipes with different IDs. Matching names with different IDs receive a number. Importing does not automatically change the current photo.
-- Thumbnail filenames now have a right-aligned index such as `#0001`. The folder heading shows the current photo position and total count.
-- The thumbnail strip keeps its horizontal scrollbar visible for easy navigation. Vertical scrollbars still hide after inactivity.
-- Choosing a photo folder opens its first photo automatically. Restarting the app still restores the previously edited photo.
-- Saving the active custom film prefills its name. Keeping that name updates the film; a new name saves a separate film. Other films with matching names are protected.
+- Native processing releases intermediate resources stage by stage and reuses FP32 working buffers to reduce full-resolution export memory peaks.
+- Eager RAW decoding prevents localized color corruption caused by deferred decoding.
+- Positive EV gently compresses highlights; negative EV protects shadows. Preview and export share this processing.
+- The development animation reuses the preview cache (up to 2048 px), follows processing progress, and normally finishes about 1.2 seconds after completion.
+- Selecting a photo preserves the thumbnail strip position without automatic centering; manual scrolling remains available.
 
 ## Download and languages
 
@@ -72,7 +71,7 @@ HDR can be adjusted without an AI tone curve. Lens blur respects crop and depth 
 
 ### Adjustments and AI
 
-Film intensity defaults to 50. All built-in films, including Original, default to neutral scanning. Exposure and contrast remain available under Develop while scanning is enabled. Positive exposure brightens and negative darkens. Scan controls color density, layer separation, scanner flare and midtone/highlight warmth.
+Film intensity defaults to 50. All built-in films, including Original, default to neutral scanning. Exposure and contrast remain available under Develop while scanning is enabled. Positive exposure brightens and negative darkens. Raising EV gently compresses highlights; lowering EV protects shadow detail. Zero EV leaves the appearance unchanged. Scan controls color density, layer separation, scanner flare and midtone/highlight warmth.
 
 Opening a photo does not start AI. Select a compatible local model, then run AI Assistance. Analysis can be cancelled and its results adjusted manually. Judge the result by your photo.
 
@@ -115,6 +114,8 @@ Tests, research documents (`doc/`, `docs/`) and build/temporary outputs stay on 
 Right-click the preview for undo, redo, reset, histogram, source-ratio/free crop, export, Reveal in Finder and Move to Trash.
 
 PNG defaults to 8-bit RGB without transparency. Transparent edges are filled with the same black background as the preview.
+
+The development animation reuses the current photo’s completed preview cache (up to 2048 px on the long edge) and follows native processing progress. It does not process the original again or decode the exported file for the animation. The exported file still uses the original resolution.
 
 During export, a central dialog reveals the photo gradually from black, like developing film. Timing follows photo size, format, previous export durations and actual processing/saving progress. The finished image appears only after saving. Fast exports still show roughly seven seconds of animation; saving does not wait for it.
 

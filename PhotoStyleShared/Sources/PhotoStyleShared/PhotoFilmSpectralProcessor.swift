@@ -19,6 +19,7 @@ public enum PhotoFilmSpectralProcessor {
               let index = PhotoFilmStock.allCases.firstIndex(of: stock),
               let linear = image.matchedFromWorkingSpace(to: linearSRGB) else { return image }
         let e = effects.clamped()
+        let compensatesPrintLight = (e.scannerProfile != .off || stock.family == "reversal") && e.printIlluminant != .reference
         let amount = strength.isFinite ? min(1, max(0, strength)) : 0
         let filterIndex = PhotoFilmEffects.MonochromeFilter.allCases.firstIndex(of: e.monochromeFilter) ?? 0
         let profile = PhotoFilmSpectralProfile.all[index]
@@ -33,7 +34,7 @@ public enum PhotoFilmSpectralProcessor {
             linear] + PhotoFilmSpectralReconstruction.planes + [Double(index),
             CIVector(x: Double(PhotoFilmEffects.Illuminant.allCases.firstIndex(of: e.printIlluminant)!),
                      y: Double(PhotoFilmEffects.Illuminant.allCases.firstIndex(of: e.viewIlluminant)!)),
-            CIVector(x: e.printExposure, y: pow(2, (e.printContrast - 50) / 50),
+            CIVector(x: compensatesPrintLight ? 0 : e.printExposure, y: pow(2, (e.printContrast - 50) / 50),
                      z: e.monochromeFilterStrength / 100 * amount, w: Double(filterIndex)),
             CIVector(x:e.scannerProfile == .off ? 0 : 1,
                      y:Double(PhotoFilmEffects.Illuminant.allCases.firstIndex(of:e.scannerIlluminant)!),
@@ -44,13 +45,19 @@ public enum PhotoFilmSpectralProcessor {
         ]) else { return image }
         var output = (result.matchedToWorkingSpace(from: linearSRGB) ?? image).cropped(to: image.extent)
         // 掃描／正片略過光學負片印相，改在成品套用光源色彩補償。
-        // 只補光源，不重複套用已在 kernel 計算的曝光、反差或掃描設定。
-        if (e.scannerProfile != .off || stock.family == "reversal"), e.printIlluminant != .reference {
+        // 光源補償與黑白轉換完成後才套曝光保護，避免光源矩陣再次推爆色頻。
+        // 反差與掃描設定已在 kernel 計算，不重複套用。
+        if compensatesPrintLight {
             var lighting = PhotoFilmEffects.neutral
             lighting.printIlluminant = e.printIlluminant
             output = PhotoFilmEffectsProcessor.applyPrint(to: output, effects: lighting)
             if stock.isMonochrome {
                 output = PhotoImageEffectsProcessor.monochrome(output, profile: .desaturate)
+            }
+            if e.printExposure != 0 {
+                var exposure = PhotoFilmEffects.neutral
+                exposure.printExposure = e.printExposure
+                output = PhotoFilmEffectsProcessor.applyPrint(to: output, effects: exposure)
             }
         }
         return output
@@ -105,8 +112,12 @@ public enum PhotoFilmSpectralProcessor {
         using namespace coreimage;
         \(tables)
         \(PhotoFilmScanner.metal)
+        \(PhotoExposureProtection.kernel)
         float3 spOutputTone(float3 rgb, float4 controls) {
-            return 0.18f * pow(max(rgb, float3(0)) / 0.18f, float3(controls.y)) * exp2(controls.x);
+            rgb = 0.18f * pow(max(rgb, float3(0)) / 0.18f, float3(controls.y));
+            float gain = exp2(controls.x);
+            float peak = max(rgb.x, max(rgb.y, rgb.z));
+            return rgb * (peak > 1.0e-8f ? protectedExposurePeak(peak, gain) / peak : gain);
         }
         float3 spSoftplus(float3 v) {
             return max(v, float3(0.0)) + log(1.0 + exp(-abs(v)));

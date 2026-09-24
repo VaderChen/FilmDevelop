@@ -37,57 +37,132 @@ enum PhotoStyleProcessor {
         to image: PhotoImage,
         subjectMask: CIImage? = nil,
         shouldDetectSubjectMask: Bool = true,
-        repairPatches: [PhotoRepairPatch] = []
+        repairPatches: [PhotoRepairPatch] = [],
+        progress: (@Sendable (Double) -> Void)? = nil
     ) -> PhotoImage {
-        guard let ciImage = CIImage(image: image) else {
-            return image
-        }
-
-        let decoded = PhotoRepairPatch.applying(repairPatches, to: ciImage.oriented(forExifOrientation: image.cgImageOrientation))
+        guard let ciImage = CIImage(image: image) else { return image }
+        let source = ciImage.oriented(forExifOrientation: image.cgImageOrientation)
+        let stages = ["repair-input", "denoise-calibration", "light-scatter", "emulsion", "development",
+                      "raw-display-mapping", "subject-mask", "skin-mask", "skin-white-balance", "skin-enhancement",
+                      "white-balance", "film-look", "tone", "tone-zones", "hdr", "crop-geometry", "crop-vignette",
+                      "depth-blur", "monochrome"]
+        let pipeline = PhotoProcessingPipeline(source: source,
+            colorSpace: image.cgImage?.colorSpace ?? CGColorSpace(name: CGColorSpace.extendedLinearSRGB)!,
+            progress: progress.map { report in
+                var reported = -1.0
+                return { name, fraction in
+                    guard let index = stages.firstIndex(of: name) else { return }
+                    let value = (Double(index) + fraction) / Double(stages.count)
+                    if value - reported >= 0.01 { reported = value; report(value) }
+                }
+            })
         let strength = effectiveStyleIntensity(from: adjustment.intensity)
-        // Scatter scene-linear highlight energy before RAW display companding.
-        let cleanedInput = applyDenoise(to: decoded, amount: adjustment.denoise / 100 * strength)
-        let calibratedInput = PhotoColorCalibrationProcessor.apply(to: cleanedInput,
-            calibration: adjustment.colorCalibration?.stage == .input ? adjustment.colorCalibration : nil)
+        let effects = adjustment.filmEffects.clamped()
         let amounts = PhotoToneZoneProcessor.resolvedGrainAmounts(
             globalAmount: adjustment.grain / 100 * strength, highlightAmount: adjustment.highlightGrain / 100 * strength,
             midtoneAmount: adjustment.midtoneGrain / 100 * strength, shadowAmount: adjustment.shadowGrain / 100 * strength)
-        let exposureGraph = PhotoFilmExposureProcessor.apply(to: calibratedInput, effects: adjustment.filmEffects,
-            amounts: amounts, strength: strength, monochrome: style.isMonochrome)
-        // 膚色統計與最終渲染共用同一曝光結果；僅昂貴的乳劑／顯影分支物化。
-        let hasExposureEffects = amounts.shadows > 0 || amounts.midtones > 0 || amounts.highlights > 0
-            || adjustment.filmEffects.halationAmount > 0 || adjustment.filmEffects.developmentAmount > 0
-        let developed = hasExposureEffects ? exposureGraph.insertingIntermediate(cache: true) : exposureGraph
-        // Film stocks own their exposure-to-density shoulder. Do not compress RAW
-        // headroom before that curve; retain the legacy mapping for other looks.
-        let oriented = image.requiresRAWDisplayMapping && style.filmStock == nil && style != .original
-            ? PhotoRAWDynamicRangeProcessor.prepareForDisplayAdjustments(developed)
-            : developed
-        // 遮罩以固定預覽尺寸保存，套用時對齊目前原檔或縮小預覽的座標。
-        let resolvedSubjectMask = subjectMask.map {
-            $0.extent == oriented.extent ? $0 : PhotoSubjectMaskGenerator.fitMask($0, to: oriented.extent)
-        } ?? (shouldDetectSubjectMask ? makeSubjectMask(from: oriented, extent: oriented.extent) : nil)
-        let skinWhiteBalanced = style.isMonochrome || style == .original
-            ? oriented
-            : applySkinWhiteBalance(
-                to: oriented,
-                sourceForMask: oriented,
-                subjectMask: resolvedSubjectMask
-            )
-        let whiteBalanced = blend(skinWhiteBalanced, with: oriented, intensity: strength)
-        let baseImage = applySkinEnhancement(
-            to: whiteBalanced,
-            sourceForMask: oriented,
-            subjectMask: resolvedSubjectMask,
-            whitening: adjustment.skinWhitening / 100 * strength,
-            smoothing: adjustment.skinSmoothing / 100 * strength,
-            warmth: adjustment.skinWarmth / 100 * strength
-        )
-        let correctedBaseImage = applyWhiteBalanceAdjustment(
-            to: baseImage,
-            warmth: adjustment.whiteBalanceWarmth * strength,
-            tint: adjustment.whiteBalanceTint * strength
-        )
+        do {
+            try pipeline.process("repair-input") {
+                PhotoRepairPatch.applying(repairPatches, to: $0)
+            }
+            try pipeline.process("denoise-calibration") {
+                PhotoColorCalibrationProcessor.apply(to: applyDenoise(to: $0, amount: adjustment.denoise / 100 * strength),
+                    calibration: adjustment.colorCalibration?.stage == .input ? adjustment.colorCalibration : nil)
+            }
+            try pipeline.process("light-scatter") {
+                PhotoFilmEffectsProcessor.applyLightScatter(to: $0, effects: effects, strength: strength)
+            }
+            try pipeline.process("emulsion") {
+                PhotoEmulsionExposureProcessor.apply(to: $0, effects: effects, amounts: amounts,
+                    strength: strength, monochrome: style.isMonochrome, renderContext: pipeline.context)
+            }
+            try pipeline.process("development") {
+                PhotoFilmDevelopmentProcessor.apply(to: $0, effects: effects, strength: strength)
+            }
+            try pipeline.process("raw-display-mapping") {
+                image.requiresRAWDisplayMapping && style.filmStock == nil && style != .original
+                    ? PhotoRAWDynamicRangeProcessor.prepareForDisplayAdjustments($0) : $0
+            }
+            let resolvedSubjectMask = try pipeline.inspect("subject-mask") { input in
+                subjectMask.map { $0.extent == input.extent ? $0 : PhotoSubjectMaskGenerator.fitMask($0, to: input.extent) }
+                    ?? (shouldDetectSubjectMask ? makeSubjectMask(from: input, extent: input.extent) : nil)
+            }
+            let whitening = adjustment.skinWhitening / 100 * strength
+            let smoothing = adjustment.skinSmoothing / 100 * strength
+            let warmth = adjustment.skinWarmth / 100 * strength
+            let adjustsSkin = whitening > 0.005 || smoothing > 0.005 || abs(warmth) > 0.001
+            let adjustsSkinWB = strength > 0 && !style.isMonochrome && style != .original && resolvedSubjectMask != nil
+            if adjustsSkin || adjustsSkinWB {
+                // Both skin operations use the same pre-WB mask. Store just its
+                // scalar samples; retaining its lazy graph would retain an old buffer.
+                let skinMask = try pipeline.inspect("skin-mask") {
+                    try pipeline.mask(makeSkinMask(from: $0, subjectMask: resolvedSubjectMask, extent: $0.extent))
+                }
+                if adjustsSkinWB {
+                    try pipeline.process("skin-white-balance") {
+                        blend(applySkinWhiteBalance(to: $0, skinMask: skinMask, context: pipeline.context), with: $0, intensity: strength)
+                    }
+                }
+                if adjustsSkin {
+                    try pipeline.process("skin-enhancement") {
+                        PhotoSkinEnhancementProcessor.apply(to: $0, skinMask: skinMask, whitening: whitening,
+                            smoothing: smoothing, profile: .app, warmth: warmth)
+                    }
+                }
+            }
+            try pipeline.process("white-balance") {
+                applyWhiteBalanceAdjustment(to: $0, warmth: adjustment.whiteBalanceWarmth * strength,
+                                            tint: adjustment.whiteBalanceTint * strength)
+            }
+            try pipeline.process("film-look") {
+                applyLook(to: $0, style: style, adjustment: adjustment, strength: strength, isRAW: image.requiresRAWDisplayMapping)
+            }
+            try pipeline.process("tone") {
+                let planned = applyPlanToneSemantics(to: $0, style: style, toneZones: adjustment.sourceToneZones, strength: strength)
+                return applyGlobalToneAdjustment(to: applyExposure(to: planned, amount: adjustment.exposure * strength),
+                                                 adjustment: adjustment, strength: strength)
+            }
+            try pipeline.process("tone-zones") {
+                applyToneZoneAdjustments(to: $0, style: style, adjustment: adjustment, strength: strength)
+            }
+            try pipeline.process("hdr") {
+                PhotoHDRProcessor.apply(to: $0, curve: adjustment.hdrToneCurve ?? PhotoHDRProcessor.manualCurve,
+                                        amount: adjustment.hdrAmount / 100)
+            }
+            let geometry = try pipeline.inspect("crop-geometry") { input in
+                (adjustment.cropRect(in: input.extent, verticalAxisInverted: true),
+                 PhotoCropCalculator.rotationTransform(in: input.extent, clockwiseDegrees: adjustment.cropRotation))
+            }
+            try pipeline.process("crop-vignette") {
+                let cropped = $0.transformed(by: geometry.1).cropped(to: geometry.0)
+                let devignetted = PhotoVignetteProcessor.applyDevignette(to: cropped, amount: adjustment.devignette / 100 * strength, profile: .app)
+                return PhotoVignetteProcessor.applyVignette(to: devignetted, amount: adjustment.vignette / 100 * strength, profile: .app)
+            }
+            if adjustment.backgroundBlur > 0 {
+                try pipeline.process("depth-blur") {
+                    let repaired = PhotoRepairPatch.applying(repairPatches, to: source)
+                    return applyDepthLensBlur(to: $0,
+                        sourceForDepth: image.requiresRAWDisplayMapping ? PhotoRAWDynamicRangeProcessor.prepareForDisplayAdjustments(repaired) : repaired,
+                        subjectMask: resolvedSubjectMask?.transformed(by: geometry.1).cropped(to: geometry.0),
+                        amount: adjustment.backgroundBlur / 100, sourceImage: image.cgImage,
+                        allowSubjectDetection: shouldDetectSubjectMask, geometryTransform: geometry.1,
+                        depthRevision: repairPatches.map { $0.id.uuidString }.joined())
+                }
+            }
+            if style.isMonochrome {
+                try pipeline.process("monochrome") { PhotoImageEffectsProcessor.monochrome($0, profile: .desaturate) }
+            }
+            let output = renderDecorations(on: try pipeline.finish(), adjustment: adjustment)
+            progress?(1)
+            return output
+        } catch {
+            // The caller checks cancellation before publishing or encoding.
+            return image
+        }
+    }
+
+    private static func applyLook(to correctedBaseImage: CIImage, style: PhotoStyle,
+                                  adjustment: StyleAdjustment, strength: Double, isRAW: Bool) -> CIImage {
         let monochromeSource = style.isMonochrome && style.filmStock == nil
             ? PhotoFilmEffectsProcessor.applyMonochromeFilter(to: correctedBaseImage, effects: adjustment.filmEffects, strength: strength)
             : correctedBaseImage
@@ -167,7 +242,7 @@ enum PhotoStyleProcessor {
 
         // Strength adjusts the monochrome look against a neutral grayscale base,
         // so reducing it never restores source color or retains the noir signature.
-        let neutralSource = image.requiresRAWDisplayMapping && style.filmStock != nil
+        let neutralSource = isRAW && style.filmStock != nil
             ? PhotoRAWDynamicRangeProcessor.prepareForDisplayAdjustments(monochromeSource)
             : monochromeSource
         let blendBaseImage = style.isMonochrome
@@ -179,52 +254,7 @@ enum PhotoStyleProcessor {
             : filtered
         let blended = PhotoColorCalibrationProcessor.apply(to: blend(printed, with: blendBaseImage, intensity: strength),
             calibration: adjustment.colorCalibration?.stage == .output ? adjustment.colorCalibration : nil)
-        let planToneAdjusted = applyPlanToneSemantics(
-            to: blended,
-            style: style,
-            toneZones: adjustment.sourceToneZones,
-            strength: strength
-        )
-        let exposed = applyExposure(to: planToneAdjusted, amount: adjustment.exposure * strength)
-        let toneAdjusted = applyGlobalToneAdjustment(to: exposed, adjustment: adjustment, strength: strength)
-        let zoneAdjusted = applyToneZoneAdjustments(to: toneAdjusted, style: style, adjustment: adjustment, strength: strength)
-        let hdrAdjusted = PhotoHDRProcessor.apply(
-            to: zoneAdjusted,
-            curve: adjustment.hdrToneCurve ?? PhotoHDRProcessor.manualCurve,
-            amount: adjustment.hdrAmount / 100
-        )
-        let cropRect = adjustment.cropRect(in: hdrAdjusted.extent, verticalAxisInverted: true)
-        let cropTransform = PhotoCropCalculator.rotationTransform(in: hdrAdjusted.extent, clockwiseDegrees: adjustment.cropRotation)
-        let cropped = hdrAdjusted.transformed(by: cropTransform).cropped(to: cropRect)
-        let croppedSubjectMask = resolvedSubjectMask?.transformed(by: cropTransform).cropped(to: cropRect)
-        let devignetted = PhotoVignetteProcessor.applyDevignette(to: cropped, amount: adjustment.devignette / 100 * strength, profile: .app)
-        let withVignette = PhotoVignetteProcessor.applyVignette(to: devignetted, amount: adjustment.vignette / 100 * strength, profile: .app)
-        let withLensBlur = applyDepthLensBlur(
-            to: withVignette,
-            sourceForDepth: image.requiresRAWDisplayMapping
-                ? PhotoRAWDynamicRangeProcessor.prepareForDisplayAdjustments(decoded) : decoded,
-            subjectMask: croppedSubjectMask,
-            amount: adjustment.backgroundBlur / 100,
-            sourceImage: image.cgImage,
-            allowSubjectDetection: shouldDetectSubjectMask,
-            geometryTransform: cropTransform,
-            depthRevision: repairPatches.map { $0.id.uuidString }.joined()
-        )
-
-        // Tone-plan fade and other adjustments can introduce a slight color cast.
-        // Keep the photo monochrome while allowing colored frames/date decorations.
-        let output = style.isMonochrome
-            ? PhotoImageEffectsProcessor.monochrome(withLensBlur, profile: .desaturate)
-            : withLensBlur
-        guard let rendered = PhotoImageRenderPrecision.renderedImage(
-            from: output.cropped(to: cropRect),
-            context: context,
-            highPrecision: false,
-            colorSpace: image.cgImage?.colorSpace
-        ) else {
-            return image
-        }
-        return renderDecorations(on: rendered, adjustment: adjustment)
+        return blended
     }
 
     private static func applyColorControls(
@@ -556,6 +586,7 @@ enum PhotoStyleProcessor {
             intensity: adjustment.highlightIntensity * strength,
             warmth: adjustment.highlightWarmth * warmthScale
         )
+        guard shadowAdjusted !== image || midtoneAdjusted !== image || highlightAdjusted !== image else { return image }
         return PhotoToneZoneProcessor.composite(
             base: image,
             shadows: shadowAdjusted,
@@ -743,39 +774,13 @@ enum PhotoStyleProcessor {
         PhotoToneMasks.mask(from: image, region: region, profile: .layered)
     }
 
-    private static func applySkinEnhancement(
-        to image: CIImage,
-        sourceForMask: CIImage,
-        subjectMask: CIImage?,
-        whitening: Double,
-        smoothing: Double,
-        warmth: Double
-    ) -> CIImage {
-        let whitening = whitening.clamped(to: 0...1)
-        let smoothing = smoothing.clamped(to: 0...1)
-        guard whitening > 0.005 || smoothing > 0.005 || abs(warmth) > 0.001 else { return image }
-
-        let extent = image.extent
-        let skinMask = makeSkinMask(from: sourceForMask, subjectMask: subjectMask, extent: extent)
-        return PhotoSkinEnhancementProcessor.apply(
-            to: image,
-            skinMask: skinMask,
-            whitening: whitening,
-            smoothing: smoothing,
-            profile: .app,
-            warmth: warmth
-        )
-    }
-
     private static func applySkinWhiteBalance(
         to image: CIImage,
-        sourceForMask: CIImage,
-        subjectMask: CIImage?
+        skinMask: CIImage,
+        context: CIContext
     ) -> CIImage {
-        guard let subjectMask else { return image }
         let extent = image.extent
-        let skinMask = makeSkinMask(from: sourceForMask, subjectMask: subjectMask, extent: extent)
-        guard let average = maskedAverageRGB(of: sourceForMask, mask: skinMask, extent: extent) else {
+        guard let average = maskedAverageRGB(of: image, mask: skinMask, extent: extent, context: context) else {
             return image
         }
 
@@ -827,14 +832,15 @@ enum PhotoStyleProcessor {
     private static func maskedAverageRGB(
         of image: CIImage,
         mask: CIImage,
-        extent: CGRect
+        extent: CGRect,
+        context: CIContext
     ) -> (r: Double, g: Double, b: Double, coverage: Double)? {
         let weighted = image.applyingFilter("CIMultiplyCompositing", parameters: [
             kCIInputBackgroundImageKey: mask
         ])
 
-        guard let weightedAverage = areaAverageRGBA(weighted, extent: extent),
-              let maskAverage = areaAverageRGBA(mask, extent: extent),
+        guard let weightedAverage = areaAverageRGBA(weighted, extent: extent, context: context),
+              let maskAverage = areaAverageRGBA(mask, extent: extent, context: context),
               maskAverage.r > 0.02,
               maskAverage.r < 0.55 else {
             return nil
@@ -848,7 +854,38 @@ enum PhotoStyleProcessor {
         )
     }
 
-    private static func areaAverageRGBA(_ image: CIImage, extent: CGRect) -> (r: Double, g: Double, b: Double, a: Double)? {
+    private static func areaAverageRGBA(_ image: CIImage, extent: CGRect, context: CIContext) -> (r: Double, g: Double, b: Double, a: Double)? {
+        if extent.width * extent.height > 512 * 512 {
+            var total = SIMD4<Double>(repeating: 0)
+            let area = extent.width * extent.height
+            let edge = 512
+            for y in stride(from: extent.minY, to: extent.maxY, by: CGFloat(edge)) {
+                for x in stride(from: extent.minX, to: extent.maxX, by: CGFloat(edge)) {
+                    if Task.isCancelled { return nil }
+                    let values: [Float]? = autoreleasepool {
+                        let rect = CGRect(x: x, y: y, width: min(CGFloat(edge), extent.maxX-x), height: min(CGFloat(edge), extent.maxY-y))
+                        let filter = CIFilter.areaAverage()
+                        filter.inputImage = image; filter.extent = rect
+                        var values = [Float](repeating: 0, count: 4)
+                        guard let output = filter.outputImage else { return nil }
+                        context.render(output, toBitmap: &values, rowBytes: 16,
+                            bounds: CGRect(x: 0, y: 0, width: 1, height: 1), format: .RGBAf, colorSpace: nil)
+                        let weight = Double(rect.width * rect.height / area)
+                        for c in 0..<4 { total[c] += Double(values[c]) * weight }
+                        return values
+                    }
+                    guard values != nil else { return nil }
+                }
+            }
+            let floats = (0..<4).map { Float(total[$0]) }
+            let pixel = CIImage(bitmapData: floats.withUnsafeBytes { Data($0) }, bytesPerRow: 16,
+                size: CGSize(width: 1, height: 1), format: .RGBAf,
+                colorSpace: CGColorSpace(name: CGColorSpace.extendedLinearSRGB)!)
+            var converted = [Float](repeating: 0, count: 4)
+            context.render(pixel, toBitmap: &converted, rowBytes: 16, bounds: pixel.extent, format: .RGBAf,
+                colorSpace: CGColorSpaceCreateDeviceRGB())
+            return (Double(converted[0]),Double(converted[1]),Double(converted[2]),Double(converted[3]))
+        }
         let filter = CIFilter.areaAverage()
         filter.inputImage = image
         filter.extent = extent

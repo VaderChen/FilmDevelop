@@ -213,7 +213,11 @@ extension PhotoStyleWebCoordinator {
             context: Self.imageDecodeContext,
             highPrecision: true,
             colorSpace: CGColorSpace(name: colorSpaceName),
-            scale: 1
+            // Finish RAW decoding before any preview, statistics or development
+            // branch resamples it. A deferred RAW provider can replay decoding
+            // and return corrupt tiles when those branches request different scales.
+            scale: 1,
+            deferred: false
         )
     }
 

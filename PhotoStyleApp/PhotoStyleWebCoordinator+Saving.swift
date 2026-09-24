@@ -1,4 +1,5 @@
 import AppKit
+import OSLog
 import UniformTypeIdentifiers
 
 extension PhotoStyleWebCoordinator {
@@ -74,7 +75,9 @@ extension PhotoStyleWebCoordinator {
         let fallbackSubjectMask = sourceSubjectMask
         let shouldUseSubjectMask = sourceSubjectMask != nil || adjustment.requiresSubjectMask
         let animationID = UUID().uuidString
-        let needsDisplayPreview = webView != nil && isWebReady
+        // The committed editor preview is already capped at 2048 px. Reuse it
+        // throughout the animation; never decode/re-render the full export for it.
+        let animationPreview = previewImagePayload["outputImage"] as? String
         let startedAt = ProcessInfo.processInfo.systemUptime
         let outputSize = PhotoStyleProcessor.renderedOutputSize(for: sourceImage.size, adjustment: adjustment)
         let sourcePixels = sourceImage.size.width * sourceImage.size.height
@@ -84,20 +87,27 @@ extension PhotoStyleWebCoordinator {
                        String(adjustment.backgroundBlur > 0), String(adjustment.denoise > 0),
                        String(adjustment.hdrAmount > 0), String(adjustment.filmEffects.scannerProfile.rawValue)].joined(separator: ":")
         let workUnits = max(0.25, (sourcePixels + outputPixels * CGFloat(bitDepth) / 8) / 1_000_000)
-        let reportStage: @Sendable (String) -> Void = { [weak self] stage in
+        let reportStage: @Sendable (String, Double) -> Void = { [weak self] stage, fraction in
             DispatchQueue.main.async { [weak self] in
                 self?.callJavaScript(function: "handleExportDevelopment", payload: [
-                    "phase": "progress", "id": animationID, "stage": stage
+                    "phase": "progress", "id": animationID, "stage": stage, "progress": fraction
                 ])
             }
         }
         isSavingImage = true
         callJavaScript(function: "handleExportDevelopment", payload: [
-            "phase": "begin", "id": animationID, "timing": ["profile": profile, "workUnits": workUnits]
+            "phase": "begin", "id": animationID, "image": animationPreview as Any? ?? NSNull(), "timing": ["profile": profile, "workUnits": workUnits]
         ])
         updateSavingStep("以原始解析度輸出")
         do {
-            let worker = Task.detached(priority: .userInitiated) { [renderer] () throws -> (size: CGSize, preview: String?) in
+            let worker = Task.detached(priority: .userInitiated) { [renderer] () throws -> CGSize in
+                let logger = Logger(subsystem: "person.vader.PhotoStyleApp", category: "ExportTiming")
+                var stageStart = ProcessInfo.processInfo.systemUptime
+                func recordTiming(_ stage: String) {
+                    let elapsed = ProcessInfo.processInfo.systemUptime - stageStart
+                    logger.info("Export stage \(stage, privacy: .public): \(elapsed, privacy: .public) seconds")
+                    stageStart = ProcessInfo.processInfo.systemUptime
+                }
                 try Task.checkCancellation()
                 let scoped = url.startAccessingSecurityScopedResource()
                 defer { if scoped { url.stopAccessingSecurityScopedResource() } }
@@ -106,22 +116,25 @@ extension PhotoStyleWebCoordinator {
                 // 完整解析度重新辨識失敗時，仍沿用這張照片已確認的遮罩。
                 let mask = detectedMask ?? fallbackSubjectMask
                 try Task.checkCancellation()
-                reportStage("render")
-                let output = renderer.render(.init(
-                    style: style, adjustment: adjustment, image: sourceImage,
-                    subjectMask: mask, shouldDetectSubjectMask: false, repairPatches: patches
-                ))
+                recordTiming("subject-mask")
+                reportStage("render", 0)
+                let output = autoreleasepool {
+                    renderer.render(.init(style: style, adjustment: adjustment, image: sourceImage,
+                        subjectMask: mask, shouldDetectSubjectMask: false, repairPatches: patches,
+                        progress: { reportStage("render", $0) }))
+                }
                 try Task.checkCancellation()
-                reportStage("encode")
-                guard let data = output.encodedData(format: format, bitDepth: bitDepth, quality: 0.95) else {
+                recordTiming("render")
+                reportStage("encode", 0)
+                guard let data = autoreleasepool(invoking: { output.encodedData(format: format, bitDepth: bitDepth, quality: 0.95) }) else {
                     throw PhotoStyleWebSaveError.imageEncodingFailed
                 }
                 try Task.checkCancellation()
-                reportStage("write")
+                recordTiming("encode")
+                reportStage("write", 0)
                 try data.write(to: url, options: overwrite ? .atomic : .withoutOverwriting)
-                // Only a small display copy crosses the Web bridge; the file retains full resolution.
-                let preview = needsDisplayPreview ? imageDataURL(output, maxPixel: 1600) : nil
-                return (output.size, preview)
+                recordTiming("write")
+                return output.size
             }
             exportWorker = worker
             defer { exportWorker = nil }
@@ -132,11 +145,11 @@ extension PhotoStyleWebCoordinator {
             }
             lastExportedPath = url.path
             callJavaScript(function: "handleExportDevelopment", payload: [
-                "phase": "complete", "id": animationID, "image": result.preview as Any? ?? NSNull(),
+                "phase": "complete", "id": animationID,
                 "durationMs": (ProcessInfo.processInfo.systemUptime - startedAt) * 1000
             ])
             finishSavingImage(message: "已匯出：\(url.lastPathComponent)")
-            return result.size
+            return result
         } catch {
             callJavaScript(function: "handleExportDevelopment", payload: ["phase": "cancel", "id": animationID])
             isSavingImage = false

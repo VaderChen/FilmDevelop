@@ -1,6 +1,7 @@
 import CoreImage
 
-/// The only pre-development path used by the desktop and shared renderers.
+/// Combined pre-development path for shared renderers. The desktop materializes
+/// these same processors as separate stages to bound temporary memory.
 /// Optical bloom, polygon emulsion absorption / substrate return, then crystal
 /// growth in a shared developer pool. No output-stage grain or red glow overlay.
 public enum PhotoFilmExposureProcessor {

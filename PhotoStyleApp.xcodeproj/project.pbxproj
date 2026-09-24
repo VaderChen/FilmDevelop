@@ -77,6 +77,7 @@
 		BC2401032C00100100000001 /* ko.lproj in Resources */ = {isa = PBXBuildFile; fileRef = BC2402032C00100100000001; };
 		AC2409240000000000000010 /* PhotoRepairService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC2409240000000000000000 /* PhotoRepairService.swift */; };
 		AC2409240000000000000011 /* PhotoStyleWebCoordinator+Repair.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC2409240000000000000001 /* PhotoStyleWebCoordinator+Repair.swift */; };
+		A9E24E73986A421FA6851982 /* PhotoProcessingPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 891EDD24F6C145A494899191 /* PhotoProcessingPipeline.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -151,6 +152,7 @@
 		BC2402032C00100100000001 /* ko.lproj */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "ko.lproj"; sourceTree = "<group>"; };
 		AC2409240000000000000000 /* PhotoRepairService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoRepairService.swift"; sourceTree = "<group>"; };
 		AC2409240000000000000001 /* PhotoStyleWebCoordinator+Repair.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleWebCoordinator+Repair.swift"; sourceTree = "<group>"; };
+		891EDD24F6C145A494899191 /* PhotoProcessingPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoProcessingPipeline.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -214,6 +216,7 @@
 				44F8E50E2C00100100000001 /* StylePromptStore.swift */,
 				44F8E50F2C00100100000001 /* PhotoStyleWebSaveError.swift */,
 				44F8E5102C00100100000001 /* PhotoImage.swift */,
+				891EDD24F6C145A494899191 /* PhotoProcessingPipeline.swift */,
 				46A100022C00100100000001 /* PhotoWebPEncoder.swift */,
 				46A100042C00100100000001 /* WebPLicenses */,
 				44F8E5112C00100100000001 /* PhotoStyleWebCoordinator+Presentation.swift */,
@@ -422,6 +425,7 @@
 				44F8E60D2C00100100000001 /* StylePromptStore.swift in Sources */,
 				44F8E60E2C00100100000001 /* PhotoStyleWebSaveError.swift in Sources */,
 				44F8E60F2C00100100000001 /* PhotoImage.swift in Sources */,
+				A9E24E73986A421FA6851982 /* PhotoProcessingPipeline.swift in Sources */,
 				46A100012C00100100000001 /* PhotoWebPEncoder.swift in Sources */,
 				44F8E6102C00100100000001 /* PhotoStyleWebCoordinator+Presentation.swift in Sources */,
 				AA1100012C00100100000001 /* PhotoLocalization.swift in Sources */,
