@@ -11,7 +11,7 @@ A film-inspired photo editor for Apple Silicon Mac. Open a photo folder, choose 
 Requires macOS 14 or later. AI features require a compatible local model, downloaded separately.
 
 
-### Scan styles and help (2026-09-25)
+## Latest changes — 1.26.0925 build 1416
 
 Six artistic scan styles are available: Neutral, Warm, Soft Portrait, Vivid, Cool Clean and Faded Vintage. They are not measured commercial-scanner profiles. GR digital camera simulations force scanning off and disable the entire panel, including for old recipes and exports. Film stocks and Original retain scanning support; with default controls, Neutral and Off look identical on Original.
 
@@ -20,27 +20,6 @@ All 74 workbench adjustment controls have help. Click an underlined label, or fo
 Exposure adjusts linear luminance before film color processing: ±8 EV normally, ±16 EV with expansion. Highlight protection applies only when enabled and cannot recover clipped source detail. Portra 800 saturation ordering, Lomo Purple red preservation and fixed tungsten casts on white-balanced inputs have been refined; these remain qualitative approximations.
 
 On first launch, `run.command` downloads missing llama.cpp/libwebp submodules; network access and full Xcode are required. Restart an already-open app after rebuilding to load the updated interface.
-
-
-## Latest changes — 1.26.0925 build 1127
-
-- Added Extended exposure under Develop settings, off by default. Enable it to adjust print/viewing exposure to ±12 EV in previews, exports, and saved recipes. Disabling it preserves existing out-of-range values.
-- Fixed Dock/Finder falling back to FilmYourPhoto because the bundle name did not match its filename. The English name is FilmDevelop; Chinese, Japanese, and Korean names remain unchanged.
-- Added a GitHub link below the version in About, opening the repository in the default browser.
-
-- Reset to Defaults returns to Original, clears photo adjustments and the edited marker, and saves the reset state.
-- Added highlight protection in settings, enabled by default. Turning it off removes positive print-exposure highlight compression while preserving negative-exposure shadow protection, consistently in previews and exports.
-- Photo switching retains the thumbnail at the correct fitted size and blends into the decoded preview over 0.18 seconds, respecting Reduce Motion.
-- Settings now use a left sidebar: General, Develop, MCP, and About. Version and update checking are under About; duplicate panel headings are removed.
-- Thumbnail context menus now offer Delete File. Confirmation moves the clicked photo to Trash without deleting a different photo being edited.
-
-- Fixed HTML markup appearing in the status line during film hover previews. Status messages now use plain text, including custom names containing `<`, `>`, or `&`.
-- Drag films in the left sidebar to reorder them. The order is saved across sessions, including when the sidebar is collapsed. Original stays first; custom and built-in films are reordered within their own groups.
-- New, unedited photos start with Original. Photos with saved edits restore their own film and adjustments.
-- Fixed progressive WebKit cache growth when switching photos and previewing: image data now travels as arguments to a constant script instead of being embedded in new JavaScript source.
-- Resized previews are materialized as independent FP32 images, so small preview caches no longer retain full-size originals.
-- Fixed custom recipes based on merged film stocks disappearing from the film collection.
-- The English app name is now FilmDevelop. Traditional Chinese, Japanese, and Korean names remain unchanged.
 
 ## Download and languages
 
