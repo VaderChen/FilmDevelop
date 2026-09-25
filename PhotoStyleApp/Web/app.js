@@ -185,6 +185,24 @@
   var lastThumbnailRequest = "";
   var thumbnailViewport = readThumbnailViewport();
 
+  var sidebarReorder = new window.PhotoSidebarReorder({
+    root: app,
+    available: function () { return !photoIsBusy(state); },
+    begin: function () { filmHoverPreview.cancel(); hideTooltip(); },
+    commit: function (sourceID, targetID, after) {
+      var ids = applyStyleOrder(catalogStyles(), readStyleOrder()).map(function (style) { return style.id; });
+      var source = state.styles.find(function (style) { return style.id === sourceID; });
+      var target = state.styles.find(function (style) { return style.id === targetID; });
+      if (!source || !target || sourceID === 'original' || targetID === 'original' || !!source.isCustom !== !!target.isCustom) return;
+      ids = ids.filter(function (id) { return id !== sourceID; });
+      var index = ids.indexOf(targetID);
+      if (index < 0) return;
+      ids.splice(index + (after ? 1 : 0), 0, sourceID);
+      persistStyleOrder(ids);
+      render();
+    }
+  });
+
   function readThumbnailViewport() {
     try { return JSON.parse(localStorage.getItem("photoStyle.thumbnailViewport.v1")) || {}; }
     catch (_) { return {}; }
@@ -581,6 +599,7 @@
   }
 
   function render() {
+    sidebarReorder.cancel();
     L.setLanguage(state.language);
     document.title = text("appName");
     filmHoverPreview.sync();
@@ -704,7 +723,7 @@
         var group = style.isCustom ? 'custom' : style.id === 'original' ? 'original' : 'builtin';
         var previous = index ? (styles[index - 1].isCustom ? 'custom' : styles[index - 1].id === 'original' ? 'original' : 'builtin') : group;
         var divider = index && group !== previous ? '<div class="sidebar-film-divider" role="separator" aria-label="' + (group === 'custom' ? L.text('自訂底片') : L.text('內建底片')) + '"><span>' + (group === 'custom' ? L.text('自訂底片') : L.text('內建底片')) + '</span></div>' : '';
-        return divider + '<button class="sidebar-style ' + (active ? "active" : "") + '" data-select-style="' + escapeHtml(style.id) + '" title="' + escapeHtml(styleTitle(style)) + '" data-style-kind="' + kind + '" data-tooltip="' + escapeHtml(styleTitle(style) + "：" + L.text(style.subtitle)) + '" type="button" aria-label="' + escapeHtml(label) + '" aria-pressed="' + active + '">' +
+        return divider + '<button class="sidebar-style ' + (active ? "active" : "") + '" data-select-style="' + escapeHtml(style.id) + '" title="' + escapeHtml(styleTitle(style)) + '" data-sort-group="' + group + '" data-style-kind="' + kind + '" data-tooltip="' + escapeHtml(styleTitle(style) + "：" + L.text(style.subtitle)) + '" type="button" aria-label="' + escapeHtml(label) + '" aria-pressed="' + active + '">' +
           '<span class="sidebar-swatch" style="background:linear-gradient(140deg,' + colors.map(escapeHtml).join(",") + ')">' + iconSvg(style.isOriginal ? "photos" : style.isFilmStock ? "film" : "styles") + '</span>' +
           '<span><strong>' + escapeHtml(styleTitle(style)) + '</strong></span></button>';
       }).join(""),

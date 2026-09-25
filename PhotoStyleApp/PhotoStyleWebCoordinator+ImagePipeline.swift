@@ -82,12 +82,9 @@ extension PhotoStyleWebCoordinator {
             adjustmentStore.restorePhotoAdjustments(record.adjustments)
         } else if !isSameSourceImage {
             adjustmentStore.startNewPhoto()
+            selectedCustomFilmID = nil
             customFilmBaseAdjustment = nil
-            if let film = customFilmStore.film(id: selectedCustomFilmID), let base = PhotoStyle(rawValue: film.baseStyle) {
-                customFilmBaseAdjustment = adjustmentStore.adjustment(for: base)
-                selectedStyle = base
-                adjustmentStore.setAdjustment(film.adjustment, for: base)
-            }
+            selectedStyle = .original
         }
         if let nextPhotoKey, let size = previewImage?.size {
             sourceSubjectMask = photoEditStore.mask(for: nextPhotoKey, size: size) ?? sourceSubjectMask

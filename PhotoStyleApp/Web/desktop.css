@@ -221,3 +221,9 @@ img.brand-mark { display: block; object-fit: contain; flex-shrink: 0; background
 .page-title-row:has(.film-import-button) { display:flex; align-items:center; justify-content:space-between; gap:16px; }
 .film-import-button, .custom-film-export { display:inline-flex; align-items:center; gap:7px; flex:0 0 auto; white-space:nowrap; }
 .film-import-button svg, .custom-film-export svg { width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+
+/* Sidebar ordering keeps Original and group dividers fixed. */
+.sidebar-style[data-sort-group]:not([data-sort-group="original"]) { cursor: grab; touch-action: pan-y; }
+.sidebar-style.reordering { opacity: .55; cursor: grabbing; }
+.sidebar-style.reorder-before { box-shadow: 0 -3px 0 var(--accent); }
+.sidebar-style.reorder-after { box-shadow: 0 3px 0 var(--accent); }
