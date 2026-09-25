@@ -8,8 +8,9 @@ A film-inspired photo editor for Apple Silicon Mac. Open a photo folder, choose 
 
 Requires macOS 14 or later. AI features require a compatible local model, downloaded separately.
 
-## Latest changes — 1.26.0925 build 0952
+## Latest changes — 1.26.0925 build 1041
 
+- Fixed HTML markup appearing in the status line during film hover previews. Status messages now use plain text, including custom names containing `<`, `>`, or `&`.
 - Drag films in the left sidebar to reorder them. The order is saved across sessions, including when the sidebar is collapsed. Original stays first; custom and built-in films are reordered within their own groups.
 - New, unedited photos start with Original. Photos with saved edits restore their own film and adjustments.
 - Fixed progressive WebKit cache growth when switching photos and previewing: image data now travels as arguments to a constant script instead of being embedded in new JavaScript source.
