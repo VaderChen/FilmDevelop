@@ -8,7 +8,11 @@ A film-inspired photo editor for Apple Silicon Mac. Open a photo folder, choose 
 
 Requires macOS 14 or later. AI features require a compatible local model, downloaded separately.
 
-## Latest changes — 1.26.0925 build 1111
+## Latest changes — 1.26.0925 build 1127
+
+- Added Extended exposure under Develop settings, off by default. Enable it to adjust print/viewing exposure to ±12 EV in previews, exports, and saved recipes. Disabling it preserves existing out-of-range values.
+- Fixed Dock/Finder falling back to FilmYourPhoto because the bundle name did not match its filename. The English name is FilmDevelop; Chinese, Japanese, and Korean names remain unchanged.
+- Added a GitHub link below the version in About, opening the repository in the default browser.
 
 - Reset to Defaults returns to Original, clears photo adjustments and the edited marker, and saves the reset state.
 - Added highlight protection in settings, enabled by default. Turning it off removes positive print-exposure highlight compression while preserving negative-exposure shadow protection, consistently in previews and exports.

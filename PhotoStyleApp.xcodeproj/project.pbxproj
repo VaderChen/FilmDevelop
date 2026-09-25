@@ -576,7 +576,7 @@
 				DEVELOPMENT_TEAM = 8QB2QM35YM;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = PhotoStyleApp/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "照片沖洗";
+				INFOPLIST_KEY_CFBundleDisplayName = FilmYourPhoto;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.photography";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -608,7 +608,7 @@
 				DEVELOPMENT_TEAM = 8QB2QM35YM;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = PhotoStyleApp/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "照片沖洗";
+				INFOPLIST_KEY_CFBundleDisplayName = FilmYourPhoto;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.photography";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (

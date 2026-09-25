@@ -13,7 +13,7 @@
 	<key>CFBundleIconName</key>
 	<string>AppIcon</string>
 	<key>CFBundleName</key>
-	<string>照片沖洗</string>
+	<string>FilmYourPhoto</string>
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
@@ -27,7 +27,7 @@
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.photography</string>
 	<key>CFBundleDisplayName</key>
-	<string>照片沖洗</string>
+	<string>FilmYourPhoto</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>

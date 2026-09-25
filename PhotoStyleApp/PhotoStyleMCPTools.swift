@@ -52,7 +52,7 @@ enum PhotoStyleMCPTools {
             "scanMidtoneWarmth": "底掃中調冷暖，正暖負冷，0 保留所選底掃風格。",
             "scanHighlightWarmth": "底掃亮部冷暖，正暖負冷，純白附近減弱染色。",
             "filmColorModel": "固定 spectral：LHTSS 光譜重建、多波段染料透射與獨立印片流程；只對底片款式生效。",
-            "printExposure": "風格與底片皆可調整的印相／觀看曝光補償 EV，-4 至 +4，預設 0；正值變亮、負值變暗。",
+            "printExposure": "風格與底片皆可調整的印相／觀看曝光補償 EV，-12 至 +12，預設 0；正值變亮、負值變暗。",
             "printIlluminant": "印相光源：\(illuminants)。一般風格與負片皆可使用，正片略過此光源。",
             "viewIlluminant": "觀看光源：\(illuminants)。風格與底片皆可使用，黑白維持灰階。",
             "printContrast": "風格與底片皆可調整的印相反差，50 保留原有基準；反轉片調整觀看密度反差。",

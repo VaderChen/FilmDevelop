@@ -283,6 +283,14 @@ extension PhotoStyleWebCoordinator {
         sendState(includeImages: true)
     }
 
+    func setExposureExpansionEnabled(_ payload: [String: Any]) {
+        guard !isSavingImage, let enabled = boolValue(from: payload["enabled"]),
+              enabled != exposureExpansionEnabled else { return }
+        exposureExpansionEnabled = enabled
+        UserDefaults.standard.set(enabled, forKey: "exposureExpansionEnabled.v1")
+        sendState(includeImages: false)
+    }
+
     func setHighlightProtectionEnabled(_ payload: [String: Any]) {
         guard !isSavingImage, let enabled = boolValue(from: payload["enabled"]),
               enabled != highlightProtectionEnabled else { return }

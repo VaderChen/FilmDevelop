@@ -99,6 +99,7 @@ final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMe
         }
     }
 
+    var exposureExpansionEnabled = UserDefaults.standard.bool(forKey: "exposureExpansionEnabled.v1")
     var highlightProtectionEnabled = UserDefaults.standard.object(forKey: "highlightProtectionEnabled.v1") as? Bool ?? true
     var hdrFeatureEnabled: Bool = {
         let defaults = UserDefaults.standard

@@ -28,6 +28,7 @@
     appearance: localStorage.getItem("photoStyle.appearance") || "comfortable",
     language: L.preference(),
     thumbnailSize: normalizedThumbnailSize(localStorage.getItem("photoStyle.thumbnailSize")),
+    exposureExpansionEnabled: false,
     highlightProtectionEnabled: true,
     hdrFeatureEnabled: true,
     originalResolutionEditing: false,
@@ -1227,7 +1228,7 @@
     sections.unshift([
       '<div class="film-section">',
       renderSelect(L.text("印相光源"), "printIlluminant", value("printIlluminant", "reference"), lights, false, printHelp),
-      renderRange(reversal ? L.text("觀看曝光") : L.text("印相曝光補償"), "printExposure", value("printExposure", 0), -4, 4, 0.05, " EV", printHelp),
+      renderRange(reversal ? L.text("觀看曝光") : L.text("印相曝光補償"), "printExposure", value("printExposure", 0), Math.min(state.exposureExpansionEnabled ? -12 : -4, value("printExposure", 0)), Math.max(state.exposureExpansionEnabled ? 12 : 4, value("printExposure", 0)), 0.05, " EV", printHelp),
       renderRange(reversal ? L.text("觀看反差") : L.text("印相反差"), "printContrast", value("printContrast", 50), 0, 100, 1, "", L.text("50 為目前風格或底片的基準；提高數值增加明暗反差，降低數值讓階調更柔和。")),
       renderRange(L.text("暗角"), "vignetteBalance", vignetteBalance(adjustment), -100, 100),
       '</div>'
@@ -1549,6 +1550,8 @@
       develop: [
       '<div class="settings-row"><span>' + renderHelp(originalResolutionHelp, L.text("使用原檔編輯")) + '</span><span id="originalResolutionHelp" hidden>' + escapeHtml(originalResolutionHelp) + '</span>',
       '<button id="originalResolutionToggle" class="switch ' + (state.originalResolutionEditing !== false ? "on" : "") + L.html('" type="button" role="switch" aria-label="使用原檔編輯" aria-describedby="originalResolutionHelp" aria-checked="') + (state.originalResolutionEditing !== false ? "true" : "false") + '" ' + (photoIsBusy(state) ? "disabled" : "") + '></button></div>',
+      L.html('<div class="settings-row"><span>使用曝光拓展</span>'),
+      '<button id="exposureExpansionToggle" class="switch ' + (state.exposureExpansionEnabled ? "on" : "") + L.html('" type="button" role="switch" aria-label="使用曝光拓展" aria-checked="') + Boolean(state.exposureExpansionEnabled) + '" ' + (photoIsBusy(state) ? "disabled" : "") + '></button></div>',
       L.html('<div class="settings-row"><span>使用高光抑制</span>'),
       '<button id="highlightProtectionToggle" class="switch ' + (state.highlightProtectionEnabled !== false ? "on" : "") + L.html('" type="button" role="switch" aria-label="使用高光抑制" aria-checked="') + (state.highlightProtectionEnabled !== false ? "true" : "false") + '" ' + (photoIsBusy(state) ? "disabled" : "") + '></button></div>',
       L.html('<div class="settings-row"><span>啟用 HDR 模擬</span>'),
@@ -1563,6 +1566,7 @@
       ].join(""),
       about: [
       L.html('<div class="settings-row"><span>版本</span><span class="mono">') + escapeHtml(version) + "</span></div>",
+      '<div class="settings-row"><span>GitHub</span><a class="button" href="https://github.com/VaderChen/FilmDevelop">VaderChen/FilmDevelop ↗</a></div>',
       L.html('<div class="settings-row"><span>檢查更新</span><button class="button" type="button" data-action="checkAppUpdate">檢查更新</button></div>'),
       ].join(""),
     };
@@ -2282,6 +2286,15 @@
       });
     }
 
+    var exposureExpansionToggle = document.getElementById("exposureExpansionToggle");
+    if (exposureExpansionToggle) {
+      exposureExpansionToggle.addEventListener("click", function () {
+        if (photoIsBusy(state)) return;
+        state.exposureExpansionEnabled = !state.exposureExpansionEnabled;
+        post("setExposureExpansionEnabled", { enabled: state.exposureExpansionEnabled });
+        render();
+      });
+    }
     var highlightProtectionToggle = document.getElementById("highlightProtectionToggle");
     if (highlightProtectionToggle) {
       highlightProtectionToggle.addEventListener("click", function () {

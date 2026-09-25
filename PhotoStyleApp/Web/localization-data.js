@@ -3185,6 +3185,7 @@ window.PhotoLocalizationData = {
   "一般": ["General", "一般", "일반"],
   "顯影": ["Develop", "現像", "현상"],
   "關於": ["About", "このアプリについて", "정보"],
+  "使用曝光拓展": ["Extended exposure", "露出範囲を拡張", "노출 범위 확장"],
   "使用高光抑制": ["Enable highlight protection", "ハイライト保護を使用", "하이라이트 보호 사용"],
   "啟用 HDR 模擬": [
     "Enable HDR simulation",

@@ -17,7 +17,7 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
         return level <= 0.04045 ? level / 12.92 : pow((level + 0.055) / 1.055, 2.4)
     }
 
-    public static let printExposureRange: ClosedRange<Double> = -4...4
+    public static let printExposureRange: ClosedRange<Double> = -12...12
 
     public enum ScannerProfile: String, Codable, CaseIterable, Sendable {
         case off, neutral, warmCool
