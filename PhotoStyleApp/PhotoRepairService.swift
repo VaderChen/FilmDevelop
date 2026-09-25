@@ -119,6 +119,13 @@ actor PhotoRepairService {
                                 imageData: imageData, maskData: maskData, linearGain: gain)
     }
 
+    func prepare(downloadProgress: @escaping @Sendable (PhotoRepairModelProgress?) -> Void,
+                 progress: @Sendable (String) -> Void) async throws {
+        try Task.checkCancellation()
+        _ = try await loadModel(progress: progress, downloadProgress: downloadProgress)
+        try Task.checkCancellation()
+    }
+
     private func loadModel(progress: @Sendable (String) -> Void, downloadProgress: @escaping @Sendable (PhotoRepairModelProgress?) -> Void) async throws -> MLModel {
         if let model { return model }
         let compiled = modelDirectory.appendingPathComponent("LaMa.mlmodelc")

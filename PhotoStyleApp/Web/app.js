@@ -99,6 +99,7 @@
     image: function () { return app.querySelector('.preview-image'); }, cancelGesture: cancelPreviewGesture,
     prepare: function () { flushPhotoEdits(); cancelPreviewGesture(); state.cropEditing = false; state.whiteBalancePicking = false; }
   });
+  window.handleRepairPreparation = function (result) { repairBrush.prepared(result); };
   window.handleRepairResult = function (result) { repairBrush.result(result); };
   var filmHoverPreview = new window.PhotoFilmHoverPreview({
     root: app,

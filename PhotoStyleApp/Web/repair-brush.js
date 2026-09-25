@@ -2,16 +2,17 @@
   'use strict';
   window.PhotoRepairBrush = function (env) {
     var strokes = [], drawing = null, size = 32, pending = false, frame = null, canvas = null, cursor = null;
+    var preparing = null;
     var observer = null, generation = '', revision = '';
     var text = env.text, escape = env.escape;
     function state() { return env.state(); }
     function active() { return !!state().repairEditing; }
-    function busy() { return pending || env.busy() || state().isRenderingPreview; }
+    function busy() { return preparing !== null || pending || env.busy() || state().isRenderingPreview; }
     function button(label, action, disabled) {
       return '<button type="button" class="photo-directory-button" data-repair-action="' + action + '"' + (disabled ? ' disabled' : '') + '>' + escape(text(label)) + '</button>';
     }
     this.toolbar = function () {
-      return '<button type="button" class="photo-directory-button repair-toggle" data-repair-toggle title="' + escape(text('修復筆刷：塗抹後移除物件並補齊背景；首次使用需下載本機模型。')) + '" aria-label="' + escape(text('修復筆刷')) + '" aria-pressed="' + active() + '"' + (!state().hasImage || env.busy() || state().isRenderingPreview ? ' disabled' : '') + '><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 3 6 6-11 11H4l-2-2 13-15Zm-8 9 6 6M10 20h11"/></svg></button>';
+      return '<button type="button" class="photo-directory-button repair-toggle" data-repair-toggle title="' + escape(text('修復筆刷：塗抹後移除物件並補齊背景；首次使用需下載本機模型。')) + '" aria-label="' + escape(text('修復筆刷')) + '" aria-pressed="' + active() + '"' + (!state().hasImage || busy() ? ' disabled' : '') + '><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 3 6 6-11 11H4l-2-2 13-15Zm-8 9 6 6M10 20h11"/></svg></button>';
     };
     this.panel = function () {
       if (!active()) return '';
@@ -54,8 +55,11 @@
       frame=env.root.querySelector('.preview-frame');canvas=env.root.querySelector('.repair-overlay');cursor=env.root.querySelector('.repair-cursor');
       var toggle=env.root.querySelector('[data-repair-toggle]');
       if(toggle)toggle.onclick=function(){
-        if(toggle.disabled)return;
-        env.prepare();state().repairEditing=!active();drawing=null;
+        if(toggle.disabled || busy())return;
+        if(active()){state().repairEditing=false;drawing=null;env.render();return;}
+        env.prepare();drawing=null;
+        preparing=state().photoGeneration;
+        env.post('prepareRepairBrush',{photoGeneration:preparing});
         env.render();
       };
       env.root.querySelectorAll('[data-repair-action]').forEach(function(b){b.onclick=function(){
@@ -111,8 +115,14 @@
     this.receive=function(next){
       if(next.externalEdit){strokes=[];drawing=null;}
       if((generation&&next.photoGeneration!==generation)||(generation&&next.repairRevision!==revision)) {strokes=[];drawing=null;}
-      if(generation&&next.photoGeneration!==generation){next.repairEditing=false;state().repairEditing=false;pending=false;}
+      if(generation&&next.photoGeneration!==generation){next.repairEditing=false;state().repairEditing=false;pending=false;preparing=null;}
       generation=next.photoGeneration;revision=next.repairRevision||'';
+    };
+    this.prepared=function(result){
+      if(preparing===null || result.photoGeneration!==preparing)return;
+      preparing=null;
+      state().repairEditing=!!result.success && result.photoGeneration===state().photoGeneration;
+      env.render();
     };
     this.result=function(){pending=false;strokes=[];drawing=null;env.render();};
     this.escape=function(){if(!active()||state().isRepairingImage||pending)return false;state().repairEditing=false;drawing=null;env.render();return true;};

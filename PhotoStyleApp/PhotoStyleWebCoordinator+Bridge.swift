@@ -17,6 +17,11 @@ extension PhotoStyleWebCoordinator {
             filmHoverPreview.cancel(requestID: bridgeMessage.payload["requestID"] as? String)
             return
         }
+        // Preparation replies even when busy so the toolbar never remains pending.
+        if bridgeMessage.action == .prepareRepairBrush {
+            prepareRepairBrush(bridgeMessage.payload)
+            return
+        }
         if isMCPMutating && ![PhotoStyleWebBridgeAction.getState, .requestPhotoThumbnails, .copyMCPConfiguration, .cancelComputation, .setLanguage,
                               .cancelDownload, .cancelImport, .cancelModelDirectoryScan, .cancelModelRepositoryQuery].contains(bridgeMessage.action) {
             sendToast("MCP 正在更新照片，請稍候。")
@@ -39,6 +44,8 @@ extension PhotoStyleWebCoordinator {
             commitAdjustmentPreview()
         }
         switch bridgeMessage.action {
+        case .prepareRepairBrush:
+            prepareRepairBrush(bridgeMessage.payload)
         case .applyRepairBrush:
             applyRepairBrush(bridgeMessage.payload)
         case .cancelRepairBrush:

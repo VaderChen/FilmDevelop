@@ -66,7 +66,7 @@ Cropping uses a fast preview with the same fit-to-window behavior as normal edit
 
 Use the eraser icon to the left of Crop, set the brush size in the top toolbar, and paint over an unwanted object. Releasing the mouse applies the repair automatically. Choose Done to return to the current film look. Repairs support undo/redo, are saved per photo, and are included in previews and full-resolution exports without changing the original file. Reset to defaults immediately removes applied repairs.
 
-First use downloads the approximately 217 MB LaMa model in a cancellable progress dialog showing percentage and downloaded bytes. Model preparation then continues automatically. Once cached, repairs work offline using Core ML on Apple Silicon; photos are not uploaded. Inspect large repairs for blurred or unnatural details.
+Clicking the eraser checks the local model before enabling the brush. On first use it downloads the approximately 217 MB LaMa model in a cancellable progress dialog showing percentage and downloaded bytes. Model preparation then continues automatically. Once cached, repairs work offline using Core ML on Apple Silicon; photos are not uploaded. Inspect large repairs for blurred or unnatural details.
 
 ### Skin and rendering controls
 

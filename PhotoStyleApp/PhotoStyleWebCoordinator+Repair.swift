@@ -4,6 +4,55 @@ import PhotoStyleShared
 extension PhotoStyleWebCoordinator {
     var repairRevision: String { repairPatches.map { $0.id.uuidString }.joined(separator: ":") }
 
+    @MainActor func prepareRepairBrush(_ payload: [String: Any]) {
+        let generation = photoGeneration
+        func reply(_ success: Bool) {
+            callJavaScript(function: "handleRepairPreparation", payload: [
+                "success": success, "photoGeneration": payload["photoGeneration"] as? String ?? ""
+            ])
+        }
+        guard sourceImage != nil, !isRepairingImage, !isLoadingImage, !isComputing, !isSavingImage,
+              !isMCPMutating, !isRenderingPreview, !isDetectingSubjectMask, !isTerminating,
+              payload["photoGeneration"] as? String == generation.uuidString else {
+            reply(false); return
+        }
+        let operation = UUID(); repairOperationID = operation
+        cancelAdjustmentPreview()
+        isCancellingRepair = false; isRepairingImage = true
+        repairStep = "正在準備本機修復工具…"
+        repairModelProgress = .init(received: 0, total: 0, preparing: true)
+        sendState(includeImages: false)
+        repairTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            var success = false
+            do {
+                try await PhotoRepairService.shared.prepare(downloadProgress: { [weak self] value in
+                    DispatchQueue.main.async {
+                        guard let self, self.repairOperationID == operation, self.isRepairingImage,
+                              !self.isTerminating, !self.isCancellingRepair else { return }
+                        if let value { self.repairModelProgress = value }
+                        self.sendState(includeImages: false)
+                    }
+                }, progress: { [weak self] step in
+                    DispatchQueue.main.async {
+                        guard let self, self.repairOperationID == operation, self.isRepairingImage,
+                              !self.isTerminating, !self.isCancellingRepair else { return }
+                        self.repairStep = step; self.sendState(includeImages: false)
+                    }
+                })
+                try Task.checkCancellation()
+                success = self.photoGeneration == generation && !self.isTerminating
+            } catch {
+                if !(error is CancellationError) && !Task.isCancelled { self.sendToast(error.localizedDescription) }
+            }
+            guard self.repairOperationID == operation else { return }
+            self.isRepairingImage = false; self.repairTask = nil
+            self.repairModelProgress = nil; self.isCancellingRepair = false; self.repairStep = ""
+            self.sendState(includeImages: false)
+            reply(success)
+        }
+    }
+
     @MainActor func applyRepairBrush(_ payload: [String: Any]) {
         guard let source = sourceImage, !isRepairingImage, !isLoadingImage, !isComputing, !isSavingImage,
               !isMCPMutating, !isRenderingPreview, !isDetectingSubjectMask, !isTerminating,
