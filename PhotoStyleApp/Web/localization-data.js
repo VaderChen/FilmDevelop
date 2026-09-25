@@ -1,4 +1,8 @@
 window.PhotoLocalizationData = {
+  "曝光先分離亮度與色彩，只調整亮度後再套用底片效果；正值變亮、負值變暗。高光抑制開啟時保護亮部，降低曝光時保留暗部層次。0 EV 不改變原有外觀。": ["Exposure separates luminance from color and adjusts luminance before applying film effects. Positive values brighten; negative values darken. Highlight protection preserves bright detail when enabled, and lowering exposure preserves shadow detail. Zero EV leaves the original appearance unchanged.", "露出は明るさと色を分離し、明るさだけを調整してからフィルム効果を適用します。正の値で明るく、負の値で暗くなります。ハイライト保護がオンの場合は明部を保護し、露出を下げる際は暗部の階調を保ちます。0 EV では元の見え方を変えません。", "노출은 밝기와 색을 분리하고 밝기만 조정한 뒤 필름 효과를 적용합니다. 양수는 밝게, 음수는 어둡게 합니다. 하이라이트 보호가 켜져 있으면 밝은 영역을 보호하며, 노출을 낮추면 암부 계조를 보존합니다. 0 EV는 기존 모습을 유지합니다."],
+  "預設關閉，印相／觀看曝光範圍為 ±8 EV；開啟後擴大至 ±16 EV。關閉時仍保留已設定的超範圍數值。": ["Off by default, with a print/viewing exposure range of ±8 EV. Enable to extend it to ±16 EV. Turning this off preserves existing values outside the standard range.", "初期設定ではオフで、プリント／鑑賞露出の範囲は ±8 EV です。オンにすると ±16 EV に拡張します。オフにしても設定済みの範囲外の値は保持されます。", "기본적으로 꺼져 있으며 인화/감상 노출 범위는 ±8 EV입니다. 켜면 ±16 EV로 확장됩니다. 꺼도 이미 설정된 범위 밖의 값은 유지됩니다."],
+  "預設開啟，提高印相／觀看曝光時柔和壓縮高光，保留亮部層次。關閉後不再壓縮高光；降低曝光時的暗部保護不受影響。": ["On by default. Increasing print/viewing exposure gently compresses highlights to preserve bright detail. Turning this off removes highlight compression; shadow protection when lowering exposure is unchanged.", "初期設定ではオンです。プリント／鑑賞露出を上げるとハイライトを穏やかに圧縮し、明部の階調を保ちます。オフにするとハイライト圧縮を無効にします。露出を下げた際の暗部保護には影響しません。", "기본적으로 켜져 있습니다. 인화/감상 노출을 높이면 하이라이트를 부드럽게 압축하여 밝은 영역의 계조를 보존합니다. 끄면 하이라이트 압축이 해제되며, 노출을 낮출 때의 암부 보호에는 영향을 주지 않습니다."],
+  "預設開啟，可在全域調整中設定 HDR 模擬強度。關閉後隱藏該滑桿，預覽與匯出皆不套用 HDR 模擬；原有強度設定會保留。": ["On by default. Adjust HDR simulation strength in the global adjustments. Turning this off hides the slider and disables HDR simulation in previews and exports while preserving the saved strength.", "初期設定ではオンで、全体調整で HDR シミュレーションの強さを設定できます。オフにするとスライダーが非表示になり、プレビューと書き出しに HDR シミュレーションを適用しません。設定済みの強さは保持されます。", "기본적으로 켜져 있으며 전체 조정에서 HDR 시뮬레이션 강도를 설정할 수 있습니다. 끄면 슬라이더가 숨겨지고 미리 보기와 내보내기에 HDR 시뮬레이션이 적용되지 않지만 기존 강도 설정은 유지됩니다."],
   "提高 EV 時柔和壓縮高光，降低 EV 時保留暗部層次；0 EV 保留原有外觀。": ["Positive EV gently compresses highlights; negative EV preserves shadow detail. Zero EV keeps the original appearance.", "EVを上げるとハイライトを穏やかに圧縮し、下げると暗部の階調を保護します。0 EVでは元の見え方を保ちます。", "EV를 높이면 밝은 영역을 부드럽게 압축하고, 낮추면 어두운 영역의 계조를 보호합니다. 0 EV는 기존 모습을 유지합니다."],
   "匯入自訂底片": ["Import custom film", "カスタムフィルムを読み込む", "사용자 필름 가져오기"],
   "匯出自訂底片": ["Export custom film", "カスタムフィルムを書き出す", "사용자 필름 내보내기"],
@@ -1732,10 +1736,10 @@ window.PhotoLocalizationData = {
     "暖かな黄色、鮮やかな中間調と日常的なネガ粒子。Portra の柔らかな肌色とは異なります。",
     "따뜻한 노란색, 선명한 중간톤과 일상적인 네거티브 입자로 Portra의 부드러운 피부색과 구별됩니다."
   ],
-  "偏冷的鎢光感色平衡，預設開啟亮部紅暈；與 VISION3 的無預設紅暈外觀區隔。": [
-    "Cool tungsten-like balance with highlight halation enabled, distinct from VISION3's default without halation.",
-    "冷たいタングステン調とハイライトのハレーション。既定でハレーションのない VISION3 と異なります。",
-    "차가운 텅스텐 색조와 밝은 영역의 할레이션으로, 기본 할레이션이 없는 VISION3와 구별됩니다."
+  "以已白平衡影像為基準保留鎢絲片階調，預設開啟亮部紅暈；色溫可依光源調整。": [
+    "Tungsten-film tones for white-balanced images, with highlight halation enabled. Adjust temperature for the light source.",
+    "ホワイトバランス調整済み画像を基準にタングステンフィルムの階調と赤いハレーションを再現。色温度は光源に合わせて調整できます。",
+    "화이트 밸런스가 맞춰진 사진을 기준으로 텅스텐 필름 계조와 밝은 영역의 붉은 할레이션을 적용합니다. 색온도는 광원에 맞게 조절하세요."
   ],
   "即影即有靈感的暖色、較低印相密度與柔光；使用共用光譜核心作藝術近似，未重建 SX-70 的完整化學製程。": [
     "Instant-film warmth, lower print density and bloom. An artistic spectral approximation, not a full SX-70 chemistry simulation.",
@@ -1747,10 +1751,10 @@ window.PhotoLocalizationData = {
     "高感度白黒の大きな粒子、柔らかな階調と局所的な現像コントラスト。HP5 の中程度の粒子とは異なります。",
     "고감도 흑백의 큰 입자, 부드러운 계조와 국부 현상 대비로 HP5의 중간 크기 입자와 구별됩니다."
   ],
-  "重新配置感色層響應，讓綠色轉紫、黃色轉粉、藍色轉綠；不是全圖疊加紫色色罩。": [
-    "Remaps sensitive layers: green to purple, yellow to pink and blue to green, rather than a uniform purple overlay.",
-    "感色層を再配置し、緑を紫、黄をピンク、青を緑へ変換します。一律の紫フィルターではありません。",
-    "감색층을 재배치해 초록은 보라, 노랑은 분홍, 파랑은 초록으로 변환하며 단순한 보라색 오버레이가 아닙니다."
+  "保留紅色並重新配置感色層響應，讓綠色轉紫、黃色轉粉、藍色轉綠。": [
+    "Preserves reds while remapping green to purple, yellow to pink and blue to green.",
+    "赤を保ちながら、緑を紫、黄をピンク、青を緑へ変換します。",
+    "빨강을 유지하면서 초록은 보라, 노랑은 분홍, 파랑은 초록으로 변환합니다."
   ],
   "藍綠感光、抑制紅色響應，再經銀鹽與印相雙曲線。": [
     "Blue-green sensitivity with reduced red response, followed by silver and print tone curves.",
@@ -1887,10 +1891,10 @@ window.PhotoLocalizationData = {
     "暖かな金色・鮮やかな懐かしさ",
     "따뜻한 금빛 · 선명한 향수"
   ],
-  "冷調夜景・亮部紅暈": [
-    "Cool nights · Highlight halation",
-    "冷たい夜景・光のハレーション",
-    "차가운 야경 · 밝은 영역 할레이션"
+  "鎢光夜景・亮部紅暈": [
+    "Tungsten nights · Highlight halation",
+    "タングステン夜景・光のハレーション",
+    "텅스텐 야경 · 밝은 영역 할레이션"
   ],
   "即影即有・暖色柔階": [
     "Instant · Warm gentle tones",
@@ -2802,6 +2806,44 @@ window.PhotoLocalizationData = {
     "スキャンスタイル",
     "스캔 스타일"
   ],
+  "控制目前風格的套用程度；數值越高效果越強，預設為 50。": ["Controls the strength of the selected look; default 50.", "現在のスタイルの強さを調整。既定は 50。", "선택한 스타일의 강도입니다. 기본값은 50입니다."],
+  "調整整體明暗；正值變亮，負值變暗，0 不補償。": ["Adjusts overall brightness; positive brightens, negative darkens.", "全体の明るさを調整。正で明るく、負で暗くします。", "전체 밝기를 조절합니다. 양수는 밝게, 음수는 어둡게 합니다."],
+  "調整整體色溫；正值偏暖，負值偏冷，0 保留目前白平衡。": ["Positive warms the image; negative cools it. Zero keeps the current white balance.", "正で暖色、負で寒色。0 は現在のホワイトバランスを維持。", "양수는 따뜻하게, 음수는 차갑게 합니다. 0은 현재 화이트 밸런스를 유지합니다."],
+  "調整白平衡的綠色與洋紅色偏移，協助修正光源偏色；0 不偏移。": ["Adjusts green–magenta white balance to correct lighting casts; zero adds no shift.", "緑とマゼンタの色かぶりを調整。0 は補正なし。", "광원의 녹색·마젠타 색조를 보정합니다. 0은 보정하지 않습니다."],
+  "調整整體明暗反差；正值加強，負值柔化，0 保留基準。": ["Positive increases overall contrast; negative softens it; zero keeps the baseline.", "正で全体のコントラストを強め、負で弱めます。0 は基準を維持。", "양수는 전체 대비를 높이고 음수는 낮춥니다. 0은 기준을 유지합니다."],
+  "降低影像雜訊；提高數值會增加平滑程度，也可能減少細節，0 關閉。": ["Reduces noise; higher values smooth more and may reduce detail. Zero disables it.", "ノイズを低減。強めると細部も滑らかになります。0 で無効。", "노이즈를 줄입니다. 높이면 세부 묘사도 부드러워질 수 있습니다. 0은 끕니다."],
+  "模擬背景失焦，突出主體；數值越高模糊越強，0 關閉。": ["Simulates background defocus to emphasize the subject; zero disables it.", "背景のぼけを模擬して被写体を強調。0 で無効。", "배경 흐림으로 피사체를 강조합니다. 0은 끕니다."],
+  "提亮偵測到的膚色區域；提高數值加強效果，0 關閉。": ["Brightens detected skin tones; zero disables it.", "検出した肌色を明るくします。0 で無効。", "감지된 피부색을 밝게 합니다. 0은 끕니다."],
+  "柔化偵測到的膚色細節；提高數值增加平滑程度，0 關閉。": ["Softens detected skin detail; higher values smooth more. Zero disables it.", "検出した肌の細部を滑らかにします。0 で無効。", "감지된 피부 디테일을 부드럽게 합니다. 0은 끕니다."],
+  "調整 HDR 模擬的明暗層次與局部反差；0 關閉，不是多張曝光合成。": ["Adjusts simulated HDR tones and local contrast; zero disables it. No exposure merging.", "HDR 風の階調と局所コントラストを調整。複数露光の合成ではありません。0 で無効。", "HDR 계조와 국부 대비를 조절합니다. 다중 노출 합성은 아닙니다. 0은 끕니다."],
+  "正值壓暗畫面邊緣，負值提亮邊緣，0 不增加暗角補償。": ["Positive darkens the edges; negative brightens them; zero adds no correction.", "正で周辺を暗く、負で明るくします。0 は補正なし。", "양수는 가장자리를 어둡게, 음수는 밝게 합니다. 0은 보정하지 않습니다."],
+  "調整顆粒尺寸，以長邊 3000 像素為基準；數值越高顆粒越大。": ["Grain size relative to a 3000-pixel long edge; higher values make larger grains.", "長辺 3000 ピクセルを基準に粒子サイズを調整。高いほど大きくなります。", "긴 변 3000픽셀 기준 입자 크기입니다. 높을수록 커집니다."],
+  "調整顆粒聚集程度；提高數值讓顆粒較集中成團。": ["Higher values make grains cluster more strongly.", "高いほど粒子がまとまって見えます。", "높을수록 입자가 더 뭉칩니다."],
+  "調整顆粒中的彩色成分；0 為中性顆粒，黑白底片停用此項。": ["Controls colored grain; zero is neutral grain. Disabled for monochrome film.", "粒子の色成分を調整。0 は無彩色。白黒フィルムでは無効。", "입자의 색 성분을 조절합니다. 0은 무채색이며 흑백 필름에서는 비활성화됩니다."],
+  "調整模擬顯影的作用時間，影響局部階調；需先提高顯影效果。": ["Controls simulated development time and local tones; requires development amount above zero.", "模擬現像時間と局所階調を調整。現像効果を有効にしてください。", "모의 현상 시간과 국부 계조를 조절합니다. 현상 효과를 먼저 높이세요."],
+  "調整顯影影響的擴散範圍，以原圖長邊百分比表示；需啟用顯影效果。": ["Development diffusion radius as a percentage of the image long edge; requires development.", "現像の拡散範囲を原画像長辺の割合で調整。現像効果が必要です。", "현상 확산 범위를 원본 긴 변의 비율로 조절합니다. 현상 효과가 필요합니다."],
+  "提高攪拌補充會減弱顯影液耗竭造成的局部差異；需啟用顯影效果。": ["More replenishment reduces local developer-exhaustion effects; requires development.", "補充を増やすと現像液の消耗による局所差を弱めます。", "보충을 늘리면 현상액 소진에 따른 국부 차이가 줄어듭니다."],
+  "調整柔光擴散範圍，以原圖長邊百分比表示；需先提高柔光強度。": ["Bloom radius as a percentage of the image long edge; requires bloom strength above zero.", "柔光の広がりを原画像長辺の割合で調整。柔光強度が必要です。", "부드러운 광채 범위를 원본 긴 변의 비율로 조절합니다. 광채 강도를 먼저 높이세요."],
+  "控制哪些亮部產生柔光；降低可涵蓋更多區域，提高則集中於更亮的部分。": ["Lower thresholds include more areas in bloom; higher values restrict it to brighter highlights.", "下げると柔光の対象が広がり、上げると明るい部分に限定。", "낮추면 광채 영역이 넓어지고 높이면 더 밝은 부분에 제한됩니다."],
+  "調整紅暈擴散範圍，以原圖長邊百分比表示；需先提高紅暈強度。": ["Red halation radius relative to the image long edge; requires halation strength above zero.", "赤いハレーションの範囲を原画像長辺の割合で調整。強度が必要です。", "붉은 할레이션 범위를 원본 긴 변의 비율로 조절합니다. 강도를 먼저 높이세요."],
+  "控制哪些亮部產生紅暈；降低可涵蓋更多亮部，提高則集中於最亮區域。": ["Lower thresholds include more highlights in halation; higher values select the brightest areas.", "下げると赤いハレーションの対象が広がり、上げると最も明るい部分に限定。", "낮추면 붉은 할레이션 영역이 넓어지고 높이면 가장 밝은 부분에 제한됩니다."],
+  "調整黑白濾鏡對各種原色明暗的影響；0 不套用，需先選擇濾鏡色彩。": ["Controls how the selected monochrome filter changes original colors into tones; zero disables it.", "選択した白黒フィルターによる色別の明暗変化を調整。0 で無効。", "선택한 흑백 필터의 색상별 명암 변화를 조절합니다. 0은 끕니다."],
+  "在輸出照片周圍加入外框；關閉後不加入外框。": ["Adds a border around the output photo.", "出力写真の周囲に枠を追加します。", "출력 사진 주위에 테두리를 추가합니다."],
+  "選擇外框的外觀；需先開啟外框。": ["Selects the border appearance; enable the border first.", "枠の外観を選択。先に枠を有効にしてください。", "테두리 모양을 선택합니다. 테두리를 먼저 켜세요."],
+  "在照片上加入日期印字；關閉後不顯示日期。": ["Adds a date stamp to the photo.", "写真に日付を印字します。", "사진에 날짜를 표시합니다."],
+  "調整目前亮部、中調或暗部分區的明暗；正值提亮，負值壓暗。": ["Adjusts brightness in the current tonal region; positive brightens, negative darkens.", "現在の明部・中間調・暗部の明るさを調整。正で明るく、負で暗くします。", "현재 밝은 영역·중간톤·어두운 영역의 밝기를 조절합니다."],
+  "調整目前明暗分區的冷暖；正值偏暖，負值偏冷。": ["Warms or cools the current tonal region; positive is warmer.", "現在の階調領域の色温度を調整。正で暖かく、負で涼しく。", "현재 계조 영역의 색온도를 조절합니다. 양수는 따뜻하게 합니다."],
+  "調整目前明暗分區的顆粒量；提高數值加強該區顆粒。": ["Adjusts grain amount in the current tonal region.", "現在の階調領域の粒子量を調整します。", "현재 계조 영역의 입자 양을 조절합니다."],
+  "調整此分區語意配方的飽和基調；0 不增加此項調整。": ["Adjusts the saturation basis of this region’s semantic recipe; zero adds no adjustment.", "この領域の語意レシピの彩度基調を調整。0 は追加補正なし。", "이 영역의 의미 기반 레시피 채도 바탕을 조절합니다. 0은 추가 보정하지 않습니다."],
+  "調整此分區語意配方的反差；正值加強，負值柔化。": ["Adjusts contrast in this region’s semantic recipe; positive strengthens it, negative softens it.", "この領域のコントラストを調整。正で強め、負で弱めます。", "이 영역의 대비를 조절합니다. 양수는 높이고 음수는 낮춥니다."],
+  "調整此分區語意配方的色偏；0 不增加色偏。": ["Adjusts the color tint of this region’s semantic recipe; zero adds no tint.", "この領域の色かぶりを調整。0 は追加なし。", "이 영역의 색조를 조절합니다. 0은 추가하지 않습니다."],
+  "調整此分區語意配方的高光層次；無法還原已完全剪裁的細節。": ["Adjusts highlight tones in this region; fully clipped detail cannot be recovered.", "この領域のハイライト階調を調整。完全に失われた細部は復元できません。", "이 영역의 하이라이트 계조를 조절합니다. 완전히 잘린 디테일은 복원할 수 없습니다."],
+  "調整此分區語意配方的陰影層次，影響暗部細節呈現。": ["Adjusts shadow tones and detail in this region’s semantic recipe.", "この領域のシャドウ階調と細部を調整します。", "이 영역의 그림자 계조와 디테일을 조절합니다."],
+  "提高數值可增加此分區語意配方的褪色感，柔化深色層次。": ["Adds fading to this region’s semantic recipe, softening dark tones.", "この領域の褪色感を増し、暗い階調を柔らかくします。", "이 영역에 빛바랜 느낌을 더하고 어두운 계조를 부드럽게 합니다."],
+  "調整此分區語意配方的柔化程度；0 不增加柔化。": ["Controls softness in this region’s semantic recipe; zero adds no softening.", "この領域の柔らかさを調整。0 は追加なし。", "이 영역의 부드러움을 조절합니다. 0은 추가하지 않습니다."],
+  "選擇介面語言；自動偵測會依系統語言決定。": ["Selects the interface language; automatic follows the system language.", "表示言語を選択。自動はシステム言語に従います。", "인터페이스 언어를 선택합니다. 자동은 시스템 언어를 따릅니다."],
+  "選擇介面明暗與配色，不影響匯出照片。": ["Changes interface appearance without affecting exported photos.", "画面の配色を変更。出力写真には影響しません。", "인터페이스 색상을 바꾸며 출력 사진에는 영향을 주지 않습니다."],
+  "控制滑鼠停留時的自動提示；關閉後仍可左鍵點擊有底線的標籤查看說明。": ["Controls automatic hover help; clicking underlined labels still opens help when off.", "マウスを置いた際の自動説明を設定。オフでも下線付きラベルをクリックできます。", "마우스 자동 설명을 설정합니다. 꺼도 밑줄 라벨을 클릭하면 설명이 열립니다."],
   "中性掃描": [
     "Neutral scan",
     "ニュートラルスキャン",
@@ -2812,10 +2854,15 @@ window.PhotoLocalizationData = {
     "暖色スキャン",
     "따뜻한 스캔"
   ],
-  "中性掃描保留底片色彩；暖調掃描加上暖中調與冷亮部。關閉時保留原有影像效果。": [
-    "Neutral scanning retains film colors. Warm scanning adds warm midtones and cool highlights. Turning it off preserves the original effects.",
-    "ニュートラルはフィルムの色を保ちます。暖色は中間調を暖かく、ハイライトを涼しくします。オフでは元の効果を維持します。",
-    "중성 스캔은 필름 색상을 유지합니다. 따뜻한 스캔은 따뜻한 중간 영역과 차가운 밝은 영역을 더합니다. 끄면 기존 효과를 유지합니다."
+  "柔和人像": ["Soft portrait", "ソフトポートレート", "부드러운 인물"],
+  "鮮明掃描": ["Vivid scan", "鮮やかスキャン", "선명한 스캔"],
+  "冷色清透": ["Cool clean", "クリア寒色", "맑은 쿨톤"],
+  "復古褪色": ["Faded vintage", "褪色ヴィンテージ", "빛바랜 빈티지"],
+  "中性保留原色；暖調帶暖中調與冷亮部；柔和人像降低彩度與反差；鮮明增加色彩與反差；冷色清透偏冷；復古褪色提亮黑位。皆為藝術風格。": ["Neutral retains color; warm adds warm midtones and cool highlights; soft portrait lowers saturation and contrast; vivid boosts both; cool clean adds cool tones; faded vintage lifts blacks. Artistic styles.", "ニュートラルは原色を維持。暖色は暖かな中間調と涼しいハイライト。人像は低彩度・低コントラスト、鮮やかは両方を強調。寒色は涼しく、褪色は黒を持ち上げます。創作スタイルです。", "중성은 원색 유지, 따뜻한 스타일은 따뜻한 중간톤과 차가운 밝은 영역, 인물은 낮은 채도와 대비, 선명은 높은 채도와 대비, 쿨톤은 차가운 색감, 빈티지는 블랙을 밝힙니다. 예술적 스타일입니다."],
+  "數位模擬不使用底片掃描；此區已關閉並停用。選擇底片或原片後可使用。": [
+    "Film scanning is off and disabled for digital simulations. Select a film or the original to use it.",
+    "デジタルシミュレーションではフィルムスキャンはオフで無効です。フィルムまたはオリジナルを選ぶと使用できます。",
+    "디지털 시뮬레이션에서는 필름 스캔이 꺼지고 비활성화됩니다. 필름 또는 원본을 선택하면 사용할 수 있습니다."
   ],
   "選擇一款底片後即可使用掃描。": [
     "Choose a film to enable scanning.",
@@ -3172,10 +3219,10 @@ window.PhotoLocalizationData = {
     "ダーク",
     "어둡게"
   ],
-  "顯示功能說明": [
-    "Show feature tips",
-    "機能の説明を表示",
-    "기능 설명 표시"
+  "自動顯示功能說明": [
+    "Show help automatically",
+    "機能説明を自動表示",
+    "기능 설명 자동 표시"
   ],
   "使用原檔編輯": [
     "Edit at original resolution",

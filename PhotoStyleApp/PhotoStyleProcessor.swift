@@ -42,7 +42,7 @@ enum PhotoStyleProcessor {
     ) -> PhotoImage {
         guard let ciImage = CIImage(image: image) else { return image }
         let source = ciImage.oriented(forExifOrientation: image.cgImageOrientation)
-        let stages = ["repair-input", "denoise-calibration", "light-scatter", "emulsion", "development",
+        let stages = ["repair-input", "denoise-calibration", "luminance-exposure", "light-scatter", "emulsion", "development",
                       "raw-display-mapping", "subject-mask", "skin-mask", "skin-white-balance", "skin-enhancement",
                       "white-balance", "film-look", "tone", "tone-zones", "hdr", "crop-geometry", "crop-vignette",
                       "depth-blur", "monochrome"]
@@ -68,6 +68,9 @@ enum PhotoStyleProcessor {
             try pipeline.process("denoise-calibration") {
                 PhotoColorCalibrationProcessor.apply(to: applyDenoise(to: $0, amount: adjustment.denoise / 100 * strength),
                     calibration: adjustment.colorCalibration?.stage == .input ? adjustment.colorCalibration : nil)
+            }
+            try pipeline.process("luminance-exposure") {
+                PhotoFilmEffectsProcessor.applyExposure(to: $0, effects: effects)
             }
             try pipeline.process("light-scatter") {
                 PhotoFilmEffectsProcessor.applyLightScatter(to: $0, effects: effects, strength: strength)
@@ -163,6 +166,10 @@ enum PhotoStyleProcessor {
 
     private static func applyLook(to correctedBaseImage: CIImage, style: PhotoStyle,
                                   adjustment: StyleAdjustment, strength: Double, isRAW: Bool) -> CIImage {
+        // 曝光已在底片前的亮度階段套用，所有底片／相機／原片分支皆避免重複曝光。
+        var adjustment = adjustment
+        adjustment.filmEffects.printExposure = 0
+        if style.cameraProfile != nil { adjustment.filmEffects.scannerProfile = .off }
         let monochromeSource = style.isMonochrome && style.filmStock == nil
             ? PhotoFilmEffectsProcessor.applyMonochromeFilter(to: correctedBaseImage, effects: adjustment.filmEffects, strength: strength)
             : correctedBaseImage
@@ -233,8 +240,7 @@ enum PhotoStyleProcessor {
                 filtered = PhotoFilmStockProcessor.apply(to: monochromeSource, stock: stock,
                                                         effects: adjustment.filmEffects, strength: strength)
             } else if let camera = style.cameraProfile {
-                let simulated = PhotoCameraProcessor.apply(to: monochromeSource, profile: camera)
-                filtered = camera.isMonochrome ? simulated : PhotoPositiveScannerProcessor.apply(to: simulated, effects: adjustment.filmEffects)
+                filtered = PhotoCameraProcessor.apply(to: monochromeSource, profile: camera)
             } else {
                 filtered = correctedBaseImage
             }

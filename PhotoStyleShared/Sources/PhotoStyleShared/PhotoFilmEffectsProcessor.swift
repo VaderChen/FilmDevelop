@@ -95,6 +95,20 @@ public enum PhotoFilmEffectsProcessor {
             monochrome: monochrome, seed: seed)
     }
 
+    /// 曝光補償先於乳劑、顯影與底片色彩。線性 sRGB 的 Y 與色度分離，
+    /// 僅對亮度套用曝光／保護曲線，再用原色度重建 RGB，避免放大成品顆粒。
+    public static func applyExposure(to image: CIImage, effects: PhotoFilmEffects,
+                                     strength: Double = 1) -> CIImage {
+        let e = effects.clamped()
+        let amount = unit(strength)
+        guard e.printExposure != 0, amount > 0,
+              let linear = image.matchedFromWorkingSpace(to: linearSRGB),
+              let result = kernels.exposure?.apply(extent: image.extent, arguments: [
+                linear, pow(2, e.printExposure), e.highlightProtectionEnabled ? 1.0 : 0.0, amount
+              ]) else { return image }
+        return (result.matchedToWorkingSpace(from: linearSRGB) ?? image).cropped(to: image.extent)
+    }
+
     /// 一般風格的中性數位印相：負片印相光源反向補償，觀看光源正向投射。
     /// 共用底片的 13 波段光源與虛擬掃描器，但不套用任何特定底片的感光曲線。
     public static func applyPrint(
@@ -102,10 +116,12 @@ public enum PhotoFilmEffectsProcessor {
         effects: PhotoFilmEffects,
         strength: Double = 1
     ) -> CIImage {
-        let e = effects.clamped()
+        var e = effects.clamped()
+        let image = applyExposure(to: image, effects: e, strength: strength)
+        e.printExposure = 0
         let amount = unit(strength)
         guard amount > 0,
-              e.printExposure != 0 || e.printContrast != 50 ||
+              e.printContrast != 50 ||
                 e.printIlluminant != .reference || e.viewIlluminant != .reference,
               let linear = image.matchedFromWorkingSpace(to: linearSRGB) else { return image }
         let printMatrix = illuminantMatrices[e.printIlluminant]!.inverse
@@ -146,6 +162,7 @@ public enum PhotoFilmEffectsProcessor {
         let extract: CIColorKernel?
         let scatter: CIColorKernel?
         let print: CIColorKernel?
+        let exposure: CIColorKernel?
     }
 
     private static let kernels: FilmKernels = {
@@ -189,6 +206,17 @@ public enum PhotoFilmEffectsProcessor {
             vec3 glow = vec3(bloomRing * bloom);
             return vec4(image.rgb + glow * image.a, image.a);
             """)
+        let exposure = make("filmLuminanceExposure", parameters: "__sample image, float gain, float protection, float amount", body: """
+            if (image.a <= 0.0) { return vec4(0.0); }
+            vec3 rgb = image.rgb / image.a;
+            // Y 是線性亮度；同一倍率重建 RGB 等同保留 XYZ 的色度座標。
+            float y = dot(rgb, vec3(0.2126, 0.7152, 0.0722));
+            float scale = gain;
+            if (y > 1.0e-20 && (protection > 0.5 || gain < 1.0)) {
+                scale = protectedExposurePeak(y, gain) / y;
+            }
+            return vec4(rgb * mix(1.0, scale, amount) * image.a, image.a);
+            """, helpers: PhotoExposureProtection.kernel)
         let print = make("filmPrint", parameters: "__sample image, vec3 printR, vec3 printG, vec3 printB, vec3 viewR, vec3 viewG, vec3 viewB, vec4 controls", body: """
             if (image.a <= 0.0) { return vec4(0.0); }
             vec3 source = image.rgb / image.a;
@@ -196,10 +224,8 @@ public enum PhotoFilmEffectsProcessor {
             // 反差以線性 18% 灰為中心；保留負通道與 HDR，不裁切到 SDR。
             rgb = sign(rgb) * 0.18 * pow(abs(rgb) / 0.18, vec3(controls.y));
             rgb = vec3(dot(rgb, viewR), dot(rgb, viewG), dot(rgb, viewB));
-            float peak = max(rgb.r, max(rgb.g, rgb.b));
-            rgb *= controls.w < 0.5 && controls.x > 1.0 ? controls.x : (peak > 0.00000001 ? protectedExposurePeak(peak, controls.x) / peak : controls.x);
             return vec4(mix(source, rgb, controls.z) * image.a, image.a);
             """, helpers: PhotoExposureProtection.kernel)
-        return FilmKernels(extract: extract, scatter: scatter, print: print)
+        return FilmKernels(extract: extract, scatter: scatter, print: print, exposure: exposure)
     }()
 }

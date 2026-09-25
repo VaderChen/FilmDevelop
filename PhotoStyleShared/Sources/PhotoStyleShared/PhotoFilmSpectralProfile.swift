@@ -82,10 +82,10 @@ struct PhotoFilmSpectralProfile: Sendable {
             layerEV = .init(0.025, 0.015, -0.015); layerGain = .init(1.01, 1, 0.98)
         case .filmVision200T:
             toe = -8; shoulder = 5.4; printSlope = 1.08; bend = 1.08
-            layerEV = .init(-0.12, 0, 0.14); dyeShift = 2
+            dyeShift = 2
         case .filmVision500T:
             toe = -8.4; shoulder = 5.6; printSlope = 1.11; bend = 0.9
-            layerEV = .init(-0.18, 0.01, 0.20); layerGain = .init(0.98, 1, 1.02); dyeShift = 4
+            layerGain = .init(0.98, 1, 1.02); dyeShift = 4
         case .filmEktachrome100:
             reversal = true; toe = -6.8; shoulder = 3.4; maxDensity = 3.5; bend = 1.2
             layerGain = .init(1, 1.01, 1.015); dyeWidth = 0.96
@@ -118,7 +118,8 @@ struct PhotoFilmSpectralProfile: Sendable {
             layerGain = .init(1.035, 1, 0.975)
         case .filmCineStill800T:
             toe = -8.3; shoulder = 5.3; printSlope = 1.19; bend = 0.9
-            layerEV = .init(-0.60, 0.03, 0.53); dyeShift = 4
+            // 輸入已經白平衡；不把日光下未校正的鎢絲片冷偏固定烙進每張照片。
+            dyeShift = 4
             layerGain = .init(0.97, 1, 1.04)
         case .filmPolaroidSX70:
             toe = -6.6; shoulder = 3.6; printSlope = 0.74; printMaxDensity = 1.68
@@ -132,6 +133,10 @@ struct PhotoFilmSpectralProfile: Sendable {
             dyeWidth = 0.90; sensitivityWidth = 0.95
         }
         scannerChroma = 1 / (dyeWidth * dyeWidth)
+        // Kodak 2018 原廠比較圖：Portra 160 < 400 < 800 < Ektar 彩度。
+        // 染料頻寬的倒平方是藝術近似，不能當成片種彩度量測；800 單獨校正
+        // 掃描輸出意圖，保留原染料、階調與膚色設定。1.04 是定性調整而非實測值。
+        if stock == .filmPortra800 { scannerChroma = 1.04 }
         sensitivity = Self.normalizeChannels(Self.wavelengths.map { lambda in
             SIMD3<Double>(Self.gaussian(lambda, 625, 30 * sensitivityWidth),
                           Self.gaussian(lambda, 540, 27 * sensitivityWidth),
@@ -139,10 +144,6 @@ struct PhotoFilmSpectralProfile: Sendable {
         })
         if monochrome {
             sensitivity = sensitivity.map { .init(repeating: simd_dot($0, monoWeights)) }
-        }
-        if stock == .filmLomoPurple {
-            // 在光譜感光階段重配感色層；保留中性場，依物體色彩產生不同轉色。
-            sensitivity = sensitivity.map { .init(0.45 * $0.x + 0.55 * $0.y, $0.z, $0.y) }
         }
         negativeDyes = Self.wavelengths.map { lambda in
             Self.normalizedDyes(lambda, centers: .init(635 + dyeShift, 540, 445 - dyeShift),
@@ -219,16 +220,16 @@ struct PhotoFilmSpectralProfile: Sendable {
     /// Slow FP64 reference for tests and accuracy/benchmark tools. The renderer
     /// does NOT allocate per-pixel spectra or invoke this CPU path.
     func referenceRGB(_ input: SIMD3<Double>, effects: PhotoFilmEffects = .neutral, strength: Double = 1) -> SIMD3<Double> {
+        let effects = effects.clamped()
+        let exposed = PhotoExposureProtection.applyLuminance(input, gain: pow(2, effects.printExposure),
+                                                            protectsHighlights: effects.highlightProtectionEnabled)
         var baseline = effects
         baseline.printExposure = 0
         baseline.printContrast = 50
-        let rgb = referenceBaselineRGB(input, effects: baseline, strength: strength)
+        let rgb = referenceBaselineRGB(exposed, effects: baseline, strength: strength)
         let contrast = pow(2, (effects.printContrast - 50) / 50)
         let contrasted = SIMD3<Double>((0..<3).map { 0.18 * pow(max(rgb[$0], 0) / 0.18, contrast) })
-        if !effects.highlightProtectionEnabled && effects.printExposure > 0 {
-            return contrasted * pow(2, effects.printExposure)
-        }
-        return PhotoExposureProtection.apply(contrasted, gain: pow(2, effects.printExposure))
+        return contrasted
     }
 
     private func referenceBaselineRGB(_ input: SIMD3<Double>, effects: PhotoFilmEffects, strength: Double) -> SIMD3<Double> {
@@ -246,6 +247,15 @@ struct PhotoFilmSpectralProfile: Sendable {
             norm += sensor
         }
         h /= norm
+        if stock == .filmLomoPurple {
+            // 原廠描述保留紅色；在顯影前連續混合正常與轉色感光量。
+            // 這是 RGB 藝術近似，不是原廠光譜量測。
+            let dominance = (rgb.x - max(rgb.y, rgb.z)) / max(1e-7, rgb.x)
+            let t = min(1, max(0, (dominance - 0.15) / 0.5))
+            let preserve = t * t * (3 - 2 * t)
+            let shifted = SIMD3<Double>(0.45 * h.x + 0.55 * h.y, h.z, h.y)
+            h = shifted * (1 - preserve) + h * preserve
+        }
         var d = SIMD3<Double>.zero
         for c in 0..<3 {
             d[c] = density(log2(max(h[c], 1e-7) / 0.18) * layerGain[c] + layerEV[c] + reversalShift)

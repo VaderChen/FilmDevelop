@@ -44,7 +44,7 @@ enum PhotoStyleMCPTools {
         for (key, options) in stringValues { values[key] = ["type": "string", "enum": options] }
         let illuminants = PhotoFilmEffects.Illuminant.allCases.map { "\($0.rawValue) \($0.title)" }.joined(separator: "、")
         let descriptions = [
-            "scannerProfile": "off 關閉掃描；neutral 中性掃描（預設）；warmCool 暖中調冷亮部的掃描。底片與原片皆可使用；原片僅套用掃描色彩調整。非實測商用掃描器。",
+            "scannerProfile": "off 關閉掃描；neutral 中性掃描（預設）；warmCool 暖中調冷亮部；softPortrait 柔和人像；vivid 鮮明掃描；coolClean 冷色清透；fadedVintage 復古褪色。底片與原片皆可使用；數位相機模擬強制 off 並停用底掃；原片僅套用掃描色彩調整。非實測商用掃描器。",
             "scannerIlluminant": "底掃穿透光源，片基自動平衡；與印相、觀看光源分開。",
             "scanSaturation": "底掃色彩濃度，50 為中性，0 灰階；黑白底片維持灰階。",
             "scanDensityCorrection": "負片密度域色層去耦合程度，100 完整校正；正片與黑白略過。",
@@ -52,7 +52,7 @@ enum PhotoStyleMCPTools {
             "scanMidtoneWarmth": "底掃中調冷暖，正暖負冷，0 保留所選底掃風格。",
             "scanHighlightWarmth": "底掃亮部冷暖，正暖負冷，純白附近減弱染色。",
             "filmColorModel": "固定 spectral：LHTSS 光譜重建、多波段染料透射與獨立印片流程；只對底片款式生效。",
-            "printExposure": "風格與底片皆可調整的印相／觀看曝光補償 EV，-12 至 +12，預設 0；正值變亮、負值變暗。",
+            "printExposure": "風格與底片皆可調整的印相／觀看曝光補償 EV，-16 至 +16，預設 0；先分離亮度與色度，只調整亮度並重建原色，再套用乳劑、顯影與底片色彩。正值變亮、負值變暗。",
             "printIlluminant": "印相光源：\(illuminants)。一般風格與負片皆可使用，正片略過此光源。",
             "viewIlluminant": "觀看光源：\(illuminants)。風格與底片皆可使用，黑白維持灰階。",
             "printContrast": "風格與底片皆可調整的印相反差，50 保留原有基準；反轉片調整觀看密度反差。",

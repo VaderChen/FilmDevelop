@@ -15,10 +15,12 @@ public enum PhotoFilmSpectralProcessor {
         effects: PhotoFilmEffects = .neutral,
         strength: Double = 1
     ) -> CIImage {
+        var e = effects.clamped()
+        let image = PhotoFilmEffectsProcessor.applyExposure(to: image, effects: e)
+        e.printExposure = 0
         guard let kernel = compiled.kernel,
               let index = PhotoFilmStock.allCases.firstIndex(of: stock),
               let linear = image.matchedFromWorkingSpace(to: linearSRGB) else { return image }
-        let e = effects.clamped()
         let compensatesPrintLight = (e.scannerProfile != .off || stock.family == "reversal") && e.printIlluminant != .reference
         let amount = strength.isFinite ? min(1, max(0, strength)) : 0
         let filterIndex = PhotoFilmEffects.MonochromeFilter.allCases.firstIndex(of: e.monochromeFilter) ?? 0
@@ -27,25 +29,27 @@ public enum PhotoFilmSpectralProcessor {
         let calibration = PhotoFilmScanner.calibration(profile, light:light)
         func vector(_ value: SIMD3<Double>) -> CIVector { CIVector(x:value.x,y:value.y,z:value.z) }
         let scanRows = (0..<3).map { r in vector(.init(calibration.inverse.columns.0[r], calibration.inverse.columns.1[r], calibration.inverse.columns.2[r])) }
-        let warmth = e.scannerProfile == .warmCool ? 18.0 : 0
+        let warmth = e.scannerProfile.warmth
+        let style = e.scannerProfile.rendering
         guard let result = kernel.apply(extent: image.extent, roiCallback: { input, rect in
             input == 0 ? rect : PhotoFilmSpectralReconstruction.extent
         }, arguments: [
             linear] + PhotoFilmSpectralReconstruction.planes + [Double(index),
             CIVector(x: Double(PhotoFilmEffects.Illuminant.allCases.firstIndex(of: e.printIlluminant)!),
                      y: Double(PhotoFilmEffects.Illuminant.allCases.firstIndex(of: e.viewIlluminant)!), z: e.highlightProtectionEnabled ? 1 : 0),
-            CIVector(x: compensatesPrintLight ? 0 : e.printExposure, y: pow(2, (e.printContrast - 50) / 50),
+            CIVector(x: 0, y: pow(2, (e.printContrast - 50) / 50),
                      z: e.monochromeFilterStrength / 100 * amount, w: Double(filterIndex)),
             CIVector(x:e.scannerProfile == .off ? 0 : 1,
                      y:Double(PhotoFilmEffects.Illuminant.allCases.firstIndex(of:e.scannerIlluminant)!),
                      z:calibration.slope, w:pow(e.scanFlare / 100, 2) * 0.005),
             CIVector(x:0, y:1, z:e.scanSaturation/50, w:e.scanDensityCorrection/100),
-            CIVector(x:0, y:(e.scanMidtoneWarmth + warmth)/100, z:(e.scanHighlightWarmth - warmth)/100, w:0),
+            CIVector(x:0, y:(e.scanMidtoneWarmth + warmth.x)/100, z:(e.scanHighlightWarmth + warmth.y)/100, w:0),
+            CIVector(x:style.x,y:style.y,z:style.z,w:style.w),
             vector(calibration.base), vector(calibration.middle), scanRows[0], scanRows[1], scanRows[2]
         ]) else { return image }
         var output = (result.matchedToWorkingSpace(from: linearSRGB) ?? image).cropped(to: image.extent)
         // 掃描／正片略過光學負片印相，改在成品套用光源色彩補償。
-        // 光源補償與黑白轉換完成後才套曝光保護，避免光源矩陣再次推爆色頻。
+        // 曝光已在輸入亮度階段完成，此處只處理光源與黑白轉換。
         // 反差與掃描設定已在 kernel 計算，不重複套用。
         if compensatesPrintLight {
             var lighting = PhotoFilmEffects.neutral
@@ -53,12 +57,6 @@ public enum PhotoFilmSpectralProcessor {
             output = PhotoFilmEffectsProcessor.applyPrint(to: output, effects: lighting)
             if stock.isMonochrome {
                 output = PhotoImageEffectsProcessor.monochrome(output, profile: .desaturate)
-            }
-            if e.printExposure != 0 {
-                var exposure = PhotoFilmEffects.neutral
-                exposure.printExposure = e.printExposure
-                exposure.highlightProtectionEnabled = e.highlightProtectionEnabled
-                output = PhotoFilmEffectsProcessor.applyPrint(to: output, effects: exposure)
             }
         }
         return output
@@ -95,6 +93,7 @@ public enum PhotoFilmSpectralProcessor {
         tables += array("float", "spBase", profiles.flatMap(\.baseDensity).map(f))
         tables += array("float4", "spCurve", profiles.map { v4($0.toe, $0.shoulder, $0.bend, $0.maxDensity) })
         tables += array("float4", "spPaper", profiles.map { v4($0.printSlope, $0.printMaxDensity, $0.printBias, $0.retainedSilver) })
+        tables += array("float", "spMiddleDensity", profiles.map { f($0.density(0)) })
         tables += array("float", "spScanChroma", profiles.map { f($0.scannerChroma) })
         tables += array("float4", "spMode", profiles.map { v4($0.monochrome ? 1 : 0, $0.reversal ? 1 : 0, $0.reversalShift, 0) })
         tables += array("float3", "spGain", profiles.map { v3($0.layerGain) })
@@ -113,13 +112,10 @@ public enum PhotoFilmSpectralProcessor {
         using namespace coreimage;
         \(tables)
         \(PhotoFilmScanner.metal)
-        \(PhotoExposureProtection.kernel)
+        \(PhotoFilmScanner.inversionMetal)
         float3 spOutputTone(float3 rgb, float4 controls, float protection) {
             rgb = 0.18f * pow(max(rgb, float3(0)) / 0.18f, float3(controls.y));
-            float gain = exp2(controls.x);
-            if (protection < 0.5f && gain > 1.0f) { return rgb * gain; }
-            float peak = max(rgb.x, max(rgb.y, rgb.z));
-            return rgb * (peak > 1.0e-8f ? protectedExposurePeak(peak, gain) / peak : gain);
+            return rgb;
         }
         float3 spSoftplus(float3 v) {
             return max(v, float3(0.0)) + log(1.0 + exp(-abs(v)));
@@ -138,7 +134,7 @@ public enum PhotoFilmSpectralProcessor {
         [[ stitchable ]] float4 filmSpectral(coreimage::sampler input,
             coreimage::sampler table0, coreimage::sampler table1, coreimage::sampler table2, coreimage::sampler table3, coreimage::sampler table4,
             float stockIndex, float3 lights, float4 controls,
-            float4 scanSettings, float4 scanTone, float4 scanLook,
+            float4 scanSettings, float4 scanTone, float4 scanLook, float4 scanStyle,
             float3 scanBase, float3 scanMiddle, float3 scanRow0, float3 scanRow1, float3 scanRow2, destination dest) {
             float4 image = input.sample(input.transform(dest.coord()));
             float alpha = isfinite(image.a) ? clamp(image.a, 0.0, 1.0) : 0.0;
@@ -175,6 +171,11 @@ public enum PhotoFilmSpectralProcessor {
                 norm += sensitivity;
             }
             h /= norm;
+            if (stock == \(PhotoFilmStock.allCases.firstIndex(of: .filmLomoPurple)!)) {
+                float dominance=(rgb.r-max(rgb.g,rgb.b))/max(1e-7f,rgb.r);
+                float preserve=smoothstep(0.15f,0.65f,dominance);
+                h=mix(float3(0.45f*h.r+0.55f*h.g,h.b,h.g),h,preserve);
+            }
             float3 ev = log2(max(h, float3(1.0e-7)) / 0.18) * spGain[stock] + spEV[stock];
             float3 density = spDensity(ev + mode.z, curve);
             if (scanSettings.x > 0.5) {
@@ -197,11 +198,13 @@ public enum PhotoFilmSpectralProcessor {
                     float3 t=(measured/scanBase+scanSettings.w)/(1+scanSettings.w);
                     float3 logD=-log10(max(t,float3(1e-12f)))-scanMiddle;
                     float3 unmixed=float3(dot(logD,scanRow0),dot(logD,scanRow1),dot(logD,scanRow2));
+                    if(mode.x<0.5f && scanTone.w>0.0f)
+                        unmixed=spUnmix(logD+scanMiddle,stock,scanLight,scanBase,scanMiddle,scanRow0,scanRow1,scanRow2);
                     float3 stops=mix(logD,unmixed,scanTone.w)/scanSettings.z+scanTone.x;
                     positive=1/(1+exp(-clamp(-1.516347489f+stops*0.693147181f*scanTone.y,float3(-40),float3(40))));
                     positive=scanRenderIntent(positive,paper,spScanChroma[stock],mode.x);
                 }
-                return float4(spOutputTone(scanGrade(positive,scanTone,scanLook,mode.x),controls,lights.z)*alpha,alpha);
+                return float4(spOutputTone(scanGrade(positive,scanTone,scanLook,scanStyle,mode.x),controls,lights.z)*alpha,alpha);
             }
             if (mode.y > 0.5) {
                 // Positive reversal film goes straight to viewing, no fictitious

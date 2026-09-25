@@ -129,6 +129,7 @@ extension PhotoStyleWebCoordinator {
             "subtitle": style.subtitle,
             "isMonochrome": style.isMonochrome,
             "isOriginal": style == .original,
+            "supportsScanner": style.filmStock != nil || style == .original,
             "isFilmStock": style.isLibraryLook,
             "filmFamily": style.libraryFamily,
             "filmFamilyTitle": style == .original ? "原始影像" : (style.libraryFamilyTitle),

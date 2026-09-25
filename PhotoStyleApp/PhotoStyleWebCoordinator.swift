@@ -76,7 +76,7 @@ final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMe
     var selectedStyle: PhotoStyle = {
         guard let rawValue = UserDefaults.standard.string(forKey: "selectedStyle.v1"),
               let style = PhotoStyle(rawValue: rawValue) else {
-            return .japaneseColor1
+            return .original
         }
         return style
     }()

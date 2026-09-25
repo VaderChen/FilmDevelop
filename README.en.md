@@ -1,5 +1,7 @@
 # FilmDevelop
 
+Print/viewing exposure defaults to ±8 EV, or ±16 EV with Extended exposure enabled. Disabling it preserves existing out-of-range values.
+
 [繁體中文](README.md) · [English](README.en.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
 
 ![FilmDevelop](demo.gif)
@@ -7,6 +9,18 @@
 A film-inspired photo editor for Apple Silicon Mac. Open a photo folder, choose a film, adjust development, scanning and tones, then export. Photo editing and AI-assisted adjustments run locally.
 
 Requires macOS 14 or later. AI features require a compatible local model, downloaded separately.
+
+
+### Scan styles and help (2026-09-25)
+
+Six artistic scan styles are available: Neutral, Warm, Soft Portrait, Vivid, Cool Clean and Faded Vintage. They are not measured commercial-scanner profiles. GR digital camera simulations force scanning off and disable the entire panel, including for old recipes and exports. Film stocks and Original retain scanning support; with default controls, Neutral and Off look identical on Original.
+
+All 74 workbench adjustment controls have help. Click an underlined label, or focus it and press Enter/Space; Escape closes it. “Show help automatically” only controls automatic hints: clicking still works when it is off. Help clicks and double-clicks do not change or reset values. Original is hidden from the film-library list, always available in the workbench, and selected on first launch.
+
+Exposure adjusts linear luminance before film color processing: ±8 EV normally, ±16 EV with expansion. Highlight protection applies only when enabled and cannot recover clipped source detail. Portra 800 saturation ordering, Lomo Purple red preservation and fixed tungsten casts on white-balanced inputs have been refined; these remain qualitative approximations.
+
+On first launch, `run.command` downloads missing llama.cpp/libwebp submodules; network access and full Xcode are required. Restart an already-open app after rebuilding to load the updated interface.
+
 
 ## Latest changes — 1.26.0925 build 1127
 

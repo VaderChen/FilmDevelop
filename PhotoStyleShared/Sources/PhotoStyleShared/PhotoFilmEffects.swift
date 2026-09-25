@@ -17,10 +17,32 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
         return level <= 0.04045 ? level / 12.92 : pow((level + 0.055) / 1.055, 2.4)
     }
 
-    public static let printExposureRange: ClosedRange<Double> = -12...12
+    public static let printExposureRange: ClosedRange<Double> = -16...16
 
     public enum ScannerProfile: String, Codable, CaseIterable, Sendable {
-        case off, neutral, warmCool
+        case off, neutral, warmCool, softPortrait, vivid, coolClean, fadedVintage
+
+        // Artistic scan renderings, not measured commercial scanner profiles.
+        // x: saturation, y: luminance contrast, z: black lift, w: reserved.
+        var rendering: SIMD4<Double> {
+            switch self {
+            case .softPortrait: return .init(0.88, 0.90, 0.006, 0)
+            case .vivid: return .init(1.18, 1.15, 0, 0)
+            case .coolClean: return .init(0.95, 1.05, 0, 0)
+            case .fadedVintage: return .init(0.78, 0.86, 0.025, 0)
+            default: return .init(1, 1, 0, 0)
+            }
+        }
+
+        var warmth: SIMD2<Double> {
+            switch self {
+            case .warmCool: return .init(18, -18)
+            case .softPortrait: return .init(14, 4)
+            case .coolClean: return .init(-22, -10)
+            case .fadedVintage: return .init(28, 10)
+            default: return .zero
+            }
+        }
     }
 
     public enum GrainMode: String, Codable, CaseIterable, Sendable {

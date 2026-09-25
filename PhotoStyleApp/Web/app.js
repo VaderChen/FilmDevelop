@@ -34,7 +34,7 @@
     originalResolutionEditing: false,
     mcp: { enabled: true, running: false, status: "啟動中", endpoint: "http://127.0.0.1:8765/mcp", connectionFile: "" },
     selectedCustomFilmID: null,
-    selectedStyle: localStorage.getItem("photoStyle.selectedStyle") || "japaneseColor1",
+    selectedStyle: localStorage.getItem("photoStyle.selectedStyle") || "original",
     styles: [],
     adjustments: {},
     cropAspectRatios: [
@@ -526,6 +526,7 @@
       var enabled = Array.isArray(stored)
         ? catalogStyleIDs(stored).filter(function (id) { return allIDs.indexOf(id) >= 0; })
         : [];
+      if (allIDs.indexOf("original") >= 0 && enabled.indexOf("original") < 0) enabled.unshift("original");
       return enabled.length > 0 ? enabled : [allIDs[0]];
     } catch (_) {
       return defaults;
@@ -538,6 +539,7 @@
     var filtered = ids.filter(function (id, index) {
       return allIDs.indexOf(id) >= 0 && ids.indexOf(id) === index;
     });
+    if (allIDs.indexOf("original") >= 0 && filtered.indexOf("original") < 0) filtered.unshift("original");
     if (filtered.length === 0 && allIDs.length > 0) filtered = [allIDs[0]];
     localStorage.setItem(enabledStylesKey, JSON.stringify(filtered));
     return filtered;
@@ -585,6 +587,7 @@
   }
 
   function toggleStyleEnabled(styleID) {
+    if (styleID === "original") return;
     var enabled = readEnabledStyleIDs();
     var index = enabled.indexOf(styleID);
     if (index >= 0) {
@@ -1074,7 +1077,7 @@
 
   function renderStylePage() {
     var selected = state.styles.find(function (style) { return style.id === state.selectedStyle && !style.isFilmStock; });
-    var styles = applyStyleOrder(catalogStyles(), readStyleOrder()).filter(function (style) { return !style.isFilmStock; });
+    var styles = applyStyleOrder(catalogStyles(), readStyleOrder()).filter(function (style) { return !style.isFilmStock && !style.isOriginal; });
     var enabled = readEnabledStyleIDs();
     var count = styles.filter(function (style) { return enabled.indexOf(style.id) >= 0; }).length;
     return [
@@ -1088,13 +1091,13 @@
   }
 
   function renderFilmPage() {
-    var groups = [["custom", L.text("自訂底片")], ["original", L.text("原始影像")],
+    var groups = [["custom", L.text("自訂底片")],
       ["negative", L.text("彩色負片")], ["cinema", L.text("電影負片")],
       ["reversal", L.text("反轉片")], ["monochrome", L.text("黑白")],
       ["instant", L.text("即影即有")], ["creative", L.text("特殊底片／製程")], ["camera", L.text("模擬相機")]];
-    function groupID(film) { return film.isCustom ? "custom" : film.isOriginal ? "original" : film.filmFamily; }
+    function groupID(film) { return film.isCustom ? "custom" : film.filmFamily; }
     function groupIndex(film) { return groups.findIndex(function (group) { return group[0] === groupID(film); }); }
-    var films = catalogStyles().filter(function (style) { return style.isFilmStock || style.isOriginal || style.isCustom; })
+    var films = catalogStyles().filter(function (style) { return !style.isOriginal && (style.isFilmStock || style.isCustom); })
       .sort(function (a, b) {
         return groupIndex(a) - groupIndex(b) || styleTitle(a).localeCompare(styleTitle(b), L.locale(state.language), { numeric: true, sensitivity: "base" }) || a.id.localeCompare(b.id);
       });
@@ -1228,7 +1231,7 @@
     sections.unshift([
       '<div class="film-section">',
       renderSelect(L.text("印相光源"), "printIlluminant", value("printIlluminant", "reference"), lights, false, printHelp),
-      renderRange(reversal ? L.text("觀看曝光") : L.text("印相曝光補償"), "printExposure", value("printExposure", 0), Math.min(state.exposureExpansionEnabled ? -12 : -4, value("printExposure", 0)), Math.max(state.exposureExpansionEnabled ? 12 : 4, value("printExposure", 0)), 0.05, " EV", printHelp),
+      renderRange(reversal ? L.text("觀看曝光") : L.text("印相曝光補償"), "printExposure", value("printExposure", 0), Math.min(state.exposureExpansionEnabled ? -16 : -8, value("printExposure", 0)), Math.max(state.exposureExpansionEnabled ? 16 : 8, value("printExposure", 0)), 0.05, " EV", L.text("曝光先分離亮度與色彩，只調整亮度後再套用底片效果；正值變亮、負值變暗。高光抑制開啟時保護亮部，降低曝光時保留暗部層次。0 EV 不改變原有外觀。")),
       renderRange(reversal ? L.text("觀看反差") : L.text("印相反差"), "printContrast", value("printContrast", 50), 0, 100, 1, "", L.text("50 為目前風格或底片的基準；提高數值增加明暗反差，降低數值讓階調更柔和。")),
       renderRange(L.text("暗角"), "vignetteBalance", vignetteBalance(adjustment), -100, 100),
       '</div>'
@@ -1271,15 +1274,17 @@
 
   function renderScannerAdjustmentCard(adjustment) {
     var selected = state.styles.find(function (style) { return style.id === currentLookID(); });
-    var film = !!(selected && (selected.isFilmStock || selected.isOriginal));
+    var film = !!(selected && selected.supportsScanner);
     var monochrome = !!(selected && selected.isMonochrome);
     var reversal = selected && selected.filmFamily === "reversal";
     var value = function (key, fallback) { return adjustment[key] == null ? fallback : adjustment[key]; };
     var enabled = film && value("scannerProfile", "off") !== "off";
-    return renderAdjustmentCard("scanner", L.text("底片掃描"), [
-      renderSelect(L.text("掃描風格"), "scannerProfile", value("scannerProfile", "off"), [
-        {id:"off",title:L.text("關閉")}, {id:"neutral",title:L.text("中性掃描")}, {id:"warmCool",title:L.text("暖調掃描")}
-      ], !film, film ? L.text("中性掃描保留底片色彩；暖調掃描加上暖中調與冷亮部。關閉時保留原有影像效果。") : L.text("選擇一款底片後即可使用掃描。")),
+    return renderAdjustmentCard("scanner", null, [
+      renderSelect(L.text("掃描風格"), "scannerProfile", film ? value("scannerProfile", "off") : "off", [
+        {id:"off",title:L.text("關閉")}, {id:"neutral",title:L.text("中性掃描")}, {id:"warmCool",title:L.text("暖調掃描")},
+        {id:"softPortrait",title:L.text("柔和人像")}, {id:"vivid",title:L.text("鮮明掃描")},
+        {id:"coolClean",title:L.text("冷色清透")}, {id:"fadedVintage",title:L.text("復古褪色")}
+      ], !film, film ? L.text("中性保留原色；暖調帶暖中調與冷亮部；柔和人像降低彩度與反差；鮮明增加色彩與反差；冷色清透偏冷；復古褪色提亮黑位。皆為藝術風格。") : L.text("數位模擬不使用底片掃描；此區已關閉並停用。選擇底片或原片後可使用。")),
       renderRange(L.text("色彩濃度"), "scanSaturation", value("scanSaturation", 50), 0, 100, 1, "", L.text("50 保留原色彩，0 轉為灰階。"), !enabled || monochrome),
       renderRange(L.text("色層分離"), "scanDensityCorrection", value("scanDensityCorrection", 100), 0, 100, 1, "", L.text("校正負片染料在掃描時互相混入的色彩；降低可保留較多混色。"), !enabled || monochrome || reversal || !!(selected && selected.isOriginal)),
       renderRange(L.text("掃描雜散光"), "scanFlare", value("scanFlare", 0), 0, 100, 1, "", L.text("模擬掃描器內部漏入的光，改變高密度區的層次與反差；0 關閉。"), !enabled),
@@ -1305,7 +1310,54 @@
     return label + (unit || "");
   }
 
+  var adjustmentHelpText = {
+  "intensity": "控制目前風格的套用程度；數值越高效果越強，預設為 50。",
+  "exposure": "調整整體明暗；正值變亮，負值變暗，0 不補償。",
+  "whiteBalanceWarmth": "調整整體色溫；正值偏暖，負值偏冷，0 保留目前白平衡。",
+  "whiteBalanceTint": "調整白平衡的綠色與洋紅色偏移，協助修正光源偏色；0 不偏移。",
+  "contrast": "調整整體明暗反差；正值加強，負值柔化，0 保留基準。",
+  "denoise": "降低影像雜訊；提高數值會增加平滑程度，也可能減少細節，0 關閉。",
+  "backgroundBlur": "模擬背景失焦，突出主體；數值越高模糊越強，0 關閉。",
+  "skinWhitening": "提亮偵測到的膚色區域；提高數值加強效果，0 關閉。",
+  "skinSmoothing": "柔化偵測到的膚色細節；提高數值增加平滑程度，0 關閉。",
+  "hdrAmount": "調整 HDR 模擬的明暗層次與局部反差；0 關閉，不是多張曝光合成。",
+  "vignetteBalance": "正值壓暗畫面邊緣，負值提亮邊緣，0 不增加暗角補償。",
+  "grainSize": "調整顆粒尺寸，以長邊 3000 像素為基準；數值越高顆粒越大。",
+  "grainClumping": "調整顆粒聚集程度；提高數值讓顆粒較集中成團。",
+  "grainChroma": "調整顆粒中的彩色成分；0 為中性顆粒，黑白底片停用此項。",
+  "developmentTime": "調整模擬顯影的作用時間，影響局部階調；需先提高顯影效果。",
+  "developmentDiffusion": "調整顯影影響的擴散範圍，以原圖長邊百分比表示；需啟用顯影效果。",
+  "developmentAgitation": "提高攪拌補充會減弱顯影液耗竭造成的局部差異；需啟用顯影效果。",
+  "bloomRadius": "調整柔光擴散範圍，以原圖長邊百分比表示；需先提高柔光強度。",
+  "bloomThreshold": "控制哪些亮部產生柔光；降低可涵蓋更多區域，提高則集中於更亮的部分。",
+  "halationRadius": "調整紅暈擴散範圍，以原圖長邊百分比表示；需先提高紅暈強度。",
+  "halationThreshold": "控制哪些亮部產生紅暈；降低可涵蓋更多亮部，提高則集中於最亮區域。",
+  "monochromeFilterStrength": "調整黑白濾鏡對各種原色明暗的影響；0 不套用，需先選擇濾鏡色彩。",
+  "frameEnabled": "在輸出照片周圍加入外框；關閉後不加入外框。",
+  "frameStyle": "選擇外框的外觀；需先開啟外框。",
+  "dateEnabled": "在照片上加入日期印字；關閉後不顯示日期。",
+  "Exposure": "調整目前亮部、中調或暗部分區的明暗；正值提亮，負值壓暗。",
+  "Warmth": "調整目前明暗分區的冷暖；正值偏暖，負值偏冷。",
+  "Grain": "調整目前明暗分區的顆粒量；提高數值加強該區顆粒。",
+  "PlanBaseTone": "調整此分區語意配方的飽和基調；0 不增加此項調整。",
+  "PlanContrast": "調整此分區語意配方的反差；正值加強，負值柔化。",
+  "PlanTint": "調整此分區語意配方的色偏；0 不增加色偏。",
+  "PlanHighlights": "調整此分區語意配方的高光層次；無法還原已完全剪裁的細節。",
+  "PlanShadows": "調整此分區語意配方的陰影層次，影響暗部細節呈現。",
+  "PlanFade": "提高數值可增加此分區語意配方的褪色感，柔化深色層次。",
+  "PlanSoftness": "調整此分區語意配方的柔化程度；0 不增加柔化。",
+  "language": "選擇介面語言；自動偵測會依系統語言決定。",
+  "appearance": "選擇介面明暗與配色，不影響匯出照片。",
+  "showHelp": "控制滑鼠停留時的自動提示；關閉後仍可左鍵點擊有底線的標籤查看說明。"
+};
+
+  function adjustmentHelp(key) {
+    var region = /^(highlight|midtone|shadow)(.+)$/.exec(key);
+    return L.text(adjustmentHelpText[key] || (region && adjustmentHelpText[region[2]]) || "");
+  }
+
   function renderRange(label, key, value, min, max, step, unit, help, disabled) {
+    help = help || adjustmentHelp(key);
     var low = min == null ? 0 : min;
     var high = max == null ? 100 : max;
     var increment = step == null ? 1 : step;
@@ -1322,13 +1374,14 @@
   function renderToggle(label, key, value) {
     return [
       '<div class="toggle-row">',
-      "<span>" + label + "</span>",
+      "<span>" + renderHelp(adjustmentHelp(key), label) + "</span>",
       '<button class="switch ' + (value ? "on" : "") + '" data-toggle="' + key + '" type="button" aria-label="' + label + '" aria-pressed="' + (value ? "true" : "false") + '"></button>',
       "</div>"
     ].join("");
   }
 
   function renderSelect(label, key, value, options, disabled, help) {
+    help = help || adjustmentHelp(key);
     return [
       '<div class="select-row">',
       '<label class="help-label" for="' + key + '">' + renderHelp(help, label) + '</label>',
@@ -1528,34 +1581,37 @@
   var settingsSection = "general";
 
   function renderSettings() {
+    var exposureExpansionHelp = L.text("預設關閉，印相／觀看曝光範圍為 ±8 EV；開啟後擴大至 ±16 EV。關閉時仍保留已設定的超範圍數值。");
+    var highlightProtectionHelp = L.text("預設開啟，提高印相／觀看曝光時柔和壓縮高光，保留亮部層次。關閉後不再壓縮高光；降低曝光時的暗部保護不受影響。");
+    var hdrFeatureHelp = L.text("預設開啟，可在全域調整中設定 HDR 模擬強度。關閉後隱藏該滑桿，預覽與匯出皆不套用 HDR 模擬；原有強度設定會保留。");
     var originalResolutionHelp = L.text("預設關閉，使用最長邊 2048 px 的處理縮圖；開啟後使用原檔。若設備效能不足，建議關閉以加快操作。");
     var version = window.__appInfo ? window.__appInfo.version + " build " + window.__appInfo.build : "—";
     var categories = [["general", "一般"], ["develop", "顯影"], ["mcp", "MCP"], ["about", "關於"]];
     var panels = {
       general: [
-      L.html('<div class="settings-row"><span>語言</span><select id="languageSelect">'),
+      '<div class="settings-row"><span>' + renderHelp(adjustmentHelp("language"), L.text("語言")) + '</span><select id="languageSelect">',
       option("automatic", L.text("自動偵測"), state.language),
       option("traditionalChinese", L.text("繁體中文"), state.language),
       option("english", L.text("英文"), state.language),
       option("japanese", L.text("日文"), state.language),
       option("korean", L.text("韓語"), state.language),
       "</select></div>",
-      L.html('<div class="settings-row"><span>外觀</span><select id="appearanceSelect">'),
+      '<div class="settings-row"><span>' + renderHelp(adjustmentHelp("appearance"), L.text("外觀")) + '</span><select id="appearanceSelect">',
       option("comfortable", L.text("舒適"), state.appearance),
       option("bright", L.text("明亮"), state.appearance),
       option("dark", L.text("暗色"), state.appearance),
       "</select></div>",
-      L.html('<div class="settings-row"><span>顯示功能說明</span><button id="showHelpToggle" class="switch ') + (state.showHelp ? 'on' : '') + L.html('" type="button" role="switch" aria-label="顯示功能說明" aria-checked="') + state.showHelp + '"></button></div>',
+      '<div class="settings-row"><span>' + renderHelp(adjustmentHelp("showHelp"), L.text("自動顯示功能說明")) + '</span><button id="showHelpToggle" class="switch ' + (state.showHelp ? 'on' : '') + L.html('" type="button" role="switch" aria-label="自動顯示功能說明" aria-checked="') + state.showHelp + '"></button></div>',
       ].join(""),
       develop: [
       '<div class="settings-row"><span>' + renderHelp(originalResolutionHelp, L.text("使用原檔編輯")) + '</span><span id="originalResolutionHelp" hidden>' + escapeHtml(originalResolutionHelp) + '</span>',
       '<button id="originalResolutionToggle" class="switch ' + (state.originalResolutionEditing !== false ? "on" : "") + L.html('" type="button" role="switch" aria-label="使用原檔編輯" aria-describedby="originalResolutionHelp" aria-checked="') + (state.originalResolutionEditing !== false ? "true" : "false") + '" ' + (photoIsBusy(state) ? "disabled" : "") + '></button></div>',
-      L.html('<div class="settings-row"><span>使用曝光拓展</span>'),
-      '<button id="exposureExpansionToggle" class="switch ' + (state.exposureExpansionEnabled ? "on" : "") + L.html('" type="button" role="switch" aria-label="使用曝光拓展" aria-checked="') + Boolean(state.exposureExpansionEnabled) + '" ' + (photoIsBusy(state) ? "disabled" : "") + '></button></div>',
-      L.html('<div class="settings-row"><span>使用高光抑制</span>'),
-      '<button id="highlightProtectionToggle" class="switch ' + (state.highlightProtectionEnabled !== false ? "on" : "") + L.html('" type="button" role="switch" aria-label="使用高光抑制" aria-checked="') + (state.highlightProtectionEnabled !== false ? "true" : "false") + '" ' + (photoIsBusy(state) ? "disabled" : "") + '></button></div>',
-      L.html('<div class="settings-row"><span>啟用 HDR 模擬</span>'),
-      '<button id="hdrFeatureToggle" class="switch ' + (state.hdrFeatureEnabled !== false ? "on" : "") + L.html('" type="button" aria-label="啟用 HDR 模擬" aria-pressed="') + (state.hdrFeatureEnabled !== false ? "true" : "false") + '"></button></div>',
+      '<div class="settings-row"><span>' + renderHelp(exposureExpansionHelp, L.text("使用曝光拓展")) + '</span><span id="exposureExpansionHelp" hidden>' + escapeHtml(exposureExpansionHelp) + '</span>',
+      '<button id="exposureExpansionToggle" class="switch ' + (state.exposureExpansionEnabled ? "on" : "") + L.html('" type="button" role="switch" aria-label="使用曝光拓展" aria-describedby="exposureExpansionHelp" aria-checked="') + Boolean(state.exposureExpansionEnabled) + '" ' + (photoIsBusy(state) ? "disabled" : "") + '></button></div>',
+      '<div class="settings-row"><span>' + renderHelp(highlightProtectionHelp, L.text("使用高光抑制")) + '</span><span id="highlightProtectionHelp" hidden>' + escapeHtml(highlightProtectionHelp) + '</span>',
+      '<button id="highlightProtectionToggle" class="switch ' + (state.highlightProtectionEnabled !== false ? "on" : "") + L.html('" type="button" role="switch" aria-label="使用高光抑制" aria-describedby="highlightProtectionHelp" aria-checked="') + (state.highlightProtectionEnabled !== false ? "true" : "false") + '" ' + (photoIsBusy(state) ? "disabled" : "") + '></button></div>',
+      '<div class="settings-row"><span>' + renderHelp(hdrFeatureHelp, L.text("啟用 HDR 模擬")) + '</span><span id="hdrFeatureHelp" hidden>' + escapeHtml(hdrFeatureHelp) + '</span>',
+      '<button id="hdrFeatureToggle" class="switch ' + (state.hdrFeatureEnabled !== false ? "on" : "") + L.html('" type="button" aria-label="啟用 HDR 模擬" aria-describedby="hdrFeatureHelp" aria-pressed="') + (state.hdrFeatureEnabled !== false ? "true" : "false") + '"></button></div>',
       ].join(""),
       mcp: [
       L.html('<div class="settings-row"><span>本機 MCP 伺服器</span><button id="mcpEnabledToggle" class="switch ') + (state.mcp.enabled ? "on" : "") + L.html('" type="button" aria-label="本機 MCP 伺服器" aria-pressed="') + Boolean(state.mcp.enabled) + '"></button></div>',
@@ -1591,7 +1647,7 @@
 
   function renderHelp(description, label) {
     if (!description) return escapeHtml(label);
-    return '<span id="help-' + (++helpSequence) + '" class="help-title" tabindex="0" data-tooltip="' + escapeHtml(description) + '">' + escapeHtml(label) + '</span>';
+    return '<span id="help-' + (++helpSequence) + '" class="help-title" role="button" tabindex="0" data-tooltip="' + escapeHtml(description) + '">' + escapeHtml(label) + '</span>';
   }
 
   function prepareNativeTooltips() {
@@ -1695,6 +1751,14 @@
     tooltip.hidden = true;
     document.body.appendChild(tooltip);
     function trigger(target) { return target instanceof Element ? target.closest('[data-tooltip]') : null; }
+    function explicitHelp(target) {
+      var anchor = trigger(target);
+      if (!anchor) return null;
+      // Dedicated help labels and passive captions open help; action buttons
+      // keep their normal action even when they also have a hover tooltip.
+      return anchor.classList.contains('help-title') ||
+        !anchor.closest('button,a[href],input,select,textarea,[role="button"],[data-action]') ? anchor : null;
+    }
     function containsTooltip(target) { return target instanceof Node && (tooltip.contains(target) || (tooltipAnchor && tooltipAnchor.contains(target))); }
     function dismissLater() {
       clearTimeout(tooltipDismissTimer);
@@ -1721,17 +1785,29 @@
       if (tooltipAnchor && tooltipAnchor.contains(event.target) && !containsTooltip(event.relatedTarget)) dismissLater();
     });
     document.addEventListener('click', function (event) {
-      var anchor = trigger(event.target);
-      if (anchor && anchor.classList.contains('help-title')) {
+      var anchor = explicitHelp(event.target);
+      if (anchor) {
+        // Cancel label activation before it focuses/clicks the associated input.
+        event.preventDefault();
+        event.stopPropagation();
         showTooltip(anchor, true);
         return;
       }
       if (!containsTooltip(event.target)) hideTooltip();
-    });
+    }, true);
+    document.addEventListener('dblclick', function (event) {
+      var anchor = explicitHelp(event.target);
+      if (!anchor) return;
+      // A help gesture must not bubble into row reset or card actions.
+      event.preventDefault();
+      event.stopPropagation();
+      showTooltip(anchor, true);
+    }, true);
     document.addEventListener('keydown', function (event) {
-      var anchor = trigger(event.target);
-      if ((event.key === 'Enter' || event.key === ' ') && anchor && anchor.classList.contains('help-title')) {
+      var anchor = explicitHelp(event.target);
+      if ((event.key === 'Enter' || event.key === ' ') && anchor) {
         event.preventDefault();
+        event.stopPropagation();
         showTooltip(anchor, true);
         return;
       }

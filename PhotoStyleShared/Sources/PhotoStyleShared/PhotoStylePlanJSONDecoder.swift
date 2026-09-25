@@ -183,7 +183,7 @@ public enum PhotoStylePlanJSONDecoder {
             }
             if let value = film["scanner_profile"] {
                 guard let raw = value as? String, PhotoFilmEffects.ScannerProfile(rawValue: raw) != nil else {
-                    throw generatedPlanError("film_effects.scanner_profile must be off, neutral or warmCool.")
+                    throw generatedPlanError("film_effects.scanner_profile must be one of: \(PhotoFilmEffects.ScannerProfile.allCases.map(\.rawValue).joined(separator: ", ")).")
                 }
             }
             guard mandatoryKeys.isSubset(of: Set(film.keys)), Set(film.keys).isSubset(of: allowedKeys) else {

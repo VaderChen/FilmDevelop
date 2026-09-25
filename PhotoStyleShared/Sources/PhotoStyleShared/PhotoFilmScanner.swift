@@ -66,7 +66,10 @@ enum PhotoFilmScanner {
             let t = (signal(density, profile:p, light:light) / cal.base + flare) / (1 + flare)
             let logD = SIMD3<Double>((0..<3).map { -log10(max(t[$0], 1e-12)) }) - cal.middle
             let mix = e.scanDensityCorrection / 100
-            let delta = logD * (1 - mix) + (cal.inverse * logD) * mix
+            let separated = !p.monochrome && mix > 0
+                ? unmix(logD + cal.middle, profile: p, light: light, calibration: cal)
+                : cal.inverse * logD
+            let delta = logD * (1 - mix) + separated * mix
             rgb = .init((0..<3).map {
                 let stops = delta[$0] / cal.slope + e.printExposure
                 return 1 / (1 + exp(-max(-40, min(40, log(0.18 / 0.82) + stops * log(2) * contrast))))
@@ -106,14 +109,24 @@ enum PhotoFilmScanner {
 
     static func grade(_ input: SIMD3<Double>, effects e: PhotoFilmEffects, monochrome: Bool) -> SIMD3<Double> {
         let weights = SIMD3<Double>(0.2126, 0.7152, 0.0722)
-        let luma = simd_dot(input, weights)
+        let style = e.scannerProfile.rendering
+        let sourceY = max(0, simd_dot(input, weights))
+        var luma = sourceY
+        if style.y != 1 || style.z != 0 {
+            if sourceY > 0 && sourceY < 1 {
+                let z = style.y * (log(sourceY / (1 - sourceY)) - log(0.18 / 0.82)) + log(0.18 / 0.82)
+                luma = 1 / (1 + exp(-z))
+            }
+            luma = style.z + (1 - style.z) * luma
+        }
+        let toned = sourceY > 1e-12 ? input * (luma / sourceY) : .init(repeating: luma)
         if monochrome { return .init(repeating:luma) }
-        var rgb = simd_max(.zero, .init(repeating:luma) + (input - .init(repeating:luma)) * (e.scanSaturation / 50))
+        var rgb = simd_max(.zero, .init(repeating:luma) + (toned - .init(repeating:luma)) * (e.scanSaturation / 50 * style.x))
         func smooth(_ a:Double,_ b:Double,_ x:Double) -> Double { let t=min(1,max(0,(x-a)/(b-a))); return t*t*(3-2*t) }
         let middle = smooth(0.02,0.18,luma) * (1-smooth(0.3,0.65,luma))
         let high = smooth(0.25,0.7,luma) * (1-smooth(0.85,1,luma))
-        let preset = e.scannerProfile == .warmCool ? 18.0 : 0
-        let warmth = ((e.scanMidtoneWarmth + preset) * middle + (e.scanHighlightWarmth - preset) * high) / 100
+        let preset = e.scannerProfile.warmth
+        let warmth = ((e.scanMidtoneWarmth + preset.x) * middle + (e.scanHighlightWarmth + preset.y) * high) / 100
         rgb *= .init(pow(2,0.35*warmth),pow(2,0.10*warmth),pow(2,-0.4*warmth))
         return rgb * (luma / max(1e-12,simd_dot(rgb,weights)))
     }
@@ -141,11 +154,19 @@ enum PhotoFilmScanner {
         }
         return float3(y)+delta*max(0.0f,scale);
     }
-    float3 scanGrade(float3 rgb, float4 scanTone, float4 scanLook, float mono) {
+    float3 scanGrade(float3 rgb, float4 scanTone, float4 scanLook, float4 style, float mono) {
         float3 w=float3(0.2126,0.7152,0.0722);
-        float y=dot(rgb,w);
+        float sourceY=max(0.0f,dot(rgb,w)), y=sourceY;
+        if(style.y!=1.0f || style.z!=0.0f) {
+            if(sourceY>0.0f && sourceY<1.0f) {
+                float z=style.y*(log(sourceY/(1-sourceY))-log(0.18f/0.82f))+log(0.18f/0.82f);
+                y=1/(1+exp(-z));
+            }
+            y=style.z+(1-style.z)*y;
+        }
+        rgb=sourceY>1e-12f ? rgb*(y/sourceY) : float3(y);
         if(mono>0.5) return float3(y);
-        rgb=max(float3(0),float3(y)+(rgb-y)*scanTone.z);
+        rgb=max(float3(0),float3(y)+(rgb-y)*scanTone.z*style.x);
         float middle=smoothstep(0.02f,0.18f,y)*(1-smoothstep(0.3f,0.65f,y));
         float high=smoothstep(0.25f,0.7f,y)*(1-smoothstep(0.85f,1.0f,y));
         float warmth=scanLook.y*middle+scanLook.z*high;
@@ -161,12 +182,12 @@ public enum PhotoPositiveScannerProcessor {
     private static let space = CGColorSpace(name: CGColorSpace.extendedLinearSRGB)!
     private static let kernel: CIKernel? = try? CIKernel.kernels(withMetalString:
         "#include <metal_stdlib>\n#include <CoreImage/CoreImage.h>\nusing namespace metal;\nusing namespace coreimage;\n" + PhotoFilmScanner.metal + """
-        [[ stitchable ]] float4 positiveScan(coreimage::sampler input, float4 tone, float4 look) {
+        [[ stitchable ]] float4 positiveScan(coreimage::sampler input, float4 tone, float4 look, float4 style) {
             float4 pixel = input.sample(input.coord());
             float alpha = pixel.a;
             float3 rgb = pixel.rgb / max(alpha, 1.0e-6f);
             rgb = (rgb + look.x) / (1.0f + look.x);
-            return float4(scanGrade(rgb, tone, look, 0.0f) * alpha, alpha);
+            return float4(scanGrade(rgb, tone, look, style, 0.0f) * alpha, alpha);
         }
         """).first
 
@@ -176,12 +197,14 @@ public enum PhotoPositiveScannerProcessor {
         let e = effects.clamped()
         guard e.scannerProfile != .off, let kernel,
               let linear = image.matchedFromWorkingSpace(to: space) else { return image }
-        let preset = e.scannerProfile == .warmCool ? 18.0 : 0
+        let preset = e.scannerProfile.warmth
+        let style = e.scannerProfile.rendering
         guard let result = kernel.apply(extent: image.extent, roiCallback: { _, rect in rect }, arguments: [
             linear, CIVector(x: 0, y: 1, z: e.scanSaturation / 50, w: 1),
             CIVector(x: pow(e.scanFlare / 100, 2) * 0.005,
-                     y: (e.scanMidtoneWarmth + preset) / 100,
-                     z: (e.scanHighlightWarmth - preset) / 100, w: 0)
+                     y: (e.scanMidtoneWarmth + preset.x) / 100,
+                     z: (e.scanHighlightWarmth + preset.y) / 100, w: 0),
+            CIVector(x:style.x,y:style.y,z:style.z,w:style.w)
         ]) else { return image }
         return result.matchedToWorkingSpace(from: space) ?? image
     }

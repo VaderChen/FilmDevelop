@@ -59,10 +59,10 @@ public enum PhotoFilmStock: String, CaseIterable, Codable, Sendable {
     public var algorithmDescription: String {
         switch self {
         case .filmGold200: return "暖黃感色層偏移、較鮮明的中調，搭配日常負片顆粒；與 Portra 的柔和膚色方向區隔。"
-        case .filmCineStill800T: return "偏冷的鎢光感色平衡，預設開啟亮部紅暈；與 VISION3 的無預設紅暈外觀區隔。"
+        case .filmCineStill800T: return "以已白平衡影像為基準保留鎢絲片階調，預設開啟亮部紅暈；色溫可依光源調整。"
         case .filmPolaroidSX70: return "即影即有靈感的暖色、較低印相密度與柔光；使用共用光譜核心作藝術近似，未重建 SX-70 的完整化學製程。"
         case .filmDelta3200: return "高感度黑白靈感的大尺寸顆粒、柔展階調與顯影局部反差；與 HP5 的中等顆粒區隔。"
-        case .filmLomoPurple: return "重新配置感色層響應，讓綠色轉紫、黃色轉粉、藍色轉綠；不是全圖疊加紫色色罩。"
+        case .filmLomoPurple: return "保留紅色並重新配置感色層響應，讓綠色轉紫、黃色轉粉、藍色轉綠。"
         case .filmOrtho80: return "藍綠感光、抑制紅色響應，再經銀鹽與印相雙曲線。"
         case .filmSFX200: return "加重紅色感光的黑白雙曲線；延伸紅感以 RGB 近似。"
         case .filmInfrared400: return "綠葉提亮、藍天壓暗的 RGB 創意近似，無法還原真實紅外線。"
@@ -78,10 +78,10 @@ public enum PhotoFilmStock: String, CaseIterable, Codable, Sendable {
         let method: String
         switch self {
         case .filmGold200: method = "warm golden color negative with vivid everyday color"
-        case .filmCineStill800T: method = "cool tungsten color negative; highlight-dependent red halation is enabled in the baseline"
+        case .filmCineStill800T: method = "white-balanced tungsten color negative; highlight-dependent red halation is enabled in the baseline"
         case .filmPolaroidSX70: method = "instant-film-inspired warm soft tones and reduced maximum print density, not a calibrated instant chemistry model"
         case .filmDelta3200: method = "high-speed monochrome with large grain and softer tonal progression"
-        case .filmLomoPurple: method = "color-shifting negative with remapped layer sensitivities: green to purple, yellow to pink, blue to green"
+        case .filmLomoPurple: method = "color-shifting negative with remapped layer sensitivities: red preserved, green to purple, yellow to pink, blue to green"
         case .filmOrtho80: method = "orthochromatic monochrome, blue/green sensitive, dark red objects"
         case .filmSFX200: method = "extended-red monochrome RGB approximation"
         case .filmInfrared400: method = "creative infrared-like monochrome RGB approximation; no recovered infrared data"
@@ -125,7 +125,7 @@ public enum PhotoFilmStock: String, CaseIterable, Codable, Sendable {
         case .filmBleachBypass: return .init("Bleach Bypass", "保留銀・深黑強反差", ["B8B3A7", "787C78", "303B42"], 26, 1.1, 23)
         case .filmCrossProcess: return .init("Cross Process", "交叉沖洗・色彩交錯", ["D3B353", "799B75", "55577F"], 18, 0.9, 14)
         case .filmGold200: return .init("Kodak Gold 200", "暖金日常・鮮明懷舊", ["D9AD58", "BD754D", "708A64"], 20, 1.0, 16)
-        case .filmCineStill800T: return .init("CineStill 800T", "冷調夜景・亮部紅暈", ["D06449", "607E92", "274E65"], 28, 1.3, 22)
+        case .filmCineStill800T: return .init("CineStill 800T", "鎢光夜景・亮部紅暈", ["D06449", "607E92", "274E65"], 28, 1.3, 22)
         case .filmPolaroidSX70: return .init("Polaroid SX-70", "即影即有・暖色柔階", ["DBD0B5", "B8937E", "81938C"], 9, 0.7, 12)
         case .filmDelta3200: return .init("ILFORD Delta 3200", "高感黑白・粗顆粒柔階", ["D2CFC9", "8B8985", "454645"], 52, 1.9, 36)
         case .filmLomoPurple: return .init("LomoChrome Purple", "綠轉紫・超現實變色", ["AF70BE", "D29ABB", "54988B"], 18, 0.95, 14)

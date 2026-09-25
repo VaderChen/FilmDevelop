@@ -25,6 +25,19 @@ if ! /usr/bin/xcodebuild -version >/dev/null 2>&1; then
   exit 1
 fi
 
+# A normal clone leaves submodules empty. Fetch only missing build dependencies.
+missing_submodules=()
+if [[ ! -f "$PROJECT_ROOT/aiTest2/ThirdParty/llama.cpp/include/llama.h" ]]; then
+  missing_submodules+=("aiTest2/ThirdParty/llama.cpp")
+fi
+if [[ ! -f "$PROJECT_ROOT/aiTest/ThirdParty/stable-diffusion.cpp/thirdparty/libwebp/src/webp/encode.h" ]]; then
+  missing_submodules+=("aiTest/ThirdParty/stable-diffusion.cpp")
+fi
+if (( ${#missing_submodules[@]} > 0 )); then
+  printf '首次啟動：正在下載缺少的原始碼依賴…\n'
+  git submodule update --init --recursive -- "${missing_submodules[@]}"
+fi
+
 "$PROJECT_ROOT/scripts/build-llama-macos.sh"
 "$PROJECT_ROOT/scripts/build-webp-macos.sh"
 "$PROJECT_ROOT/scripts/build-mlx-macos.sh"

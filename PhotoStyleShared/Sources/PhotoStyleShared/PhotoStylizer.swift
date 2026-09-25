@@ -85,7 +85,8 @@ public struct PhotoStylizer: Sendable {
         let cleanedInput = PhotoToneZoneProcessor.applyDenoise(to: input,
             masks: PhotoToneMasks(input: input, profile: .balanced),
             amount: normalized(plan.postProcessing.denoise), strength: strength)
-        let developed = PhotoFilmExposureProcessor.apply(to: cleanedInput, effects: plan.filmEffects,
+        let exposedInput = PhotoFilmEffectsProcessor.applyExposure(to: cleanedInput, effects: plan.filmEffects, strength: strength)
+        let developed = PhotoFilmExposureProcessor.apply(to: exposedInput, effects: plan.filmEffects,
             amounts: amounts, strength: strength, monochrome: isMonochrome)
         let filteredInput = isMonochrome
             ? PhotoFilmEffectsProcessor.applyMonochromeFilter(to: developed, effects: plan.filmEffects, strength: strength)
@@ -115,7 +116,9 @@ public struct PhotoStylizer: Sendable {
             masks: masks,
             strength: strength
         )
-        styled = PhotoFilmEffectsProcessor.applyPrint(to: styled, effects: plan.filmEffects, strength: strength)
+        var printEffects = plan.filmEffects
+        printEffects.printExposure = 0
+        styled = PhotoFilmEffectsProcessor.applyPrint(to: styled, effects: printEffects, strength: strength)
         styled = applyPostProcessing(
             to: styled,
             extent: extent,

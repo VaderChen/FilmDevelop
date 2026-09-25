@@ -55,8 +55,20 @@ HDR、局部明暗與膚色判定先解除預乘 alpha，輸出仍保留原透�
 
 ## EV 高光與暗部保護（2026-09-25）
 
-印相／觀看 EV 改用單像素、保持 RGB 比例的曝光曲線。正 EV 在輸出峰值 0.6 以下維持線性倍率，其後以連續一階導數的肩部接至白點，避免新增 SDR 裁切；負 EV 在暗部以 0.02 線性亮度的趾部減少衰減。數位曝光沿用原局部調整，並以同一曲線限制高光與暗部極值。
+印相／觀看 EV 在降噪之後、乳劑／顯影／底片色彩之前處理。先匹配至延伸線性 sRGB，以 Y = 0.2126R + 0.7152G + 0.0722B 分離亮度；曝光與保護曲線只作用於 Y，再以 Y′/Y 的共同倍率重建 RGB，保留原色度、廣色域負通道及透明度。這等同在 XYZ 中保留色度而調整亮度，不逐色頻裁切，也不在成品階段放大底片顆粒。
 
-倍率 g > 1 時，t = 0.6/g、c = g/0.4 − 1/(1−t)，x > t 且 x < 1 的峰值 y = 0.6 + g(x−t)/(1+c(x−t))。g < 1 時，y = x[g+(1−g)0.02/(x+0.02)]。統一縮放 RGB 保留色頻比例；0 EV 完全中性，正 EV 不裁切或繼續推高既有大於 1 的 HDR 值。來源本已截斷的細節無法由此重建。
+高光抑制開啟且倍率 g > 1 時，t = 0.6/g、c = g/0.4 − 1/(1−t)，t < Y < 1 的目標亮度 Y′ = 0.6 + g(Y−t)/(1+c(Y−t))；Y ≥ 1 保持不變。g < 1 時，Y′ = Y[g+(1−g)0.02/(Y+0.02)]。高光抑制關閉時，正 EV 使用線性倍率。0 EV 完全略過此階段，黑色維持黑色；來源已截斷的細節不會因此重建。數位曝光沿用原本的局部調整。
 
-光源補償在曝光保護之前完成，掃描／正片與黑白轉換亦依此順序。新增運算位於現有像素 kernel 或同一階段的像素濾鏡，不增加統計、遮罩或原尺寸緩衝區。非零 EV 的既有配方重新渲染會呈現新的保護效果；參數範圍與儲存格式不變。
+桌面預覽與匯出共用同一個前置曝光階段，後續底片與中性印相接收曝光歸零的參數副本，原配方數值仍保留。獨立光譜／印相 API 亦先執行亮度曝光。標準 UI 範圍為 ±8 EV，拓展為 ±16 EV。非零 EV 的舊配方重新渲染時，因處理順序改變而可能呈現不同的底片效果；儲存欄位格式不變。
+
+## 非線性掃描分色與掃描風格（2026-09-25）
+
+`PhotoFilmScannerInversion` 使用有界 Newton 法反解現有 Beer–Lambert 掃描模型：先除去片基，取對數密度，以中灰 Jacobian 反矩陣作初始估計，再用解析 Jacobian 最多更新四次。限制密度與步長、保留已評估的最低殘差解；CPU FP64 與 Metal FP32 共用邏輯。色層分離 0 保留原混色，100 使用新分色；黑白、正片與掃描關閉不進入此彩色負片求解。
+
+研究比較：[darktable negadoctor](https://darktable-org.github.io/dtdocs/en/module-reference/processing-modules/negadoctor/)、[RawTherapee](https://rawpedia.rawtherapee.com/Film_Negative)、[spektrafilm](https://github.com/andreavolpato/spektrafilm)、[Trumpy & Anderson 2025](https://doi.org/10.2352/issn.2168-3204.2025.22.1.33)、[Flueckiger et al. 2018](https://diastor.ch/wp-content/uploads/2018/03/flueckigeretal_investigationfilmmaterialscannerinteraction_2018_v_1-1c.pdf)。求解器由本專案既有方程自行推導，未移植第三方程式或片種資料。
+
+15,750 組合成密度／光源測試中，舊線性矩陣密度 RMSE 約 0.3067，新求解器約 4.03×10⁻⁷。這是人工模型的反解誤差，不是實際底片色差或 ΔE；13 波段與片種參數仍為藝術近似。
+
+`ScannerProfile` 支援 `off`、`neutral`、`warmCool`、`softPortrait`、`vivid`、`coolClean`、`fadedVintage`。新風格在掃描後調整亮度階調、彩度與冷暖；保留原片種輸出意圖，黑白只改階調。桌面 GR 數位相機模擬強制 `off`，原片透過 `PhotoPositiveScannerProcessor` 只套用成品色彩調整。
+
+曝光與掃描演算法更新會改變舊配方重新渲染的外觀，儲存欄位與舊風格 ID 保持可讀。Portra 800 彩度修正依據 [Kodak 原廠比較冊](https://www.kodakprofessional.com/sites/default/files/wysiwyg/film/KODAKPROFESSIONAL_Film_Brochure2018.pdf)的定性排序，非實測物理係數。

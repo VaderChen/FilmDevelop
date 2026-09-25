@@ -764,11 +764,19 @@ final class StyleAdjustmentStore: ObservableObject {
             save()
             defaults.set(true, forKey: hdrAmountDefaultMigrationKey)
         }
+        for style in PhotoStyle.allCases where style.cameraProfile != nil {
+            if adjustments[style]?.filmEffects.scannerProfile != .off {
+                adjustments[style]?.filmEffects.scannerProfile = .off
+                needsPersistenceRepair = true
+            }
+        }
         if needsPersistenceRepair { save() }
     }
 
     func adjustment(for style: PhotoStyle) -> StyleAdjustment {
-        adjustments[style] ?? StyleAdjustment.default(for: style)
+        var result = adjustments[style] ?? StyleAdjustment.default(for: style)
+        if style.cameraProfile != nil { result.filmEffects.scannerProfile = .off }
+        return result
     }
 
     func restorePhotoAdjustments(_ values: [String: StyleAdjustment]) {
@@ -928,6 +936,10 @@ final class StyleAdjustmentStore: ObservableObject {
     }
 
     private func save() {
+        // Normalize legacy recipes and AI/MCP edits at the persistence boundary.
+        for style in PhotoStyle.allCases where style.cameraProfile != nil {
+            adjustments[style]?.filmEffects.scannerProfile = .off
+        }
         let encoded = Dictionary(uniqueKeysWithValues: adjustments.map { ($0.key.rawValue, $0.value) })
         guard let data = try? JSONEncoder().encode(encoded) else { return }
         defaults.set(data, forKey: defaultsKey)
@@ -956,10 +968,8 @@ extension StyleAdjustment {
         adjustment.shadowGrain = 0
         adjustment.filmEffects = .neutral
         adjustment.filmEffects.monochromeFilterStrength = 0
-        if style == .original || style.cameraProfile != nil {
-            adjustment.hdrAmount = 0
-            adjustment.filmEffects.scannerProfile = .neutral
-        }
+        if style == .original || style.cameraProfile != nil { adjustment.hdrAmount = 0 }
+        if style == .original { adjustment.filmEffects.scannerProfile = .neutral }
         if style == .japaneseBWStandard { adjustment.contrast = 3 }
         return adjustment
     }
