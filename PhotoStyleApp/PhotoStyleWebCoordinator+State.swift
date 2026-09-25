@@ -1,6 +1,7 @@
 import Foundation
 import PhotoStyleShared
 import AppKit
+import WebKit
 
 extension PhotoStyleWebCoordinator {
     func updateActionAvailability() {
@@ -107,6 +108,8 @@ extension PhotoStyleWebCoordinator {
     func customFilmPayload(_ film: CustomFilm) -> [String: Any] {
         guard let base = PhotoStyle(rawValue: film.baseStyle) else { return [:] }
         var payload = stylePayload(base)
+        // Custom recipes keep their own identity even when their base film was merged.
+        payload["mergedInto"] = ""
         payload["id"] = film.id
         payload["title"] = film.name
         payload["subtitle"] = "以「\(base.title)」為基礎儲存的自訂參數。"
@@ -316,14 +319,18 @@ extension PhotoStyleWebCoordinator {
     }
 
     func callJavaScript(function: String, payload: [String: Any]) {
-        guard let webView,
-              let data = try? JSONSerialization.data(withJSONObject: payload),
-              let json = String(data: data, encoding: .utf8) else {
-            return
-        }
+        guard let webView, JSONSerialization.isValidJSONObject(payload) else { return }
         let update = { [weak self] in
-            webView.evaluateJavaScript("window.\(function) && window.\(function)(\(json));") { _, error in
-                if error != nil && function == "handleNativeState" { self?.lastSentPreviewImages = nil }
+            // Keep the script constant. Embedding each base64 preview in source code
+            // makes WebKit's compiled-script cache retain historical image payloads.
+            webView.callAsyncJavaScript(
+                "if (typeof window[functionName] === 'function') { window[functionName](payload); }",
+                arguments: ["functionName": function, "payload": payload],
+                in: nil, in: .page
+            ) { [weak self] result in
+                if case .failure = result, function == "handleNativeState" {
+                    self?.lastSentPreviewImages = nil
+                }
             }
         }
         if Thread.isMainThread { update() } else { DispatchQueue.main.async(execute: update) }

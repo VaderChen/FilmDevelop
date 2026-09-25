@@ -83,7 +83,7 @@ final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMe
     @Published var promptLanguage = PhotoL10n.language
     var appDisplayName: String {
         switch promptLanguage {
-        case "english": return "FilmYourPhoto"
+        case "english": return "FilmDevelop"
         case "japanese": return "写真現像"
         case "korean": return "사진 현상"
         default: return "照片沖洗"

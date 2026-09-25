@@ -253,12 +253,12 @@ window.PhotoLocalizationData = {
     "조정 적용 및 미리보기 생성"
   ],
   "写真現像": [
-    "FilmYourPhoto",
+    "FilmDevelop",
     "写真現像",
     "사진 현상"
   ],
   "照片沖洗": [
-    "FilmYourPhoto",
+    "FilmDevelop",
     "写真現像",
     "사진 현상"
   ],

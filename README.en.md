@@ -1,20 +1,19 @@
-# FilmDevelop — FilmYourPhoto
+# FilmDevelop
 
 [繁體中文](README.md) · [English](README.en.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
 
-![FilmYourPhoto — FilmDevelop](demo.gif)
+![FilmDevelop](demo.gif)
 
 A film-inspired photo editor for Apple Silicon Mac. Open a photo folder, choose a film, adjust development, scanning and tones, then export. Photo editing and AI-assisted adjustments run locally.
 
 Requires macOS 14 or later. AI features require a compatible local model, downloaded separately.
 
-## Latest changes — 1.26.0925 build 0134
+## Latest changes — 1.26.0925 build 0930
 
-- Native processing releases intermediate resources stage by stage and reuses FP32 working buffers to reduce full-resolution export memory peaks.
-- Eager RAW decoding prevents localized color corruption caused by deferred decoding.
-- Positive EV gently compresses highlights; negative EV protects shadows. Preview and export share this processing.
-- The development animation reuses the preview cache (up to 2048 px), follows processing progress, and normally finishes about 1.2 seconds after completion.
-- Selecting a photo preserves the thumbnail strip position without automatic centering; manual scrolling remains available.
+- Fixed progressive WebKit cache growth when switching photos and previewing: image data now travels as arguments to a constant script instead of being embedded in new JavaScript source.
+- Resized previews are materialized as independent FP32 images, so small preview caches no longer retain full-size originals.
+- Fixed custom recipes based on merged film stocks disappearing from the film collection.
+- The English app name is now FilmDevelop. Traditional Chinese, Japanese, and Korean names remain unchanged.
 
 ## Download and languages
 

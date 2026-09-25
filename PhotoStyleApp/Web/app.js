@@ -299,7 +299,7 @@
       save: "儲存"
     },
     english: {
-      appName: "FilmYourPhoto",
+      appName: "FilmDevelop",
       brandTagline: "PRIVATE AI FILM LAB",
       edit: "Edit",
       promptDialogTitle: "Edit Prompt",

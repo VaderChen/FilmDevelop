@@ -161,7 +161,12 @@ struct PhotoImage {
             scaleX: max(1, target.width.rounded()) / size.width,
             y: max(1, target.height.rounded()) / size.height
         ))
-        return PhotoImageRenderPrecision.renderedImage(from: image, context: Self.context, preserving: self) ?? self
+        // A cached preview must own only its resized pixels. A deferred CGImage
+        // retains the complete source bitmap/graph, defeating preview cache costs.
+        return PhotoImageRenderPrecision.renderedImage(
+            from: image, context: Self.context, highPrecision: requiresRAWDisplayMapping,
+            colorSpace: cgImage.colorSpace, deferred: false
+        ) ?? self
     }
 
     func resizedForWebPreview(maxPixel: CGFloat) -> PhotoImage {
