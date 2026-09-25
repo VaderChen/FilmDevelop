@@ -250,7 +250,14 @@ extension PhotoStyleWebCoordinator {
             subjectMaskAttemptedGeneration = nil
             photoPreviewCache.removeAllObjects()
         }
-        adjustmentStore.setAdjustment(currentFilmDefaults, for: selectedStyle)
+        isRestoringPhotoEdits = true
+        selectedCustomFilmID = nil
+        customFilmBaseAdjustment = nil
+        selectedStyle = .original
+        UserDefaults.standard.set(selectedStyle.rawValue, forKey: Self.selectedStyleDefaultsKey)
+        adjustmentStore.restorePhotoAdjustments([:])
+        isRestoringPhotoEdits = false
+        persistCurrentPhotoEdits()
         if let url = sourceFileURL { photoEditStore.clearEdited(at: url) }
         resetEditHistory()
         applySelectedStyle()
@@ -272,6 +279,16 @@ extension PhotoStyleWebCoordinator {
               enabled != originalResolutionEditing else { return }
         originalResolutionEditing = enabled
         UserDefaults.standard.set(enabled, forKey: Self.originalResolutionEditingDefaultsKey)
+        applySelectedStyle()
+        sendState(includeImages: true)
+    }
+
+    func setHighlightProtectionEnabled(_ payload: [String: Any]) {
+        guard !isSavingImage, let enabled = boolValue(from: payload["enabled"]),
+              enabled != highlightProtectionEnabled else { return }
+        highlightProtectionEnabled = enabled
+        UserDefaults.standard.set(enabled, forKey: "highlightProtectionEnabled.v1")
+        photoPreviewCache.removeAllObjects()
         applySelectedStyle()
         sendState(includeImages: true)
     }

@@ -8,7 +8,13 @@ A film-inspired photo editor for Apple Silicon Mac. Open a photo folder, choose 
 
 Requires macOS 14 or later. AI features require a compatible local model, downloaded separately.
 
-## Latest changes — 1.26.0925 build 1041
+## Latest changes — 1.26.0925 build 1111
+
+- Reset to Defaults returns to Original, clears photo adjustments and the edited marker, and saves the reset state.
+- Added highlight protection in settings, enabled by default. Turning it off removes positive print-exposure highlight compression while preserving negative-exposure shadow protection, consistently in previews and exports.
+- Photo switching retains the thumbnail at the correct fitted size and blends into the decoded preview over 0.18 seconds, respecting Reduce Motion.
+- Settings now use a left sidebar: General, Develop, MCP, and About. Version and update checking are under About; duplicate panel headings are removed.
+- Thumbnail context menus now offer Delete File. Confirmation moves the clicked photo to Trash without deleting a different photo being edited.
 
 - Fixed HTML markup appearing in the status line during film hover previews. Status messages now use plain text, including custom names containing `<`, `>`, or `&`.
 - Drag films in the left sidebar to reorder them. The order is saved across sessions, including when the sidebar is collapsed. Original stays first; custom and built-in films are reordered within their own groups.

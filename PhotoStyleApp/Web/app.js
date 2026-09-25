@@ -28,6 +28,7 @@
     appearance: localStorage.getItem("photoStyle.appearance") || "comfortable",
     language: L.preference(),
     thumbnailSize: normalizedThumbnailSize(localStorage.getItem("photoStyle.thumbnailSize")),
+    highlightProtectionEnabled: true,
     hdrFeatureEnabled: true,
     originalResolutionEditing: false,
     mcp: { enabled: true, running: false, status: "啟動中", endpoint: "http://127.0.0.1:8765/mcp", connectionFile: "" },
@@ -630,8 +631,8 @@
       ? [focused.selectionStart, focused.selectionEnd]
       : (draft !== null && focused === promptEditor ? [promptEditor.selectionStart, promptEditor.selectionEnd] : null);
     var previousPreview = app.querySelector(".preview-image:not(.crop-source-image)");
-    var preservePreview = previousPreview && !state.isLoadingImage && !isCropEditorVisible(currentAdjustment())
-      && previousPreview._photoGeneration === state.photoGeneration;
+    var preservePreview = previousPreview && !isCropEditorVisible(currentAdjustment())
+      && (previousPreview._photoGeneration === state.photoGeneration || previousPreview._isLoadingPreview);
     cancelPreviewGesture();
     app.innerHTML = [
       renderTabs(),
@@ -648,10 +649,12 @@
       var requestedSource = nextPreview.getAttribute("src");
       if (preservePreview) {
         nextPreview.replaceWith(previousPreview);
+        previousPreview._photoGeneration = state.photoGeneration;
         updatePreviewImage(previousPreview, requestedSource);
       } else {
         nextPreview._photoGeneration = state.photoGeneration;
         nextPreview._requestedPreviewSource = requestedSource;
+        nextPreview._isLoadingPreview = state.isLoadingImage || requestedSource === state.loadingPreviewImage;
       }
     }
     prepareNativeTooltips();
@@ -768,7 +771,7 @@
       '</footer>', renderPhotoDirectory(), '</div>',
       L.html('<aside class="adjustment-pane" aria-label="影像調整" data-scroll-region="adjustments"') + (state.repairEditing ? ' inert' : '') + '>',
       L.html('<div class="inspector-heading"><span class="eyebrow">沖洗</span><div class="inspector-heading-row"><h2>影像調整</h2>'),
-      L.html('<div class="inspector-actions"><button class="preview-ai-button adjustment-reset-button" data-action="resetAdjustments" type="button" title="將目前風格的影像、裁切、外框與日期調整恢復預設。"') + (!state.hasImage || photoIsBusy(state) ? ' disabled' : '') + L.html('>恢復預設值</button>'),
+      L.html('<div class="inspector-actions"><button class="preview-ai-button adjustment-reset-button" data-action="resetAdjustments" type="button" title="回到原片，並將影像、裁切、外框與日期調整恢復預設。"') + (!state.hasImage || photoIsBusy(state) ? ' disabled' : '') + L.html('>恢復預設值</button>'),
       L.html('<button id="previewRecompute" class="preview-ai-button" data-action="applyStyle" type="button" title="AI 輔助計算（⌘Return）" aria-keyshortcuts="Meta+Enter" ') +
         (state.selectedStyle === "original" || !state.hasImage || !state.ai.ready || state.ai.busy || photoIsBusy(state) ? "disabled" : "") + '>' + iconSvg("sparkles") + L.html('<span>AI 輔助計算</span></button></div></div></div>'),
       renderAdjustmentPanel(),
@@ -1521,13 +1524,14 @@
     ].join("");
   }
 
+  var settingsSection = "general";
+
   function renderSettings() {
     var originalResolutionHelp = L.text("預設關閉，使用最長邊 2048 px 的處理縮圖；開啟後使用原檔。若設備效能不足，建議關閉以加快操作。");
     var version = window.__appInfo ? window.__appInfo.version + " build " + window.__appInfo.build : "—";
-    return [
-      renderPageHeading("偏好設定", L.text("設定"), L.text("依照你的工作方式調整語言、外觀與影像功能。"), L.html('<button class="button settings-update-button" type="button" data-action="checkAppUpdate">檢查更新</button>')),
-      '<section class="section">',
-      '<div class="card settings-card">',
+    var categories = [["general", "一般"], ["develop", "顯影"], ["mcp", "MCP"], ["about", "關於"]];
+    var panels = {
+      general: [
       L.html('<div class="settings-row"><span>語言</span><select id="languageSelect">'),
       option("automatic", L.text("自動偵測"), state.language),
       option("traditionalChinese", L.text("繁體中文"), state.language),
@@ -1541,19 +1545,35 @@
       option("dark", L.text("暗色"), state.appearance),
       "</select></div>",
       L.html('<div class="settings-row"><span>顯示功能說明</span><button id="showHelpToggle" class="switch ') + (state.showHelp ? 'on' : '') + L.html('" type="button" role="switch" aria-label="顯示功能說明" aria-checked="') + state.showHelp + '"></button></div>',
+      ].join(""),
+      develop: [
       '<div class="settings-row"><span>' + renderHelp(originalResolutionHelp, L.text("使用原檔編輯")) + '</span><span id="originalResolutionHelp" hidden>' + escapeHtml(originalResolutionHelp) + '</span>',
       '<button id="originalResolutionToggle" class="switch ' + (state.originalResolutionEditing !== false ? "on" : "") + L.html('" type="button" role="switch" aria-label="使用原檔編輯" aria-describedby="originalResolutionHelp" aria-checked="') + (state.originalResolutionEditing !== false ? "true" : "false") + '" ' + (photoIsBusy(state) ? "disabled" : "") + '></button></div>',
+      L.html('<div class="settings-row"><span>使用高光抑制</span>'),
+      '<button id="highlightProtectionToggle" class="switch ' + (state.highlightProtectionEnabled !== false ? "on" : "") + L.html('" type="button" role="switch" aria-label="使用高光抑制" aria-checked="') + (state.highlightProtectionEnabled !== false ? "true" : "false") + '" ' + (photoIsBusy(state) ? "disabled" : "") + '></button></div>',
       L.html('<div class="settings-row"><span>啟用 HDR 模擬</span>'),
       '<button id="hdrFeatureToggle" class="switch ' + (state.hdrFeatureEnabled !== false ? "on" : "") + L.html('" type="button" aria-label="啟用 HDR 模擬" aria-pressed="') + (state.hdrFeatureEnabled !== false ? "true" : "false") + '"></button></div>',
+      ].join(""),
+      mcp: [
       L.html('<div class="settings-row"><span>本機 MCP 伺服器</span><button id="mcpEnabledToggle" class="switch ') + (state.mcp.enabled ? "on" : "") + L.html('" type="button" aria-label="本機 MCP 伺服器" aria-pressed="') + Boolean(state.mcp.enabled) + '"></button></div>',
       L.html('<div class="settings-row"><span>MCP 狀態</span><span>') + escapeHtml(L.text(state.mcp.status)) + '</span></div>',
       L.html('<div class="settings-row"><span>MCP 位址</span><code class="selectable">') + escapeHtml(state.mcp.endpoint) + '</code></div>',
       L.html('<div class="settings-row"><span>用戶端連線設定</span><button class="button" data-action="copyMCPConfiguration" ') + (!state.mcp.running ? "disabled" : "") + L.html('>複製 MCP 設定</button></div>'),
       L.html('<div class="settings-row"><span>設定檔</span><code class="selectable mcp-path">') + escapeHtml(state.mcp.connectionFile) + '</code></div>',
+      ].join(""),
+      about: [
       L.html('<div class="settings-row"><span>版本</span><span class="mono">') + escapeHtml(version) + "</span></div>",
-      "</div>",
-      "</section>"
-    ].join("");
+      L.html('<div class="settings-row"><span>檢查更新</span><button class="button" type="button" data-action="checkAppUpdate">檢查更新</button></div>'),
+      ].join(""),
+    };
+    return renderPageHeading("偏好設定", L.text("設定"), L.text("依照你的工作方式調整語言、外觀與影像功能。")) +
+      '<div class="settings-layout"><nav class="settings-navigation" aria-label="' + escapeHtml(L.text("設定")) + '">' +
+      categories.map(function (category) {
+        return '<button type="button" id="settings-' + category[0] + '" data-settings-section="' + category[0] +
+          '" class="settings-category' + (settingsSection === category[0] ? ' active' : '') +
+          '" aria-current="' + (settingsSection === category[0] ? 'page' : 'false') + '">' + escapeHtml(L.text(category[1])) + '</button>';
+      }).join("") + '</nav><section class="settings-content" aria-labelledby="settings-' + settingsSection +
+      '"><div class="card settings-card">' + panels[settingsSection] + '</div></section></div>';
   }
 
   function renderPageHeading(eyebrow, title, description, actions) {
@@ -1741,6 +1761,12 @@
       scheduleThumbnailRequest();
     });
     app.querySelectorAll("[data-directory-photo]").forEach(function (button) {
+      button.addEventListener("contextmenu", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (photoIsBusy(state) || (state.photoDirectory && state.photoDirectory.isScanning)) return;
+        post("showPreviewMenu", { id: button.dataset.directoryPhoto });
+      });
       button.addEventListener("click", function () {
         if (photoIsBusy(state) || (state.photoDirectory && state.photoDirectory.isScanning)) return;
         flushPhotoEdits("selectDirectoryPhoto", { id: button.dataset.directoryPhoto });
@@ -2239,6 +2265,13 @@
       render();
     });
 
+    app.querySelectorAll("[data-settings-section]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        settingsSection = button.dataset.settingsSection;
+        render();
+      });
+    });
+
     var originalResolutionToggle = document.getElementById("originalResolutionToggle");
     if (originalResolutionToggle) {
       originalResolutionToggle.addEventListener("click", function () {
@@ -2249,6 +2282,15 @@
       });
     }
 
+    var highlightProtectionToggle = document.getElementById("highlightProtectionToggle");
+    if (highlightProtectionToggle) {
+      highlightProtectionToggle.addEventListener("click", function () {
+        if (photoIsBusy(state)) return;
+        state.highlightProtectionEnabled = state.highlightProtectionEnabled === false;
+        post("setHighlightProtectionEnabled", { enabled: state.highlightProtectionEnabled });
+        render();
+      });
+    }
     var hdrFeatureToggle = document.getElementById("hdrFeatureToggle");
     if (hdrFeatureToggle) {
       hdrFeatureToggle.addEventListener("click", function () {
@@ -2938,6 +2980,7 @@
       var comparingOriginal = image._requestedPreviewSource === state.sourceImage && state.sourceImage !== state.outputImage;
       var outputSize = (cropMode || state.repairEditing) ? (state.cropSourceImageSize || {}) : ((comparingOriginal ? state.sourceImageSize : state.previewOutputSize) || {});
       if (!cropMode && !state.repairEditing) outputSize = filmHoverPreview.displaySize(image.currentSrc || image.src) || outputSize;
+      if (state.isLoadingImage || image._isLoadingPreview) outputSize = {};
       var geometryWidth = Number(outputSize.width) || naturalWidth;
       var geometryHeight = Number(outputSize.height) || naturalHeight;
       var scale = Math.min(
@@ -3059,13 +3102,35 @@
     image._requestedPreviewSource = nextSource;
     image._previewError = false;
     // 保留已顯示的像素，新結果解碼完成後才交換，過期結果不進入畫面。
+    var loadingPreview = state.isLoadingImage || nextSource === state.loadingPreviewImage;
     var decoded = new Image();
     decoded.src = nextSource;
     var pending = decoded.decode().then(function () {
       if (!image.isConnected || image._requestedPreviewSource !== nextSource) return;
+      // Only bridge loading pixels into their higher-quality replacement.
+      // Keep at most one temporary layer, and release it after 180 ms.
+      var frame = image.parentElement;
+      var oldLayer = frame.querySelector(".preview-handoff");
+      if (oldLayer) oldLayer.remove();
+      var handoff = image._isLoadingPreview && image.complete && image.naturalWidth
+        && !window.matchMedia("(prefers-reduced-motion: reduce)").matches ? image.cloneNode(false) : null;
+      if (handoff) {
+        handoff.className = "preview-handoff";
+        handoff.removeAttribute("alt");
+        handoff.setAttribute("aria-hidden", "true");
+        handoff.style.position = "absolute";
+        handoff.style.pointerEvents = "none";
+        handoff.style.objectFit = "contain";
+        frame.insertBefore(handoff, image.nextSibling);
+      }
+      image._isLoadingPreview = loadingPreview;
       image.src = nextSource;
       image._hasDisplayedPreview = true;
       fitPreviewImage();
+      if (handoff) {
+        var animation = handoff.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, easing: "ease-out" });
+        animation.onfinish = animation.oncancel = function () { handoff.remove(); };
+      }
     }).catch(function () {
       if (image.isConnected && image._requestedPreviewSource === nextSource) image._previewError = true;
     }).then(function () {
@@ -3392,6 +3457,7 @@
     var hadImages = !!state.outputImage;
     var previousSourceImage = state.sourceImage;
     repairBrush.receive(nextState);
+    if (!state.isLoadingImage && nextState.isLoadingImage) resetPreviewZoom();
     state = Object.assign({}, state, payload || {});
     if (pendingCropValues && pendingCropGeneration === photoEditGeneration && pendingCropStyle === state.selectedStyle) {
       updateLocalCropValues(pendingCropValues);

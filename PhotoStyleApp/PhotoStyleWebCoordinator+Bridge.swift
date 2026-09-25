@@ -79,7 +79,7 @@ extension PhotoStyleWebCoordinator {
         case .sampleWhiteBalance:
             sampleWhiteBalance(bridgeMessage.payload)
         case .showPreviewMenu:
-            showPreviewMenu()
+            showPreviewMenu(bridgeMessage.payload)
         case .browsePhotoDirectory:
             openPhotoDirectoryPicker()
         case .selectDirectoryPhoto:
@@ -117,6 +117,8 @@ extension PhotoStyleWebCoordinator {
             setLanguage(bridgeMessage.payload)
         case .setOriginalResolutionEditing:
             setOriginalResolutionEditing(bridgeMessage.payload)
+        case .setHighlightProtectionEnabled:
+            setHighlightProtectionEnabled(bridgeMessage.payload)
         case .setHDRFeatureEnabled:
             setHDRFeatureEnabled(bridgeMessage.payload)
         case .beginAdjustmentPreview:

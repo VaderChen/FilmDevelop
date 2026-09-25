@@ -227,3 +227,19 @@ img.brand-mark { display: block; object-fit: contain; flex-shrink: 0; background
 .sidebar-style.reordering { opacity: .55; cursor: grabbing; }
 .sidebar-style.reorder-before { box-shadow: 0 -3px 0 var(--accent); }
 .sidebar-style.reorder-after { box-shadow: 0 3px 0 var(--accent); }
+
+/* Settings categories remain separate from the application's main navigation. */
+.settings-layout { display:grid; grid-template-columns:180px minmax(0,1fr); gap:32px; align-items:start; }
+.settings-navigation { display:flex; flex-direction:column; gap:8px; position:sticky; top:20px; }
+.settings-category { width:100%; padding:16px 20px; text-align:left; border:1px solid transparent; border-radius:14px; color:var(--muted); background:transparent; font:inherit; font-weight:700; cursor:pointer; }
+.settings-category:hover { background:var(--surface); }
+.settings-category.active { color:var(--accent); border-color:var(--accent); background:rgba(194,86,54,.09); }
+.settings-category:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+.settings-content { min-width:0; }
+.settings-content .settings-card { margin:0; max-width:none; }
+.settings-content .settings-row { gap:20px; }
+.settings-content .mcp-path { overflow-wrap:anywhere; min-width:0; }
+@media (max-width:900px) {
+  .settings-layout { grid-template-columns:125px minmax(0,1fr); gap:20px; }
+  .settings-category { padding:14px; }
+}

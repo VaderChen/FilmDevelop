@@ -33,7 +33,7 @@ public enum PhotoFilmSpectralProcessor {
         }, arguments: [
             linear] + PhotoFilmSpectralReconstruction.planes + [Double(index),
             CIVector(x: Double(PhotoFilmEffects.Illuminant.allCases.firstIndex(of: e.printIlluminant)!),
-                     y: Double(PhotoFilmEffects.Illuminant.allCases.firstIndex(of: e.viewIlluminant)!)),
+                     y: Double(PhotoFilmEffects.Illuminant.allCases.firstIndex(of: e.viewIlluminant)!), z: e.highlightProtectionEnabled ? 1 : 0),
             CIVector(x: compensatesPrintLight ? 0 : e.printExposure, y: pow(2, (e.printContrast - 50) / 50),
                      z: e.monochromeFilterStrength / 100 * amount, w: Double(filterIndex)),
             CIVector(x:e.scannerProfile == .off ? 0 : 1,
@@ -57,6 +57,7 @@ public enum PhotoFilmSpectralProcessor {
             if e.printExposure != 0 {
                 var exposure = PhotoFilmEffects.neutral
                 exposure.printExposure = e.printExposure
+                exposure.highlightProtectionEnabled = e.highlightProtectionEnabled
                 output = PhotoFilmEffectsProcessor.applyPrint(to: output, effects: exposure)
             }
         }
@@ -113,9 +114,10 @@ public enum PhotoFilmSpectralProcessor {
         \(tables)
         \(PhotoFilmScanner.metal)
         \(PhotoExposureProtection.kernel)
-        float3 spOutputTone(float3 rgb, float4 controls) {
+        float3 spOutputTone(float3 rgb, float4 controls, float protection) {
             rgb = 0.18f * pow(max(rgb, float3(0)) / 0.18f, float3(controls.y));
             float gain = exp2(controls.x);
+            if (protection < 0.5f && gain > 1.0f) { return rgb * gain; }
             float peak = max(rgb.x, max(rgb.y, rgb.z));
             return rgb * (peak > 1.0e-8f ? protectedExposurePeak(peak, gain) / peak : gain);
         }
@@ -135,7 +137,7 @@ public enum PhotoFilmSpectralProcessor {
         }
         [[ stitchable ]] float4 filmSpectral(coreimage::sampler input,
             coreimage::sampler table0, coreimage::sampler table1, coreimage::sampler table2, coreimage::sampler table3, coreimage::sampler table4,
-            float stockIndex, float2 lights, float4 controls,
+            float stockIndex, float3 lights, float4 controls,
             float4 scanSettings, float4 scanTone, float4 scanLook,
             float3 scanBase, float3 scanMiddle, float3 scanRow0, float3 scanRow1, float3 scanRow2, destination dest) {
             float4 image = input.sample(input.transform(dest.coord()));
@@ -199,7 +201,7 @@ public enum PhotoFilmSpectralProcessor {
                     positive=1/(1+exp(-clamp(-1.516347489f+stops*0.693147181f*scanTone.y,float3(-40),float3(40))));
                     positive=scanRenderIntent(positive,paper,spScanChroma[stock],mode.x);
                 }
-                return float4(spOutputTone(scanGrade(positive,scanTone,scanLook,mode.x),controls)*alpha,alpha);
+                return float4(spOutputTone(scanGrade(positive,scanTone,scanLook,mode.x),controls,lights.z)*alpha,alpha);
             }
             if (mode.y > 0.5) {
                 // Positive reversal film goes straight to viewing, no fictitious
@@ -219,7 +221,7 @@ public enum PhotoFilmSpectralProcessor {
             }
             if (mode.x > 0.5) {
                 float silverTransmission = exp(-2.302585092994046 * density.x);
-                return float4(spOutputTone(float3(silverTransmission),controls) * alpha, alpha);
+                return float4(spOutputTone(float3(silverTransmission),controls,lights.z) * alpha, alpha);
             }
             float3 scan = float3(0.0);
             for (int k = 0; k < 13; ++k) {
@@ -228,7 +230,7 @@ public enum PhotoFilmSpectralProcessor {
             }
             float3 result = float3(dot(scan, spScanRows[0]), dot(scan, spScanRows[1]), dot(scan, spScanRows[2]));
             result = max(result, float3(0.0));
-            return float4(spOutputTone(result,controls) * alpha, alpha);
+            return float4(spOutputTone(result,controls,lights.z) * alpha, alpha);
         }
         """
         do {

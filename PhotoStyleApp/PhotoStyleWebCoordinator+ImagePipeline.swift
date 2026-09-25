@@ -423,9 +423,9 @@ extension PhotoStyleWebCoordinator {
     }
 
     func renderingAdjustment(_ adjustment: StyleAdjustment) -> StyleAdjustment {
-        guard !hdrFeatureEnabled else { return adjustment }
         var output = adjustment
-        output.hdrAmount = 0
+        output.filmEffects.highlightProtectionEnabled = highlightProtectionEnabled
+        if !hdrFeatureEnabled { output.hdrAmount = 0 }
         return output
     }
 

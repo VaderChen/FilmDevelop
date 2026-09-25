@@ -2087,10 +2087,10 @@ window.PhotoLocalizationData = {
     "画像調整",
     "이미지 조정"
   ],
-  "將目前風格的影像、裁切、外框與日期調整恢復預設。": [
-    "Reset image, crop, frame, and date adjustments for the current style.",
-    "現在のスタイルの画像、切り抜き、フレーム、日付の調整をリセット。",
-    "현재 스타일의 이미지, 자르기, 프레임, 날짜 조정을 초기화합니다."
+  "回到原片，並將影像、裁切、外框與日期調整恢復預設。": [
+    "Return to Original and reset image, crop, frame, and date adjustments.",
+    "オリジナルに戻し、画像、切り抜き、フレーム、日付の調整をリセット。",
+    "원본으로 돌아가 이미지, 자르기, 프레임, 날짜 조정을 초기화합니다."
   ],
   "AI 輔助計算（⌘Return）": [
     "AI-assisted adjustments (⌘Return)",
@@ -3182,6 +3182,10 @@ window.PhotoLocalizationData = {
     "元の解像度で編集",
     "원본 해상도로 편집"
   ],
+  "一般": ["General", "一般", "일반"],
+  "顯影": ["Develop", "現像", "현상"],
+  "關於": ["About", "このアプリについて", "정보"],
+  "使用高光抑制": ["Enable highlight protection", "ハイライト保護を使用", "하이라이트 보호 사용"],
   "啟用 HDR 模擬": [
     "Enable HDR simulation",
     "HDR シミュレーションを有効化",

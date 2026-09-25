@@ -76,6 +76,8 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
     public var colorModel: ColorModel
     /// Output exposure compensation in EV: positive brightens every stock.
     /// Negative-film printing internally uses the opposite paper-exposure sign.
+    // Runtime preference; excluded from saved film recipes.
+    public var highlightProtectionEnabled = true
     public var printExposure: Double
     public var printContrast: Double
     public var printIlluminant: Illuminant
@@ -98,6 +100,7 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
     public static let neutral = PhotoFilmEffects()
 
     public init(
+        highlightProtectionEnabled: Bool = true,
         grainMode: GrainMode = .emulsion,
         grainSize: Double = 1,
         grainClumping: Double = 0,
@@ -130,6 +133,7 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
         scanHighlightWarmth: Double = 0
     ) {
         // Retired engine identifiers are accepted on input but canonicalized.
+        self.highlightProtectionEnabled = highlightProtectionEnabled
         self.grainMode = .emulsion
         self.grainSize = grainSize
         self.grainClumping = grainClumping
@@ -167,6 +171,7 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
             value.isFinite ? min(range.upperBound, max(range.lowerBound, value)) : fallback
         }
         return PhotoFilmEffects(
+            highlightProtectionEnabled: highlightProtectionEnabled,
             grainMode: grainMode,
             grainSize: bound(grainSize, 0.5...4, 1),
             grainClumping: bound(grainClumping, 0...100),

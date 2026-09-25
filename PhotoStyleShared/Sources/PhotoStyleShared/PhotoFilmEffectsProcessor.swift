@@ -117,7 +117,7 @@ public enum PhotoFilmEffectsProcessor {
         }
         guard let result = kernels.print?.apply(extent: image.extent, arguments:
             [linear] + rows(printMatrix) + rows(viewMatrix) +
-            [CIVector(x: pow(2, e.printExposure), y: pow(2, (e.printContrast - 50) / 50), z: amount)]
+            [CIVector(x: pow(2, e.printExposure), y: pow(2, (e.printContrast - 50) / 50), z: amount, w: e.highlightProtectionEnabled ? 1 : 0)]
         ) else { return image }
         return (result.matchedToWorkingSpace(from: linearSRGB) ?? image).cropped(to: image.extent)
     }
@@ -189,7 +189,7 @@ public enum PhotoFilmEffectsProcessor {
             vec3 glow = vec3(bloomRing * bloom);
             return vec4(image.rgb + glow * image.a, image.a);
             """)
-        let print = make("filmPrint", parameters: "__sample image, vec3 printR, vec3 printG, vec3 printB, vec3 viewR, vec3 viewG, vec3 viewB, vec3 controls", body: """
+        let print = make("filmPrint", parameters: "__sample image, vec3 printR, vec3 printG, vec3 printB, vec3 viewR, vec3 viewG, vec3 viewB, vec4 controls", body: """
             if (image.a <= 0.0) { return vec4(0.0); }
             vec3 source = image.rgb / image.a;
             vec3 rgb = vec3(dot(source, printR), dot(source, printG), dot(source, printB));
@@ -197,7 +197,7 @@ public enum PhotoFilmEffectsProcessor {
             rgb = sign(rgb) * 0.18 * pow(abs(rgb) / 0.18, vec3(controls.y));
             rgb = vec3(dot(rgb, viewR), dot(rgb, viewG), dot(rgb, viewB));
             float peak = max(rgb.r, max(rgb.g, rgb.b));
-            rgb *= peak > 0.00000001 ? protectedExposurePeak(peak, controls.x) / peak : controls.x;
+            rgb *= controls.w < 0.5 && controls.x > 1.0 ? controls.x : (peak > 0.00000001 ? protectedExposurePeak(peak, controls.x) / peak : controls.x);
             return vec4(mix(source, rgb, controls.z) * image.a, image.a);
             """, helpers: PhotoExposureProtection.kernel)
         return FilmKernels(extract: extract, scatter: scatter, print: print)

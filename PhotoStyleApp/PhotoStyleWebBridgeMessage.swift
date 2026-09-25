@@ -33,6 +33,7 @@ enum PhotoStyleWebBridgeAction: String {
     case setStyle
     case setLanguage
     case setOriginalResolutionEditing
+    case setHighlightProtectionEnabled
     case setHDRFeatureEnabled
     case beginAdjustmentPreview
     case endAdjustmentPreview

@@ -110,7 +110,18 @@ extension PhotoStyleWebCoordinator {
         loadPickedImage(from: url)
     }
 
-    func showPreviewMenu() {
+    func showPreviewMenu(_ payload: [String: Any] = [:]) {
+        if let id = payload["id"] as? String {
+            guard canImport, photoDirectoryStore.url(for: id) != nil else { return }
+            let menu = NSMenu()
+            let item = NSMenuItem(title: PhotoL10n.text("刪除檔案"),
+                                  action: #selector(performThumbnailDelete(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = id
+            menu.addItem(item)
+            menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
+            return
+        }
         guard sourceImage != nil, canImport else { return }
         let menu = NSMenu()
         menu.autoenablesItems = false
@@ -146,16 +157,21 @@ extension PhotoStyleWebCoordinator {
         callJavaScript(function: "handlePreviewMenu", payload: ["command": command])
     }
 
-    func confirmTrashCurrentPhoto() {
-        guard let url = sourceFileURL, let window = webView?.window, window.attachedSheet == nil else { return }
+    @objc func performThumbnailDelete(_ item: NSMenuItem) {
+        guard canImport, let id = item.representedObject as? String,
+              let url = photoDirectoryStore.url(for: id) else { return }
+        confirmTrashCurrentPhoto(targetURL: url)
+    }
+
+    func confirmTrashCurrentPhoto(targetURL: URL? = nil) {
+        guard let url = targetURL ?? sourceFileURL, let window = webView?.window, window.attachedSheet == nil else { return }
         let alert = NSAlert()
         alert.messageText = PhotoL10n.text("將「\(url.lastPathComponent)」移到垃圾桶？")
         alert.informativeText = PhotoL10n.text("可從 Finder 的垃圾桶還原檔案。")
         alert.addButton(withTitle: PhotoL10n.text("移到垃圾桶"))
         alert.addButton(withTitle: PhotoL10n.text("取消"))
         alert.beginSheetModal(for: window) { [weak self] response in
-            guard response == .alertFirstButtonReturn, let self, self.canImport,
-                  self.sourceFileURL == url else { return }
+            guard response == .alertFirstButtonReturn, let self, self.canImport else { return }
             let access = url.startAccessingSecurityScopedResource()
             defer { if access { url.stopAccessingSecurityScopedResource() } }
             do {
@@ -164,6 +180,14 @@ extension PhotoStyleWebCoordinator {
                 let index = urls.firstIndex(of: url) ?? 0
                 let remaining = urls.filter { $0 != url }
                 let next = remaining.isEmpty ? nil : remaining[min(index, remaining.count - 1)]
+                let deletingCurrent = self.sourceFileURL == url
+                if !deletingCurrent {
+                    if let directory = self.photoDirectoryStore.directoryURL {
+                        self.photoDirectoryStore.selectDirectory(directory, preferredPhotoURL: self.sourceFileURL)
+                    }
+                    self.sendState(includeImages: false)
+                    return
+                }
                 self.cancelCurrentSubjectMaskDetection()
                 self.clearPreviewRender()
                 self.sourceImage = nil

@@ -99,6 +99,7 @@ final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMe
         }
     }
 
+    var highlightProtectionEnabled = UserDefaults.standard.object(forKey: "highlightProtectionEnabled.v1") as? Bool ?? true
     var hdrFeatureEnabled: Bool = {
         let defaults = UserDefaults.standard
         guard defaults.object(forKey: "hdrFeatureEnabled.v1") != nil else {
