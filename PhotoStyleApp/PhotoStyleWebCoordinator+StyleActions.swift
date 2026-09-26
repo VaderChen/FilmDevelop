@@ -401,6 +401,10 @@ extension PhotoStyleWebCoordinator {
                     adjustment.intensity = doubleValue(from: value) ?? adjustment.intensity
                 case "exposure":
                     adjustment.exposure = doubleValue(from: value) ?? adjustment.exposure
+                case "vibrance":
+                    adjustment.vibrance = doubleValue(from: value) ?? adjustment.vibrance
+                case "saturation":
+                    adjustment.saturation = doubleValue(from: value) ?? adjustment.saturation
                 case "whiteBalanceWarmth":
                     adjustment.whiteBalanceWarmth = doubleValue(from: value) ?? adjustment.whiteBalanceWarmth
                 case "whiteBalanceTint":

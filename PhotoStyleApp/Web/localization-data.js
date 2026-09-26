@@ -1,4 +1,12 @@
 window.PhotoLocalizationData = {
+  "數位曝光下方新增鮮豔度與飽和度，可分別調整色彩。": ["Vibrance and Saturation are now below digital Exposure, for separate color adjustments.", "デジタル露出の下に自然な彩度と彩度を追加し、色を個別に調整できます。", "디지털 노출 아래에 생동감과 채도를 추가하여 색을 따로 조정할 수 있습니다."],
+  "調整明暗時更能保留原有色彩，減少偏色與色彩過度放大。": ["Brightness adjustments better preserve existing colors, reducing color shifts and excessive color boosts.", "明暗の調整で元の色を保ちやすくなり、色ずれや過度な発色を抑えます。", "밝기를 조정할 때 원래 색을 더 잘 유지하여 색 틀어짐과 과도한 발색을 줄입니다."],
+
+  "鮮豔度": ["Vibrance", "自然な彩度", "생동감"],
+  "飽和度": ["Saturation", "彩度", "채도"],
+  "優先調整較淡的色彩，減少已濃郁色彩的變化；0 保留原色。": ["Prioritize muted colors while changing vivid colors less. Zero preserves existing color.", "淡い色を優先し、鮮やかな色の変化を抑えます。0 は元の色を保持します。", "옅은 색을 우선 조정하고 이미 진한 색의 변화는 줄입니다. 0은 기존 색을 유지합니다."],
+  "調整整體色彩濃度；負值降低、正值提高，−100 移除此步驟的色彩。": ["Adjust overall color intensity. Negative values reduce it, positive values increase it; −100 removes color at this stage.", "全体の色の濃さを調整します。負は低下、正は増加、−100 でこの工程の色を除きます。", "전체 색의 농도를 조정합니다. 음수는 낮추고 양수는 높이며 −100은 이 단계의 색을 제거합니다."],
+
   "更新完成": ["Update complete", "更新完了", "업데이트 완료"],
   "裁切第一次拖曳就能調整，不必再拖第二次。": ["Adjust the crop on the first drag, without having to drag twice.", "切り抜きは最初のドラッグから調整でき、二度ドラッグする必要がなくなりました。", "이제 두 번 드래그할 필요 없이 첫 드래그로 자르기를 조정할 수 있습니다."],
   "切換底片不會清除裁切與修復；切到未編輯照片時會顯示原片。": ["Changing films keeps your crop and repairs. Unedited photos open as Original.", "フィルムを切り替えても切り抜きと修復を保持し、未編集の写真はオリジナルで開きます。", "필름을 바꿔도 자르기와 복구를 유지하며, 편집하지 않은 사진은 원본으로 열립니다."],

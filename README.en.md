@@ -17,7 +17,10 @@ Film recipes now combine layer response, tone curves, hue-selective saturation a
 
 Cross Process, Kodak Gold 200, CineStill 800T and Polaroid SX-70 retain their current rendering. Digital simulations and the original receive no film-specific grading. Scanner device labels use simulation; legacy off becomes neutral. Paper controls are hidden for film scanning. UI help describes controls and their visual effects. Processing uses Metal point operations without CPU image readback.
 
-## Latest changes — 1.26.0926 build 1935
+## Latest changes — 1.26.0926 build 2017
+
+- Added Vibrance and Saturation below digital Exposure, from −100 to 100 with a neutral default of 0. Vibrance prioritizes muted colors; Saturation adjusts overall color intensity. Both are saved with photos and recipes and used for export.
+- Digital exposure, brightness, contrast and HDR retain their tone algorithms and reconstruct color through Lab. Vibrance and Saturation share one GPU color pass, preserving lightness and fitting out-of-gamut colors. White balance, denoising and blur retain their existing algorithms.
 
 - After updating, a dialog shows the version and a short list of changes in your interface language, even offline. Once dismissed, it stays hidden until the next update.
 
@@ -26,7 +29,7 @@ Cross Process, Kodak Gold 200, CineStill 800T and Polaroid SX-70 retain their cu
 - Unmodified photos open as Original instead of inheriting the previous photo’s recipe. Edited photos restore their own settings; stale asynchronous results cannot overwrite the current photo.
 - Added Show All Films, off by default. Enabling it reveals merged film-family variants without selecting them automatically. Custom and built-in film sections can collapse and remember their state.
 
-Includes all changes from 1.26.0926 build 1714.
+Includes all changes from 1.26.0926 build 1935.
 
 - Repair patches are composited in original-image coordinates before the complete image is cropped and rotated; patch positions are not remapped separately. White balance, film, digital adjustments, scanner grading, and the frame follow. Negative-to-positive reconstruction remains in the film stage.
 - Replaced the highlight slider with Global Exposure Compensation: shift all three zones by the same EV while preserving their differences. Midtones and shadows remain independently adjustable. The group stops when any zone reaches its limit.

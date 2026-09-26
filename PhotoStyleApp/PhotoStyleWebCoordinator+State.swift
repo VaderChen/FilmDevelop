@@ -163,6 +163,8 @@ extension PhotoStyleWebCoordinator {
             "colorCalibrationStage": adjustment.colorCalibration?.stage.rawValue ?? "",
             "intensity": adjustment.intensity,
             "exposure": adjustment.exposure,
+            "vibrance": adjustment.vibrance,
+            "saturation": adjustment.saturation,
             "whiteBalanceWarmth": adjustment.whiteBalanceWarmth,
             "whiteBalanceTint": adjustment.whiteBalanceTint,
             "brightness": adjustment.brightness,

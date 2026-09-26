@@ -133,15 +133,17 @@ enum PhotoStyleProcessor {
             }
             try pipeline.process("tone") {
                 let planned = applyPlanToneSemantics(to: applyDenoise(to: $0, amount: adjustment.denoise / 100 * strength), style: style, toneZones: adjustment.sourceToneZones, strength: strength)
-                return applyGlobalToneAdjustment(to: applyExposure(to: planned, amount: adjustment.exposure * strength, renderContext: pipeline.context),
+                let toned = applyGlobalToneAdjustment(to: applyExposure(to: planned, amount: adjustment.exposure * strength, renderContext: pipeline.context),
                                                  adjustment: adjustment, strength: strength, renderContext: pipeline.context)
+                return PhotoLabAdjustmentProcessor.apply(to: toned, vibrance: adjustment.vibrance, saturation: adjustment.saturation)
             }
             try pipeline.process("tone-zones") {
                 applyToneZoneAdjustments(to: $0, style: style, adjustment: adjustment, strength: strength)
             }
             try pipeline.process("hdr") {
-                PhotoHDRProcessor.apply(to: $0, curve: adjustment.hdrToneCurve ?? PhotoHDRProcessor.manualCurve,
-                                        amount: adjustment.hdrAmount / 100, renderContext: pipeline.context)
+                PhotoLabAdjustmentProcessor.replacingLightness(of: $0, with:
+                    PhotoHDRProcessor.apply(to: $0, curve: adjustment.hdrToneCurve ?? PhotoHDRProcessor.manualCurve,
+                                        amount: adjustment.hdrAmount / 100, renderContext: pipeline.context))
             }
             try pipeline.process("crop-vignette") {
                 let devignetted = PhotoVignetteProcessor.applyDevignette(to: $0, amount: adjustment.devignette / 100 * strength, profile: .app)
@@ -516,7 +518,8 @@ enum PhotoStyleProcessor {
     }
 
     private static func applyExposure(to image: CIImage, amount: Double, renderContext: CIContext? = nil) -> CIImage {
-        PhotoToneProcessor.applyExposure(to: image, ev: PhotoExposureScale.ev(fromSlider: amount), renderContext: renderContext)
+        PhotoLabAdjustmentProcessor.replacingLightness(of: image, with:
+            PhotoToneProcessor.applyExposure(to: image, ev: PhotoExposureScale.ev(fromSlider: amount), renderContext: renderContext))
     }
 
     private static func applyGlobalToneAdjustment(
@@ -538,11 +541,11 @@ enum PhotoStyleProcessor {
                 kCIInputContrastKey: 1.0
             ])
             : image
-        return PhotoToneProcessor.applyContrast(
+        return PhotoLabAdjustmentProcessor.replacingLightness(of: image, with: PhotoToneProcessor.applyContrast(
             to: brightnessAdjusted,
             amount: contrastOffset,
             renderContext: renderContext
-        )
+        ))
     }
 
     private static func applyPlanToneSemantics(

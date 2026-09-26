@@ -306,6 +306,8 @@ struct StyleAdjustment: Codable, Equatable {
     var filmEffects: PhotoFilmEffects
     var intensity: Double
     var exposure: Double
+    var vibrance: Double
+    var saturation: Double
     var whiteBalanceWarmth: Double
     var whiteBalanceTint: Double
     var brightness: Double
@@ -384,6 +386,8 @@ struct StyleAdjustment: Codable, Equatable {
         case filmEffects
         case intensity
         case exposure
+        case vibrance
+        case saturation
         case whiteBalanceWarmth
         case whiteBalanceTint
         case brightness
@@ -429,6 +433,8 @@ struct StyleAdjustment: Codable, Equatable {
         sourceToneZones: PhotoStylePlan.ToneZones?,
         intensity: Double,
         exposure: Double,
+        vibrance: Double = 0,
+        saturation: Double = 0,
         whiteBalanceWarmth: Double,
         whiteBalanceTint: Double,
         brightness: Double,
@@ -474,6 +480,8 @@ struct StyleAdjustment: Codable, Equatable {
         self.sourceToneZones = sourceToneZones
         self.intensity = intensity
         self.exposure = exposure
+        self.vibrance = vibrance
+        self.saturation = saturation
         self.whiteBalanceWarmth = whiteBalanceWarmth
         self.whiteBalanceTint = whiteBalanceTint
         self.brightness = brightness
@@ -530,6 +538,8 @@ struct StyleAdjustment: Codable, Equatable {
         }
         intensity = try container.decode(Double.self, forKey: .intensity)
         exposure = try container.decodeIfPresent(Double.self, forKey: .exposure) ?? 0
+        vibrance = try container.decodeIfPresent(Double.self, forKey: .vibrance) ?? 0
+        saturation = try container.decodeIfPresent(Double.self, forKey: .saturation) ?? 0
         whiteBalanceWarmth = try container.decodeIfPresent(Double.self, forKey: .whiteBalanceWarmth) ?? 0
         whiteBalanceTint = try container.decodeIfPresent(Double.self, forKey: .whiteBalanceTint) ?? 0
         brightness = try container.decode(Double.self, forKey: .brightness)
@@ -586,6 +596,8 @@ struct StyleAdjustment: Codable, Equatable {
         try container.encodeIfPresent(sourceToneZones, forKey: .sourceToneZones)
         try container.encode(intensity, forKey: .intensity)
         try container.encode(exposure, forKey: .exposure)
+        try container.encode(vibrance, forKey: .vibrance)
+        try container.encode(saturation, forKey: .saturation)
         try container.encode(whiteBalanceWarmth, forKey: .whiteBalanceWarmth)
         try container.encode(whiteBalanceTint, forKey: .whiteBalanceTint)
         try container.encode(brightness, forKey: .brightness)
@@ -893,6 +905,8 @@ final class StyleAdjustmentStore: ObservableObject {
             next.cropHorizontalPosition = 0
             next.cropVerticalPosition = 0
             next.exposure = 0
+            next.vibrance = 0
+            next.saturation = 0
             next.whiteBalanceWarmth = 0
             next.whiteBalanceTint = 0
             next.highlightExposure = 0
@@ -1021,6 +1035,8 @@ extension StyleAdjustment {
             sourceToneZones: sourceToneZones.map(Self.normalizedToneZones),
             intensity: bounded(intensity, to: 0...100),
             exposure: bounded(exposure, to: -100...100),
+            vibrance: bounded(vibrance, to: -100...100),
+            saturation: bounded(saturation, to: -100...100),
             whiteBalanceWarmth: bounded(whiteBalanceWarmth, to: -100...100),
             whiteBalanceTint: bounded(whiteBalanceTint, to: -100...100),
             brightness: bounded(brightness, to: 0...100, fallback: 50),

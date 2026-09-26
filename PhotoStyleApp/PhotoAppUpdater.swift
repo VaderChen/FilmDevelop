@@ -127,6 +127,9 @@ final class PhotoAppUpdater {
 
     // Bundled with this release so the notice is available without a network request.
     static let releaseHighlights = [
+        "數位曝光下方新增鮮豔度與飽和度，可分別調整色彩。",
+        "調整明暗時更能保留原有色彩，減少偏色與色彩過度放大。",
+
         "裁切第一次拖曳就能調整，不必再拖第二次。",
         "切換底片不會清除裁切與修復；切到未編輯照片時會顯示原片。",
         "各款底片與掃描風格更容易分辨，新增五款掃描設備模擬。",

@@ -413,6 +413,8 @@
     return state.adjustments[state.selectedStyle] || {
       intensity: 50,
       exposure: 0,
+      vibrance: 0,
+      saturation: 0,
       whiteBalanceWarmth: 0,
       whiteBalanceTint: 0,
       brightness: 50,
@@ -1208,6 +1210,8 @@
   function renderGlobalAdjustmentCard(adjustment) {
     var controls = [
       renderRange(L.text("曝光"), "exposure", adjustment.exposure == null ? 0 : adjustment.exposure, -100, 100),
+      renderRange(L.text("鮮豔度"), "vibrance", adjustment.vibrance || 0, -100, 100),
+      renderRange(L.text("飽和度"), "saturation", adjustment.saturation || 0, -100, 100),
       renderRange(L.text("色溫"), "whiteBalanceWarmth", adjustment.whiteBalanceWarmth == null ? 0 : adjustment.whiteBalanceWarmth, -100, 100),
       renderRange(L.text("色偏"), "whiteBalanceTint", adjustment.whiteBalanceTint == null ? 0 : adjustment.whiteBalanceTint, -100, 100),
       renderRange(L.text("對比"), "contrast", adjustment.contrast == null ? 0 : adjustment.contrast, -100, 100),
@@ -1409,6 +1413,8 @@
   var adjustmentHelpText = {
   "intensity": "控制目前風格的套用程度；數值越高效果越強，預設為 50。",
   "exposure": "調整整體明暗；正值變亮，負值變暗，0 不補償。",
+  "vibrance": "優先調整較淡的色彩，減少已濃郁色彩的變化；0 保留原色。",
+  "saturation": "調整整體色彩濃度；負值降低、正值提高，−100 移除此步驟的色彩。",
   "whiteBalanceWarmth": "調整整體色溫；正值偏暖，負值偏冷，0 保留目前白平衡。",
   "whiteBalanceTint": "調整白平衡的綠色與洋紅色偏移，協助修正光源偏色；0 不偏移。",
   "contrast": "調整整體明暗反差；正值加強，負值柔化，0 保留基準。",
