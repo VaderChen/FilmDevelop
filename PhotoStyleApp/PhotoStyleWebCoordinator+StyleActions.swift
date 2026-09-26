@@ -416,8 +416,7 @@ extension PhotoStyleWebCoordinator {
                 case "scanMidtoneWarmth": adjustment.filmEffects.scanMidtoneWarmth = doubleValue(from: value)!
                 case "scanHighlightWarmth": adjustment.filmEffects.scanHighlightWarmth = doubleValue(from: value)!
                 case "printExposure":
-                    adjustment.filmEffects.clearPrintExposure()
-                    adjustment.filmEffects.printExposure = doubleValue(from: value)!
+                    adjustment.filmEffects.setLinkedPrintExposure(doubleValue(from: value)!)
                 case "printExposureHighlights": adjustment.filmEffects.printExposureHighlights = doubleValue(from: value)!
                 case "printExposureMidtones": adjustment.filmEffects.printExposureMidtones = doubleValue(from: value)!
                 case "printExposureShadows": adjustment.filmEffects.printExposureShadows = doubleValue(from: value)!

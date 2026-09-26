@@ -1,4 +1,6 @@
 window.PhotoLocalizationData = {
+  "全區曝光補償": ["Global exposure compensation", "全域露出補正", "전체 노출 보정"],
+  "同時增加或減少三區相同的 EV，保留亮部、中調與暗部的曝光差距；+1 EV 對應兩倍曝光倍率。任一區達到上限或下限時，整組停止。": ["Shift all three zones by the same EV, preserving their exposure differences. +1 EV corresponds to twice the exposure. The group stops when any zone reaches its limit.", "三領域を同じ EV だけ動かし、露出差を維持します。+1 EV は露出倍率 2 倍に相当。いずれかが限界に達すると全体が停止します。", "세 영역을 같은 EV만큼 이동하여 노출 차이를 유지합니다. +1 EV는 노출 배율 2배에 해당합니다. 한 영역이 한계에 도달하면 전체가 멈춥니다."],
   "亮部曝光補償": ["Highlight exposure", "ハイライト露出補正", "밝은 영역 노출 보정"],
   "中調曝光補償": ["Midtone exposure", "中間調露出補正", "중간톤 노출 보정"],
   "暗部曝光補償": ["Shadow exposure", "シャドウ露出補正", "어두운 영역 노출 보정"],

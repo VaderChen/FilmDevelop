@@ -1253,7 +1253,7 @@
       '<div class="film-section">',
       renderSelect(L.text("印相光源"), "printIlluminant", value("printIlluminant", "reference"), lights, false, printHelp),
       renderRange(L.text("銀鹽密度"), "silverRetention", value("silverRetention", 0), -100, 100, 1, "", silverHelp, !filmStock),
-      renderRange(L.text("亮部曝光補償"), "printExposureHighlights", value("printExposureHighlights", value("printExposure", 0)), Math.min(state.exposureExpansionEnabled ? -16 : -8, value("printExposureHighlights", value("printExposure", 0))), Math.max(state.exposureExpansionEnabled ? 16 : 8, value("printExposureHighlights", value("printExposure", 0))), 0.05, " EV", L.text("依原始亮度分區，平滑調整曝光並保留色度，避免亮暗反轉及暗部提亮時色彩過度放大。提高 EV 不會減弱效果；負 EV 不自動補亮。三區同值時，線性亮度按 2^EV 調整，再套用底片效果。")),
+      renderRange(L.text("全區曝光補償"), "printExposure", value("printExposure", 0), Math.min(state.exposureExpansionEnabled ? -16 : -8, value("printExposure", 0)), Math.max(state.exposureExpansionEnabled ? 16 : 8, value("printExposure", 0)), 0.05, " EV", L.text("同時增加或減少三區相同的 EV，保留亮部、中調與暗部的曝光差距；+1 EV 對應兩倍曝光倍率。任一區達到上限或下限時，整組停止。")),
       renderRange(L.text("中調曝光補償"), "printExposureMidtones", value("printExposureMidtones", value("printExposure", 0)), Math.min(state.exposureExpansionEnabled ? -16 : -8, value("printExposureMidtones", value("printExposure", 0))), Math.max(state.exposureExpansionEnabled ? 16 : 8, value("printExposureMidtones", value("printExposure", 0))), 0.05, " EV", L.text("依原始亮度分區，平滑調整曝光並保留色度，避免亮暗反轉及暗部提亮時色彩過度放大。提高 EV 不會減弱效果；負 EV 不自動補亮。三區同值時，線性亮度按 2^EV 調整，再套用底片效果。")),
       renderRange(L.text("暗部曝光補償"), "printExposureShadows", value("printExposureShadows", value("printExposure", 0)), Math.min(state.exposureExpansionEnabled ? -16 : -8, value("printExposureShadows", value("printExposure", 0))), Math.max(state.exposureExpansionEnabled ? 16 : 8, value("printExposureShadows", value("printExposure", 0))), 0.05, " EV", L.text("依原始亮度分區，平滑調整曝光並保留色度，避免亮暗反轉及暗部提亮時色彩過度放大。提高 EV 不會減弱效果；負 EV 不自動補亮。三區同值時，線性亮度按 2^EV 調整，再套用底片效果。")),
       renderRange(reversal ? L.text("觀看反差") : L.text("印相反差"), "printContrast", value("printContrast", 50), 0, 100, 1, "", L.text("50 為目前風格或底片的基準；提高數值增加明暗反差，降低數值讓階調更柔和。")),
@@ -2296,7 +2296,7 @@
         updateRangeVisual(input);
         if (label) label.textContent = formatRangeValue(input, value);
         updateLocalAdjustment(key, value);
-        scheduleLiveAdjustment(key, value);
+        scheduleLiveAdjustment(key, key === "printExposure" ? currentAdjustment().printExposure : value);
       });
       input.addEventListener("change", function () {
         if (input.disabled || !input.isConnected || generation !== photoEditGeneration || photoIsBusy(state)) return;
@@ -2307,7 +2307,7 @@
         if (label) label.textContent = formatRangeValue(input, value);
         updateRangeVisual(input);
         updateLocalAdjustment(key, value);
-        pendingLiveAdjustment = { style: state.selectedStyle, key: key, value: value, generation: photoEditGeneration };
+        pendingLiveAdjustment = { style: state.selectedStyle, key: key, value: key === "printExposure" ? currentAdjustment().printExposure : value, generation: photoEditGeneration };
         flushLiveAdjustment();
         endLiveAdjustment();
       });
@@ -3356,7 +3356,25 @@
   function updateLocalAdjustment(key, value) {
     var nextAdjustments = Object.assign({}, state.adjustments || {});
     var current = Object.assign({}, nextAdjustments[state.selectedStyle] || currentAdjustment());
-    if (key === "vignetteBalance") {
+    if (key === "printExposure") {
+      var previous = Number(current.printExposure || 0);
+      var keys = ["printExposureHighlights", "printExposureMidtones", "printExposureShadows"];
+      var zones = keys.map(function (zone) { return current[zone] == null ? previous : Number(current[zone]); });
+      var delta = clamp(value - previous, -16 - Math.min.apply(null, zones.concat(previous)), 16 - Math.max.apply(null, zones.concat(previous)));
+      current.printExposure = previous + delta;
+      keys.forEach(function (zone, index) { current[zone] = zones[index] + delta; });
+      ["printExposure"].concat(keys).forEach(function (zone) {
+        var input = app.querySelector('[data-adjustment="' + zone + '"]');
+        if (!input) return;
+        input.min = Math.min(Number(input.min), current[zone]);
+        input.max = Math.max(Number(input.max), current[zone]);
+        input.dataset.rangeMin = input.min; input.dataset.rangeMax = input.max;
+        input.value = current[zone];
+        updateRangeVisual(input);
+        var label = app.querySelector('[data-value-label="' + zone + '"]');
+        if (label) label.textContent = formatRangeValue(input, current[zone]);
+      });
+    } else if (key === "vignetteBalance") {
       var balanced = clamp(value, -100, 100);
       current.vignette = balanced > 0 ? balanced : 0;
       current.devignette = balanced < 0 ? -balanced : 0;

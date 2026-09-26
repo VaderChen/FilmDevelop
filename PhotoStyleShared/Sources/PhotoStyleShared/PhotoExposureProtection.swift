@@ -5,58 +5,65 @@ import simd
 /// Lab lightness and chroma are separated; existing HDR headroom is retained.
 /// This is pointwise: no statistics, masks or additional image buffers.
 enum PhotoExposureProtection {
-    /// Keep a fixed middle band and smoothly approach each zone's requested EV.
-    /// The previous EV-dependent transition width made +8 lift LESS than +2.
-    /// Here a positive distance d from the middle band uses the coordinate
-    /// phi(d) = width - k*cot(d/k), k = 2*width/pi, until d reaches width;
-    /// beyond that phi(d) = d. Shifting phi by EV and inverting it is monotone
-    /// in both input luminance and slider value. Its speed is sin²(d/k), joining
-    /// zero at the middle boundary and exact EV in the tail with smooth slopes.
-    /// This is a closed-form point operation, with no iterative image processing.
+    /// Integrate a local exposure velocity in log luminance. The nonnegative
+    /// weights sum to one, so equal controls remain literal global EV. A zero
+    /// neighboring zone is a fixed boundary, not a residual of middle exposure.
+    /// 64 Euler steps keep the map strictly increasing: on [-16,16] controls,
+    /// the worst velocity slope is 32 stops/stop (1.5-stop smoothstep overlap).
+    /// Each step therefore has derivative >= 0.5, and is monotone in every EV.
+    /// This stays pointwise on the GPU; no masks or image buffers are added.
     static func exposureEV(_ rgb: SIMD3<Double>, zones: SIMD3<Double>) -> Double {
         if zones.x == zones.y && zones.z == zones.y { return zones.y }
         let y = simd_dot(rgb, PhotoExposureColor.luminanceWeights)
-        let stops = log2(max(y, 1e-20) / 0.18)
-        if stops < -1 {
-            return zones.y + zoneOffset(distance: -1-stops, delta: zones.z-zones.y, width: 3, direction: -1)
+        let origin = log2(max(y, 1e-20) / 0.18)
+        var position = origin
+        func smooth(_ value: Double) -> Double {
+            let t = min(1, max(0, value))
+            return t * t * (3 - 2 * t)
         }
-        if stops > 0 {
-            return zones.y + zoneOffset(distance: stops, delta: zones.x-zones.y, width: 1.5, direction: 1)
+        for step in 0..<64 {
+            let remaining = Double(64-step) / 64
+            if position <= -4 && position + zones.z * remaining <= -4 {
+                position += zones.z * remaining
+                break
+            }
+            if position >= 1.5 && position + zones.x * remaining >= 1.5 {
+                position += zones.x * remaining
+                break
+            }
+            let shadow = 1-smooth((position+4)/3)
+            let highlight = smooth(position/1.5)
+            let velocity = shadow*zones.z + highlight*zones.x + (1-shadow-highlight)*zones.y
+            if velocity == 0 { break }
+            position += velocity / 64
         }
-        return zones.y
-    }
-
-    private static func zoneOffset(distance d: Double, delta: Double, width: Double, direction: Double) -> Double {
-        guard d > 1e-6, delta != 0 else { return 0 }
-        let k = 2 * width / Double.pi
-        let coordinate = d >= width ? d : width - k / tan(d/k)
-        let shifted = coordinate + direction * delta
-        if d >= width && shifted >= width { return delta }
-        let target = shifted >= width ? shifted : k * atan(k / (width-shifted))
-        return min(max(0, delta), max(min(0, delta), direction * (target-d)))
+        return position-origin
     }
 
     static let zoneKernel = """
-    float zoneExposureOffset(float d, float delta, float width, float direction) {
-        if (d <= 1.0e-6 || delta == 0.0) { return 0.0; }
-        float k = 0.6366197723675814 * width;
-        float coordinate = d >= width ? d : width - k / tan(d / k);
-        float shifted = coordinate + direction * delta;
-        if (d >= width && shifted >= width) { return delta; }
-        float target = shifted >= width ? shifted : k * atan(k / (width - shifted));
-        return clamp(direction * (target - d), min(0.0, delta), max(0.0, delta));
-    }
     float zoneExposureEV(float y, vec3 ev) {
         if (ev.x == ev.y && ev.z == ev.y) { return ev.y; }
-        float stops = log2(max(y, 1.0e-20) / 0.18);
-        if (stops < -1.0) {
-            return ev.y + zoneExposureOffset(-1.0 - stops, ev.z - ev.y, 3.0, -1.0);
+        float origin = log2(max(y, 1.0e-20) / 0.18);
+        float position = origin;
+        for (int step = 0; step < 64; ++step) {
+            float remaining = float(64-step) / 64.0;
+            if (position <= -4.0 && position + ev.z * remaining <= -4.0) {
+                position += ev.z * remaining;
+                break;
+            }
+            if (position >= 1.5 && position + ev.x * remaining >= 1.5) {
+                position += ev.x * remaining;
+                break;
+            }
+            float shadow = 1.0-smoothstep(-4.0, -1.0, position);
+            float highlight = smoothstep(0.0, 1.5, position);
+            float velocity = shadow*ev.z + highlight*ev.x + (1.0-shadow-highlight)*ev.y;
+            if (velocity == 0.0) { break; }
+            position += velocity / 64.0;
         }
-        if (stops > 0.0) {
-            return ev.y + zoneExposureOffset(stops, ev.x - ev.y, 1.5, 1.0);
-        }
-        return ev.y;
+        return position-origin;
     }
+
     """
 
     static func peak(_ value: Double, gain: Double) -> Double {

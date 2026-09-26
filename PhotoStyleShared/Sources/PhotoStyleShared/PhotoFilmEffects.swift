@@ -107,6 +107,22 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
     public var resolvedPrintExposure: SIMD3<Double> {
         .init(printExposureHighlights ?? printExposure, printExposureMidtones ?? printExposure, printExposureShadows ?? printExposure)
     }
+    /// Shift all three EV values by the same amount, preserving their offsets.
+    /// Stop the whole group at the first limit instead of clipping zones apart.
+    public mutating func setLinkedPrintExposure(_ value: Double) {
+        guard value.isFinite else { return }
+        let zones = resolvedPrintExposure
+        let lower = Self.printExposureRange.lowerBound
+        let upper = Self.printExposureRange.upperBound
+        let minimum = min(printExposure, min(zones.x, min(zones.y, zones.z)))
+        let maximum = max(printExposure, max(zones.x, max(zones.y, zones.z)))
+        let delta = min(upper-maximum, max(lower-minimum, value-printExposure))
+        printExposure += delta
+        printExposureHighlights = zones.x + delta
+        printExposureMidtones = zones.y + delta
+        printExposureShadows = zones.z + delta
+    }
+
     public mutating func clearPrintExposure() {
         printExposure = 0
         printExposureHighlights = nil

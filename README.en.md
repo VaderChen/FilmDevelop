@@ -11,7 +11,12 @@ A film-inspired photo editor for Apple Silicon Mac. Open a photo folder, choose 
 Requires macOS 14 or later. AI features require a compatible local model, downloaded separately.
 
 
-## Latest changes — 1.26.0926 build 1603
+## Latest changes — 1.26.0926 build 1714
+
+Includes all changes from 1.26.0926 build 1603.
+
+- Replaced the highlight slider with Global Exposure Compensation: shift all three zones by the same EV while preserving their differences. Midtones and shadows remain independently adjustable. The group stops when any zone reaches its limit.
+- Fixed midtone adjustments moving highlights. Smooth local exposure replaces the global midtone baseline, preserving outer highlights and deep shadows. Extreme local adjustments ease toward zone boundaries to prevent tone reversal; equal values across all zones retain global 2^EV exposure.
 
 - Fixed independent highlight, midtone and shadow exposure with smooth transitions. Equal EV values scale linear luminance by 2^EV. Exposure separates Lab lightness/chroma while preserving existing RGB and spectral models.
 - Photo recipes and materials can be mixed independently. Controls sit below Scan Source and are enabled for Photo. Silver Density supports −100 to 100, below Print Illuminant.
