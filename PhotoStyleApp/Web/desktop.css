@@ -247,3 +247,15 @@ img.brand-mark { display: block; object-fit: contain; flex-shrink: 0; background
   .settings-layout { grid-template-columns:125px minmax(0,1fr); gap:20px; }
   .settings-category { padding:14px; }
 }
+
+/* EXIF uses the same app dialog surfaces, with a scrollable categorized table. */
+dialog.exif-dialog { width: min(860px, calc(100vw - 48px)); max-width: none; max-height: calc(100vh - 48px); padding: 0; margin: auto; color: var(--text); }
+dialog.exif-dialog[open] { display: flex; flex-direction: column; }
+dialog.exif-dialog::backdrop { background: rgba(0, 0, 0, .38); backdrop-filter: blur(3px); }
+.exif-dialog-body { overflow: auto; min-height: 0; padding: 0 24px 20px; user-select: text; }
+.exif-group h3 { margin: 20px 0 10px; font-size: 15px; }
+.exif-group dl { margin: 0; }
+.exif-row { display: grid; grid-template-columns: minmax(150px, .75fr) minmax(0, 1.5fr); gap: 18px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.exif-row dt { opacity: .7; overflow-wrap: anywhere; }
+.exif-row dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.exif-dialog .prompt-dialog-head, .exif-dialog .prompt-dialog-actions { flex-shrink: 0; }

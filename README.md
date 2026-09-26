@@ -22,7 +22,10 @@
 
 片種資料：[Portra / Ektar](https://www.kodak.com/global/plugins/acrobat/en/professional/products/films/2012Brochure.pdf)、[VISION3 50D](https://www.kodak.com/en/motion/product/camera-films/50d-5203-7203/resources/)、[E100](https://www.kodakprofessional.com/sites/default/files/wysiwyg/E100%20FAQs%20PDF%202024.pdf)、[Provia 100F](https://www.fujifilm.com/us/en/business/professional-photography/film/provia-100f)、[Velvia](https://www.fujifilm.com/jp/ja/consumer/films/negative-and-reversal/velvia)。
 
-## 本版更新 — 1.26.0926 build 2017
+## 本版更新 — 1.26.0926 build 2115
+
+- 可從照片縮圖或預覽的右鍵選單開啟「顯示 EXIF」，在程式內依相機與鏡頭、拍攝設定、日期與時間、影像資訊及 GPS 分類閱讀；數值最多顯示兩位小數，支援選取與複製。
+- 移除虛擬曝光秒數下方的常駐說明，操作區更簡潔。
 
 - 數位曝光下方新增「鮮豔度、飽和度」，範圍 −100～100，預設為 0。鮮豔度優先調整較淡的色彩，飽和度調整整體色彩濃度；支援照片設定、配方儲存與匯出。
 - 數位曝光、亮度、對比及 HDR 保留原有明暗算法，以 Lab 重建色彩；鮮豔度與飽和度共用一次 GPU 色彩運算，保留亮度並處理超出色域的色彩。白平衡、降噪與模糊維持既有算法。
@@ -34,7 +37,7 @@
 - 切換到未修改的照片時回到原片，不沿用上一張配方；已修改照片還原自己的設定，過期的非同步結果不會覆蓋目前照片。
 - 新增「顯示所有底片」，預設關閉；開啟後顯示同系列合併片種，新增項目預設不選取。自訂底片與內建底片區域可收合並記住狀態。
 
-包含 1.26.0926 build 1935 的全部更新。
+包含 1.26.0926 build 2017 的全部更新。
 
 - 亮部曝光滑桿改為「全區曝光補償」：以相同 EV 差值連動亮部、中調、暗部，保留三區曝光差距；中調、暗部仍可獨立微調。任一區達到限制時整組停止。
 - 修正中調調整帶動亮部的問題：移除中調全域基準，以平滑局部曝光計算保留外側亮部與深暗部。極端局部調整在交界漸進壓縮，避免階調反轉；三區同值仍為全域 2^EV。

@@ -1,4 +1,5 @@
 import AppKit
+import ImageIO
 
 extension PhotoStyleWebCoordinator {
     func rememberPhotoDirectory(forceBookmark: Bool = false) {
@@ -114,6 +115,11 @@ extension PhotoStyleWebCoordinator {
         if let id = payload["id"] as? String {
             guard canImport, photoDirectoryStore.url(for: id) != nil else { return }
             let menu = NSMenu()
+            let exif = NSMenuItem(title: PhotoL10n.text("顯示 EXIF"), action: #selector(performThumbnailEXIF(_:)), keyEquivalent: "")
+            exif.target = self
+            exif.representedObject = id
+            menu.addItem(exif)
+            menu.addItem(.separator())
             let item = NSMenuItem(title: PhotoL10n.text("刪除檔案"),
                                   action: #selector(performThumbnailDelete(_:)), keyEquivalent: "")
             item.target = self
@@ -130,6 +136,7 @@ extension PhotoStyleWebCoordinator {
             ("下一步", "redoEdit", !editRedoStack.isEmpty),
             ("恢復預設值", "resetAdjustments", true),
             ("", "", false), ("顯示直方圖", "histogram", true),
+            ("顯示 EXIF", "exif", sourceFileURL != nil),
             ("", "", false), ("[裁切] 原始比例", "source", true),
             ("[裁切] 自由調整", "free", true),
             ("", "", false), ("匯出檔案", "saveImage", canExport && !isDetectingSubjectMask),
@@ -153,6 +160,7 @@ extension PhotoStyleWebCoordinator {
             NSWorkspace.shared.activateFileViewerSelecting([url])
             return
         }
+        if command == "exif", let url = sourceFileURL { showPhotoEXIF(at: url); return }
         if command == "trash" { confirmTrashCurrentPhoto(); return }
         callJavaScript(function: "handlePreviewMenu", payload: ["command": command])
     }
@@ -209,4 +217,98 @@ extension PhotoStyleWebCoordinator {
         }
     }
 
+}
+
+
+extension PhotoStyleWebCoordinator {
+    @objc func performThumbnailEXIF(_ item: NSMenuItem) {
+        guard let id = item.representedObject as? String,
+              let url = photoDirectoryStore.url(for: id) else { return }
+        showPhotoEXIF(at: url)
+    }
+
+    func showPhotoEXIF(at url: URL) {
+        // Metadata stays bound to the clicked file, independent of photo selection.
+        Task { @MainActor [weak self] in
+            let rows = await Task.detached(priority: .userInitiated) { PhotoEXIFMetadata.read(url) }.value
+            guard let self, !self.isTerminating else { return }
+            let order = ["相機與鏡頭", "拍攝設定", "日期與時間", "影像資訊", "GPS", "其他資訊"]
+            let groups: [[String: Any]] = order.compactMap { category in
+                let entries = (rows ?? []).filter { $0.category == category }
+                guard !entries.isEmpty else { return nil }
+                return ["title": category, "rows": entries.map { ["label": $0.label, "value": $0.value] }]
+            }
+            self.callJavaScript(function: "handlePhotoEXIF", payload: [
+                "filename": url.lastPathComponent, "groups": groups,
+                "message": rows == nil ? "無法讀取此檔案的影像資訊。" : "此檔案沒有可顯示的 EXIF 資訊。"
+            ])
+        }
+    }
+
+}
+
+/// Metadata only: do not decode image pixels or modify the original file.
+enum PhotoEXIFMetadata {
+    struct Row: Sendable {
+        let category: String
+        let label: String
+        let value: String
+    }
+    static func formatNumber(_ number: NSNumber) -> String {
+        let value = number.doubleValue
+        guard value.isFinite else { return "—" }
+        if value.rounded() == value { return number.stringValue }
+        var text = String(format: "%.2f", locale: Locale(identifier: "en_US_POSIX"), value)
+        while text.last == "0" { text.removeLast() }
+        if text.last == "." { text.removeLast() }
+        return text == "-0" ? "0" : text
+    }
+
+    static func category(for key: String, group: String) -> String {
+        if group == "GPS" { return "GPS" }
+        if key.contains("Date") || key.contains("OffsetTime") || key.contains("SubsecTime") { return "日期與時間" }
+        if ["Make", "Model", "Software"].contains(key) || key.contains("Lens") || key.contains("Serial") || key.contains("Owner") { return "相機與鏡頭" }
+        if ["Compression", "Orientation", "PhotometricInterpretation", "ColorSpace", "ComponentsConfiguration", "CFAPattern", "PixelXDimension", "PixelYDimension", "XResolution", "YResolution", "ResolutionUnit", "ExifVersion", "FlashPixVersion", "CompressedBitsPerPixel"].contains(key) { return "影像資訊" }
+        if group == "EXIF" { return "拍攝設定" }
+        return "其他資訊"
+    }
+    static func read(_ url: URL) -> [Row]? {
+        let access = url.startAccessingSecurityScopedResource()
+        defer { if access { url.stopAccessingSecurityScopedResource() } }
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, [kCGImageSourceShouldCache: false] as CFDictionary),
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any] else { return nil }
+        var rows: [Row] = []
+        if let width = properties[kCGImagePropertyPixelWidth as String] as? NSNumber,
+           let height = properties[kCGImagePropertyPixelHeight as String] as? NSNumber {
+            rows.append(Row(category: "影像資訊", label: "影像尺寸", value: "\(width) × \(height) px"))
+        }
+        let labels = ["Make": "相機廠牌", "Model": "相機型號", "LensModel": "鏡頭型號",
+                      "DateTimeOriginal": "拍攝時間", "ExposureTime": "曝光時間", "FNumber": "光圈",
+                      "ISOSpeedRatings": "ISO", "FocalLength": "焦距", "ExposureBiasValue": "曝光補償",
+                      "DateTime": "修改時間", "DateTimeDigitized": "數位化時間", "Software": "軟體版本",
+                      "BodySerialNumber": "機身序號", "LensSerialNumber": "鏡頭序號", "LensMake": "鏡頭廠牌",
+                      "Orientation": "影像方向", "Compression": "壓縮格式", "ColorSpace": "色彩空間",
+                      "Flash": "閃光燈", "MeteringMode": "測光模式", "ExposureProgram": "曝光模式",
+                      "WhiteBalance": "白平衡", "ShutterSpeedValue": "快門值（APEX）", "ApertureValue": "光圈值（APEX）",
+                      "BrightnessValue": "亮度值", "FocalLenIn35mmFilm": "35mm 等效焦距"]
+        let groups = [(kCGImagePropertyTIFFDictionary, "TIFF"), (kCGImagePropertyExifDictionary, "EXIF"),
+                      (kCGImagePropertyExifAuxDictionary, "EXIF Aux"), (kCGImagePropertyGPSDictionary, "GPS")]
+        for (group, name) in groups {
+            guard let fields = properties[group as String] as? [String: Any] else { continue }
+            for key in fields.keys.sorted() {
+                guard let value = fields[key], !(value is Data), !(value is [String: Any]) else { continue }
+                let formatted: String
+                if let n = value as? NSNumber, key == "ExposureTime", n.doubleValue > 0 {
+                    formatted = n.doubleValue < 1 ? String(format: "1/%.0f s", 1/n.doubleValue) : "\(formatNumber(n)) s"
+                } else if let n = value as? NSNumber, key == "FNumber" { formatted = "f/\(formatNumber(n))" }
+                else if let n = value as? NSNumber, key == "FocalLength" { formatted = "\(formatNumber(n)) mm" }
+                else if let values = value as? [NSNumber] { formatted = values.prefix(32).map { formatNumber($0) }.joined(separator: ", ") }
+                else if let text = value as? String { formatted = String(text.prefix(4096)) }
+                else if let n = value as? NSNumber { formatted = formatNumber(n) }
+                else { continue }
+                rows.append(Row(category: category(for: key, group: name), label: labels[key] ?? key, value: formatted))
+            }
+        }
+        return rows
+    }
 }

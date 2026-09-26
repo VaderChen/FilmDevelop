@@ -127,6 +127,8 @@ final class PhotoAppUpdater {
 
     // Bundled with this release so the notice is available without a network request.
     static let releaseHighlights = [
+        "右鍵選單新增顯示 EXIF，可分類查看照片的拍攝資訊。",
+        "EXIF 數值最多顯示兩位小數，並可選取與複製。",
         "數位曝光下方新增鮮豔度與飽和度，可分別調整色彩。",
         "調整明暗時更能保留原有色彩，減少偏色與色彩過度放大。",
 

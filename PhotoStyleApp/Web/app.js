@@ -1180,6 +1180,32 @@
     ].join("");
   }
 
+  window.handlePhotoEXIF = function (payload) {
+    var previous = document.getElementById("exifDialog");
+    if (previous) previous.close();
+    var dialog = document.createElement("dialog");
+    dialog.id = "exifDialog";
+    dialog.className = "prompt-dialog exif-dialog";
+    dialog.setAttribute("aria-labelledby", "exifDialogTitle");
+    var groups = payload.groups || [];
+    dialog.innerHTML = '<div class="prompt-dialog-head"><div><h2 id="exifDialogTitle">EXIF</h2><p class="selectable">' +
+      escapeHtml(payload.filename || "") + '</p></div><button class="collapse-button" data-exif-close aria-label="' +
+      escapeHtml(L.text("關閉")) + '">' + iconSvg("x") + '</button></div><div class="exif-dialog-body selectable">' +
+      (groups.length ? groups.map(function (group) {
+        return '<section class="exif-group"><h3>' + escapeHtml(L.text(group.title)) + '</h3><dl>' +
+          group.rows.map(function (row) { return '<div class="exif-row"><dt>' + escapeHtml(L.text(row.label)) +
+            '</dt><dd>' + escapeHtml(row.value) + '</dd></div>'; }).join("") + '</dl></section>';
+      }).join("") : '<p>' + escapeHtml(L.text(payload.message || "此檔案沒有可顯示的 EXIF 資訊。")) + '</p>') +
+      '</div><div class="prompt-dialog-actions"><button class="button primary" data-exif-close>' + escapeHtml(L.text("關閉")) + '</button></div>';
+    dialog.querySelectorAll("[data-exif-close]").forEach(function (button) {
+      button.addEventListener("click", function () { dialog.close(); });
+    });
+    dialog.addEventListener("keydown", function (event) { event.stopPropagation(); });
+    dialog.addEventListener("close", function () { dialog.remove(); });
+    document.body.appendChild(dialog);
+    dialog.showModal();
+  };
+
   function renderPromptDialog() {
     var styleID = state.promptDialog && state.promptDialog.styleID;
     var style = (state.styles || []).find(function (candidate) { return candidate.id === styleID; });
@@ -1309,9 +1335,6 @@
     sections.push(renderRange(L.text("色層感光差異"), "layerResponse", value("layerResponse", 0), 0, 100, 1, "", L.text("各感色層使用獨立暗部、斜率與高光曲線；0 保留原曲線。"), !filmStock || monochrome));
     sections.push(renderRange(L.text("色層抑制"), "couplerAmount", value("couplerAmount", 0), 0, 100, 1, "", L.text("模擬色層間的密度依賴顯影抑制；0 關閉，並非一般彩度。"), !filmStock));
     sections.push(renderRange(L.text("抑制擴散範圍"), "couplerRadius", value("couplerRadius", 0.1), 0, 1, 0.01, "%", L.text("抑制劑影響鄰近區域的範圍，以畫面長邊百分比表示；需啟用色層抑制。"), !filmStock));
-    if (filmStock) {
-      sections.push('<p class="status-line" role="note">' + escapeHtml(L.text("需先提高互易律失效。此模型在 0.001～1 秒不增加失效；短於 0.001 秒或長於 1 秒才會改變感度與色層響應，不改動原圖 EXIF。")) + '</p>');
-    }
     sections.push(renderRange(L.text("互易律失效"), "reciprocityAmount", value("reciprocityAmount", 0), 0, 100, 1, "", L.text("依虛擬曝光時間調整感度與色層響應；0 關閉。"), !filmStock));
     sections.push(renderRange(L.text("虛擬曝光秒數"), "exposureSeconds", value("exposureSeconds", 1), 0.0001, 3600, 0.0001, " s", L.text("需先提高互易律失效。此模型在 0.001～1 秒不增加失效；短於 0.001 秒或長於 1 秒才會改變感度與色層響應，不改動原圖 EXIF。"), !filmStock));
     var bloomHelp = L.text('讓明亮邊緣泛出中性的柔和光暈。強度設為 0 時關閉，提高強度即可啟用。範圍為原圖長邊的百分比，提高範圍會擴大光暈；降低亮部門檻可涵蓋更多亮部，提高門檻則集中於最亮區域。');
