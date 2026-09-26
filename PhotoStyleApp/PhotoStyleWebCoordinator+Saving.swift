@@ -3,6 +3,30 @@ import OSLog
 import UniformTypeIdentifiers
 
 extension PhotoStyleWebCoordinator {
+    func chooseExportDirectory() {
+        guard !isTerminating, let window = webView?.window, window.attachedSheet == nil else { return }
+        let panel = NSOpenPanel()
+        panel.title = PhotoL10n.text("預設輸出目錄")
+        panel.prompt = PhotoL10n.text("選擇目錄")
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        panel.allowsMultipleSelection = false
+        let initialURL = exportDirectoryPreference.directoryURL()
+        let scoped = initialURL?.startAccessingSecurityScopedResource() ?? false
+        panel.directoryURL = initialURL
+        panel.beginSheetModal(for: window) { [weak self] response in
+            defer { if scoped { initialURL?.stopAccessingSecurityScopedResource() } }
+            guard response == .OK, let url = panel.url, let self else { return }
+            do {
+                try self.exportDirectoryPreference.setDirectory(url)
+                self.sendState(includeImages: false)
+            } catch {
+                self.sendToast("無法記住輸出目錄：\(error.localizedDescription)")
+            }
+        }
+    }
+
     func requestImageExport() {
         guard canExport else { return }
         if isWebReady, webView != nil {
@@ -29,6 +53,9 @@ extension PhotoStyleWebCoordinator {
         guard canExport, sourceImage != nil, let window = webView?.window,
               window.attachedSheet == nil else { return }
         let panel = NSSavePanel()
+        let initialURL = exportDirectoryPreference.directoryURL()
+        let scoped = initialURL?.startAccessingSecurityScopedResource() ?? false
+        panel.directoryURL = initialURL
         panel.title = PhotoL10n.text("匯出照片")
         panel.prompt = PhotoL10n.text("匯出")
         panel.canCreateDirectories = true
@@ -38,8 +65,14 @@ extension PhotoStyleWebCoordinator {
         let format = PhotoExportFormatAccessory(panel: panel)
         panel.accessoryView = format.view
         panel.beginSheetModal(for: window) { [weak self, format] response in
-            guard response == .OK, let url = panel.url, let self else { return }
+            guard response == .OK, let url = panel.url, let self else {
+                if scoped { initialURL?.stopAccessingSecurityScopedResource() }
+                return
+            }
             Task { @MainActor in
+                // Keep the directory grant until the asynchronous write finishes.
+                defer { if scoped { initialURL?.stopAccessingSecurityScopedResource() } }
+
                 do {
                     _ = try await self.exportImage(to: url, format: format.selectedFormat,
                                                    bitDepth: format.selectedBitDepth, overwrite: true)
@@ -157,6 +190,43 @@ extension PhotoStyleWebCoordinator {
             sendState(includeImages: false)
             throw error
         }
+    }
+}
+
+// Bookmark access is acquired only while selecting/exporting, never for the
+// entire app lifetime. The displayed path does not resolve or mount a volume.
+final class PhotoExportDirectoryPreference {
+    private static let pathKey = "defaultExportDirectory.path.v1"
+    private static let bookmarkKey = "defaultExportDirectory.bookmark.v1"
+    private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) { self.defaults = defaults }
+    var path: String { defaults.string(forKey: Self.pathKey) ?? "" }
+
+    func setDirectory(_ url: URL) throws {
+        guard url.isFileURL else { throw CocoaError(.fileReadUnsupportedScheme) }
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        guard try url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true else {
+            throw CocoaError(.fileReadUnsupportedScheme)
+        }
+        let bookmark = try url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil)
+        defaults.set(bookmark, forKey: Self.bookmarkKey)
+        defaults.set(url.path, forKey: Self.pathKey)
+    }
+
+    func directoryURL() -> URL? {
+        if let bookmark = defaults.data(forKey: Self.bookmarkKey) {
+            var stale = false
+            if let url = try? URL(resolvingBookmarkData: bookmark,
+                                  options: [.withSecurityScope, .withoutUI, .withoutMounting],
+                                  relativeTo: nil, bookmarkDataIsStale: &stale) {
+                if stale { try? setDirectory(url) }
+                defaults.set(url.path, forKey: Self.pathKey)
+                return url
+            }
+        }
+        return path.isEmpty ? nil : URL(fileURLWithPath: path, isDirectory: true)
     }
 }
 

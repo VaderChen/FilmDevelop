@@ -14,6 +14,10 @@ enum PhotoStyleMCPTools {
         }
         for key in ["grainClumping", "grainChroma", "bloomAmount", "bloomThreshold", "halationAmount", "halationThreshold", "monochromeFilterStrength", "printContrast", "developmentAmount", "developmentTime", "developmentAgitation"] { ranges[key] = 0...100 }
         ranges["printExposure"] = PhotoFilmEffects.printExposureRange
+        ranges["printExposureHighlights"] = PhotoFilmEffects.printExposureRange
+        ranges["printExposureMidtones"] = PhotoFilmEffects.printExposureRange
+        ranges["printExposureShadows"] = PhotoFilmEffects.printExposureRange
+
         ranges["developmentDiffusion"] = 0.02...1
         ranges["grainSize"] = 0.5...4
         ranges["bloomRadius"] = 0.05...2
@@ -35,7 +39,7 @@ enum PhotoStyleMCPTools {
         ranges["reciprocityAmount"] = 0...100
         ranges["exposureSeconds"] = 0.0001...3600
         ranges["halationBase"] = 0...100
-        ranges["silverRetention"] = 0...100
+        ranges["silverRetention"] = -100...100
         ranges["developerTemperature"] = 10...40
         ranges["developerActivity"] = 20...200
         return ranges
@@ -63,7 +67,7 @@ enum PhotoStyleMCPTools {
         let illuminants = PhotoFilmEffects.Illuminant.allCases.map { "\($0.rawValue) \($0.title)" }.joined(separator: "、")
         let descriptions = [
             "scannerSource": "film 直接掃描底片（相容預設）；paper 先印相再掃描紙本正像。相片掃描略過負片色層分離，保留紙白與紙基效果；反轉片維持直接掃描。",
-            "printRecipe": "印相配方：reference 底片預設、glossy 亮面、matte 霧面柔階、warmFiber 暖調纖維。限非反轉片底片；一次套用紙材、紙白、紙黑密度偏移與散射並將掃描來源設為相片，保留底掃開關及風格，保留曝光、反差及底片設定。同批個別參數會在配方後套用。",
+            "printRecipe": "印相配方：reference 底片預設、glossy 亮面、matte 霧面柔階、warmFiber 暖調纖維。限非反轉片底片；保留目前紙材，只套用紙白、紙黑密度偏移與散射並將掃描來源設為相片，保留底掃開關及風格，保留曝光、反差及底片設定。同批個別參數會在配方後套用。",
             "scannerProfile": "off 關閉掃描；neutral 中性掃描（預設）；warmCool 暖中調冷亮部；softPortrait 柔和人像；vivid 鮮明掃描；coolClean 冷色清透；fadedVintage 復古褪色。底片與原片皆可使用；數位相機模擬強制 off 並停用底掃；原片僅套用掃描色彩調整。非實測商用掃描器。",
             "scannerIlluminant": "底掃穿透光源，片基自動平衡；與印相、觀看光源分開。",
             "scanSaturation": "底掃色彩濃度，50 為中性，0 灰階；黑白底片維持灰階。",
@@ -72,6 +76,9 @@ enum PhotoStyleMCPTools {
             "scanMidtoneWarmth": "底掃中調冷暖，正暖負冷，0 保留所選底掃風格。",
             "scanHighlightWarmth": "底掃亮部冷暖，正暖負冷，純白附近減弱染色。",
             "filmColorModel": "固定 spectral：LHTSS 光譜重建、多波段染料透射與獨立印片流程；只對底片款式生效。",
+            "printExposureHighlights": "亮部曝光補償 EV，-16 至 +16；與相鄰明暗區域平滑混合，缺值時沿用原曝光補償。",
+            "printExposureMidtones": "中調曝光補償 EV，-16 至 +16；與相鄰明暗區域平滑混合，缺值時沿用原曝光補償。",
+            "printExposureShadows": "暗部曝光補償 EV，-16 至 +16；與相鄰明暗區域平滑混合，缺值時沿用原曝光補償。",
             "printExposure": "風格與底片皆可調整的印相／觀看曝光補償 EV，-16 至 +16，預設 0；先分離亮度與色度，只調整亮度並重建原色，再套用乳劑、顯影與底片色彩。正值變亮、負值變暗。",
             "printIlluminant": "印相光源：\(illuminants)。一般風格與負片皆可使用，正片略過此光源。",
             "viewIlluminant": "觀看光源：\(illuminants)。風格與底片皆可使用，黑白維持灰階。",

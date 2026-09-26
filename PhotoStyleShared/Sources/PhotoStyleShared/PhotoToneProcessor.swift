@@ -43,12 +43,12 @@ public enum PhotoToneProcessor {
         return (w, t)
     }
 
-    public static func applyExposure(to image: CIImage, ev: Double) -> CIImage {
-        PhotoAdaptiveExposureProcessor.apply(to: image, ev: ev)
+    public static func applyExposure(to image: CIImage, ev: Double, renderContext: CIContext? = nil) -> CIImage {
+        PhotoAdaptiveExposureProcessor.apply(to: image, ev: ev, renderContext: renderContext)
     }
 
-    public static func applyContrast(to image: CIImage, amount: Double) -> CIImage {
-        PhotoLocalToneProcessor.apply(to: image, contrast: amount)
+    public static func applyContrast(to image: CIImage, amount: Double, renderContext: CIContext? = nil) -> CIImage {
+        PhotoLocalToneProcessor.apply(to: image, contrast: amount, renderContext: renderContext)
     }
 
     public static func applyTemperatureAndTint(

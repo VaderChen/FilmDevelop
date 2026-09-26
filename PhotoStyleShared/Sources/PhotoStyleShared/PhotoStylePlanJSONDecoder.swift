@@ -175,6 +175,9 @@ public enum PhotoStylePlanJSONDecoder {
             let scannerKeys = Set(scannerRanges.keys).union(["scanner_profile", "scanner_illuminant"])
             let oldKeys = previousKeys.union(lightingKeys)
             let materialRanges: [String: ClosedRange<Double>] = [
+                "print_exposure_highlights": PhotoFilmEffects.printExposureRange,
+                "print_exposure_midtones": PhotoFilmEffects.printExposureRange,
+                "print_exposure_shadows": PhotoFilmEffects.printExposureRange,
                 "layer_response": 0...100,
                 "coupler_amount": 0...100,
                 "coupler_radius": 0...1,
@@ -187,7 +190,7 @@ public enum PhotoStylePlanJSONDecoder {
                 "reciprocity_amount": 0...100,
                 "exposure_seconds": 0.0001...3600,
                 "halation_base": 0...100,
-                "silver_retention": 0...100,
+                "silver_retention": -100...100,
                 "developer_temperature": 10...40,
                 "developer_activity": 20...200,
             ]

@@ -24,6 +24,7 @@ enum PhotoStyleWebBridgeAction: String {
     case selectDirectoryPhoto
     case requestPhotoThumbnails
     case openCustomModel
+    case chooseExportDirectory
     case openModelDirectory
     case selectModel
     case cancelModelDirectoryScan

@@ -12,7 +12,9 @@ public enum PhotoImageEffectsProcessor {
         brightness: Double = 0,
         contrast: Double = 1
     ) -> CIImage {
-        image.applyingFilter("CIColorControls", parameters: [
+        // Exact identity: avoid a graph node, GPU pass and native-stage readback.
+        guard saturation != 1 || brightness != 0 || contrast != 1 else { return image }
+        return image.applyingFilter("CIColorControls", parameters: [
             kCIInputSaturationKey: saturation,
             kCIInputBrightnessKey: brightness,
             kCIInputContrastKey: contrast

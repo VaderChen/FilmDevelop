@@ -78,6 +78,8 @@ public enum PhotoToneZoneProcessor {
         masks: PhotoToneMasks,
         mappingAmounts: PhotoToneZoneMappingAmounts = .full
     ) -> CIImage {
+        // Identical branches contribute no change; skip masks and native readback.
+        guard !(shadows === base && midtones === base && highlights === base) else { return base }
         guard let compositeKernel,
               let output = compositeKernel.apply(
                 extent: base.extent,

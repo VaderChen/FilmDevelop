@@ -33,6 +33,7 @@ final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMe
         "套用參數並產生預覽"
     ]
 
+    let exportDirectoryPreference = PhotoExportDirectoryPreference()
     let adjustmentStore = StyleAdjustmentStore()
     let stylePromptStore = StylePromptStore()
     let aiModelStore: AIModelStore
@@ -123,6 +124,7 @@ final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMe
         image.cgImage === sourceImage?.cgImage || image.cgImage === previewImage?.cgImage || image.cgImage === processingImage?.cgImage
     }
 
+    var sourceRestoreID = UUID()
     var photoGeneration = UUID()
     var sourceImage: PhotoImage? {
         didSet {

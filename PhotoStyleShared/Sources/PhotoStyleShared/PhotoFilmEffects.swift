@@ -101,6 +101,19 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
     // Runtime preference; excluded from saved film recipes.
     public var highlightProtectionEnabled = true
     public var printExposure: Double
+    public var printExposureHighlights: Double?
+    public var printExposureMidtones: Double?
+    public var printExposureShadows: Double?
+    public var resolvedPrintExposure: SIMD3<Double> {
+        .init(printExposureHighlights ?? printExposure, printExposureMidtones ?? printExposure, printExposureShadows ?? printExposure)
+    }
+    public mutating func clearPrintExposure() {
+        printExposure = 0
+        printExposureHighlights = nil
+        printExposureMidtones = nil
+        printExposureShadows = nil
+    }
+
     public var printContrast: Double
     public var printIlluminant: Illuminant
     public var viewIlluminant: Illuminant
@@ -174,6 +187,10 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
         monochromeFilterStrength: Double = 100,
         colorModel: ColorModel = .spectral,
         printExposure: Double = 0,
+        printExposureHighlights: Double? = nil,
+        printExposureMidtones: Double? = nil,
+        printExposureShadows: Double? = nil,
+
         printContrast: Double = 50,
         printIlluminant: Illuminant = .reference,
         viewIlluminant: Illuminant = .reference,
@@ -224,6 +241,10 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
         self.monochromeFilterStrength = monochromeFilterStrength
         self.colorModel = .spectral
         self.printExposure = printExposure
+        self.printExposureHighlights = printExposureHighlights
+        self.printExposureMidtones = printExposureMidtones
+        self.printExposureShadows = printExposureShadows
+
         self.printContrast = printContrast
         self.printIlluminant = printIlluminant
         self.viewIlluminant = viewIlluminant
@@ -261,7 +282,7 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
             reciprocityAmount: bound(reciprocityAmount, 0...100, 0),
             exposureSeconds: bound(exposureSeconds, 0.0001...3600, 1),
             halationBase: bound(halationBase, 0...100, 50),
-            silverRetention: bound(silverRetention, 0...100, 0),
+            silverRetention: bound(silverRetention, -100...100, 0),
             developerTemperature: bound(developerTemperature, 10...40, 20),
             developerActivity: bound(developerActivity, 20...200, 100),
             highlightProtectionEnabled: highlightProtectionEnabled,
@@ -279,6 +300,10 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
             monochromeFilterStrength: bound(monochromeFilterStrength, 0...100, 100),
             colorModel: colorModel,
             printExposure: bound(printExposure, Self.printExposureRange),
+            printExposureHighlights: printExposureHighlights.map { bound($0, Self.printExposureRange) },
+            printExposureMidtones: printExposureMidtones.map { bound($0, Self.printExposureRange) },
+            printExposureShadows: printExposureShadows.map { bound($0, Self.printExposureRange) },
+
             printContrast: bound(printContrast, 0...100, 50),
             printIlluminant: printIlluminant, viewIlluminant: viewIlluminant,
             developmentAmount: bound(developmentAmount, 0...100),
@@ -330,6 +355,10 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
         case monochromeFilterStrength = "monochrome_filter_strength"
         case colorModel = "color_model"
         case printExposure = "print_exposure"
+        case printExposureHighlights = "print_exposure_highlights"
+        case printExposureMidtones = "print_exposure_midtones"
+        case printExposureShadows = "print_exposure_shadows"
+
         case printContrast = "print_contrast"
         case printIlluminant = "print_illuminant"
         case viewIlluminant = "view_illuminant"
@@ -382,6 +411,10 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
             monochromeFilterStrength: try values.decodeIfPresent(Double.self, forKey: .monochromeFilterStrength) ?? 100,
             colorModel: try values.decodeIfPresent(ColorModel.self, forKey: .colorModel) ?? .analytic,
             printExposure: try values.decodeIfPresent(Double.self, forKey: .printExposure) ?? 0,
+            printExposureHighlights: try values.decodeIfPresent(Double.self, forKey: .printExposureHighlights),
+            printExposureMidtones: try values.decodeIfPresent(Double.self, forKey: .printExposureMidtones),
+            printExposureShadows: try values.decodeIfPresent(Double.self, forKey: .printExposureShadows),
+
             printContrast: try values.decodeIfPresent(Double.self, forKey: .printContrast) ?? 50,
             printIlluminant: try values.decodeIfPresent(Illuminant.self, forKey: .printIlluminant) ?? .reference,
             viewIlluminant: try values.decodeIfPresent(Illuminant.self, forKey: .viewIlluminant) ?? .reference,
@@ -440,7 +473,6 @@ public enum PhotoPrintRecipe: String, CaseIterable, Sendable {
         guard Self.supports(stock) else { return effects }
         var result = effects
         result.scannerSource = .paper
-        result.paperProfile = paperProfile
         result.paperScatter = scatter
         result.paperWhite = white
         result.paperDensityOffset = densityOffset

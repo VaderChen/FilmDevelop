@@ -42,7 +42,7 @@ final class PhotoStyleFilmHoverPreview {
         } else { return }
         _ = adjustment.resolveHDRToneCurveFromAIAnalysisIfNeeded()
         let request = PhotoStyleRenderRequest(style: style, adjustment: coordinator.renderingAdjustment(adjustment),
-            image: image, subjectMask: coordinator.sourceSubjectMask, shouldDetectSubjectMask: false, repairPatches: coordinator.repairPatches)
+            image: image, subjectMask: coordinator.sourceSubjectMask, shouldDetectSubjectMask: false, repairPatches: coordinator.repairPatches, isPreview: true)
         let job = Job(id: id, look: look, photo: coordinator.photoGeneration, revision: coordinator.previewRevision,
                       selectedStyle: coordinator.selectedStyle, selectedCustomID: coordinator.selectedCustomFilmID, request: request)
         currentID = id

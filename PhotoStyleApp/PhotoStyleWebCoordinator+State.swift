@@ -57,6 +57,7 @@ extension PhotoStyleWebCoordinator {
             "highlightProtectionEnabled": highlightProtectionEnabled,
             "hdrFeatureEnabled": hdrFeatureEnabled,
             "originalResolutionEditing": originalResolutionEditing,
+            "defaultExportDirectory": exportDirectoryPreference.path,
             "styles": PhotoStyle.allCases.map(stylePayload(_:)) + customFilmStore.films.map(customFilmPayload(_:)),
             "adjustments": adjustmentPayloads(),
             "adjustmentDefaults": adjustmentPayload(currentFilmDefaults),
@@ -180,6 +181,10 @@ extension PhotoStyleWebCoordinator {
             "scanMidtoneWarmth": adjustment.filmEffects.scanMidtoneWarmth,
             "scanHighlightWarmth": adjustment.filmEffects.scanHighlightWarmth,
             "printExposure": adjustment.filmEffects.printExposure,
+            "printExposureHighlights": adjustment.filmEffects.printExposureHighlights ?? adjustment.filmEffects.printExposure,
+            "printExposureMidtones": adjustment.filmEffects.printExposureMidtones ?? adjustment.filmEffects.printExposure,
+            "printExposureShadows": adjustment.filmEffects.printExposureShadows ?? adjustment.filmEffects.printExposure,
+
             "printContrast": adjustment.filmEffects.printContrast,
             "developmentAmount": adjustment.filmEffects.developmentAmount,
             "developmentTime": adjustment.filmEffects.developmentTime,

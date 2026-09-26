@@ -96,16 +96,17 @@ public enum PhotoFilmEffectsProcessor {
             monochrome: monochrome, seed: seed)
     }
 
-    /// 曝光補償先於乳劑、顯影與底片色彩。線性 sRGB 的 Y 與色度分離，
-    /// 僅對亮度套用曝光／保護曲線，再用原色度重建 RGB，避免放大成品顆粒。
+    /// 曝光補償先於乳劑、顯影與底片色彩。線性 sRGB → XYZ → Lab (D65)，
+    /// 依曝光／保護曲線更新 L，保留 a/b 後重建 RGB，避免同步放大暗部色度。
     public static func applyExposure(to image: CIImage, effects: PhotoFilmEffects,
                                      strength: Double = 1) -> CIImage {
         let e = effects.clamped()
         let amount = unit(strength)
-        guard e.printExposure != 0, amount > 0,
+        let ev = e.resolvedPrintExposure
+        guard ev != .zero, amount > 0,
               let linear = image.matchedFromWorkingSpace(to: linearSRGB),
               let result = kernels.exposure?.apply(extent: image.extent, arguments: [
-                linear, pow(2, e.printExposure), e.highlightProtectionEnabled ? 1.0 : 0.0, amount
+                linear, CIVector(x: ev.x, y: ev.y, z: ev.z), e.highlightProtectionEnabled ? 1.0 : 0.0, amount
               ]) else { return image }
         return (result.matchedToWorkingSpace(from: linearSRGB) ?? image).cropped(to: image.extent)
     }
@@ -119,7 +120,7 @@ public enum PhotoFilmEffectsProcessor {
     ) -> CIImage {
         var e = effects.clamped()
         let image = applyExposure(to: image, effects: e, strength: strength)
-        e.printExposure = 0
+        e.clearPrintExposure()
         let amount = unit(strength)
         guard amount > 0,
               e.printContrast != 50 ||
@@ -167,32 +168,8 @@ public enum PhotoFilmEffectsProcessor {
     }
 
     private static let kernels: FilmKernels = {
-        // Runtime Metal kernels require dynamic libraries. If that capability is
-        // unavailable, equivalent Core Image kernels retain the requested
-        // controls instead of silently omitting an effect.
-        let useMetal = MTLCreateSystemDefaultDevice()?.supportsDynamicLibraries == true
         func make(_ name: String, parameters: String, body: String, destination: Bool = false, helpers: String = "") -> CIColorKernel? {
-            if useMetal {
-                let signature = parameters.replacingOccurrences(of: "__sample", with: "sample_t")
-                    + (destination ? (parameters.isEmpty ? "" : ", ") + "destination dest" : "")
-                let code = """
-                #include <metal_stdlib>
-                #include <CoreImage/CoreImage.h>
-                using namespace metal;
-                using namespace coreimage;
-                \(helpers)
-                [[ stitchable ]] float4 \(name)(\(signature)) { \(body) }
-                """
-                let metal = code.replacingOccurrences(of: "vec2", with: "float2")
-                    .replacingOccurrences(of: "vec3", with: "float3")
-                    .replacingOccurrences(of: "vec4", with: "float4")
-                    .replacingOccurrences(of: "destCoord()", with: "dest.coord()")
-                if let compiled = try? CIKernel.kernels(withMetalString: metal),
-                   let kernel = compiled.first(where: { $0.name == name }) as? CIColorKernel {
-                    return kernel
-                }
-            }
-            return CIColorKernel(source: "\(helpers)\nkernel vec4 \(name)(\(parameters)) { \(body) }")
+            PhotoGPUColorKernel.make(name, parameters: parameters, body: body, destination: destination, helpers: helpers)
         }
         let extract = make("filmExtractLight", parameters: "__sample image, float threshold", body: """
             vec3 rgb = image.rgb / max(image.a, 0.000001);
@@ -207,17 +184,19 @@ public enum PhotoFilmEffectsProcessor {
             vec3 glow = vec3(bloomRing * bloom);
             return vec4(image.rgb + glow * image.a, image.a);
             """)
-        let exposure = make("filmLuminanceExposure", parameters: "__sample image, float gain, float protection, float amount", body: """
+        let exposure = make("filmLuminanceExposure", parameters: "__sample image, vec3 ev, float protection, float amount", body: """
             if (image.a <= 0.0) { return vec4(0.0); }
             vec3 rgb = image.rgb / image.a;
-            // Y 是線性亮度；同一倍率重建 RGB 等同保留 XYZ 的色度座標。
-            float y = dot(rgb, vec3(0.2126, 0.7152, 0.0722));
+            // Compute EV in linear Y, then change Lab L while retaining a/b.
+            float y = dot(rgb, vec3(0.21263900587151027, 0.7151686787677559, 0.07219231536073371));
+            float gain = exp2(zoneExposureEV(y, ev));
             float scale = gain;
-            if (y > 1.0e-20 && (protection > 0.5 || gain < 1.0)) {
+            if (y > 1.0e-20 && (protection > 0.5 && gain > 1.0)) {
                 scale = protectedExposurePeak(y, gain) / y;
             }
-            return vec4(rgb * mix(1.0, scale, amount) * image.a, image.a);
-            """, helpers: PhotoExposureProtection.kernel)
+            float ceiling = protection > 0.5 && gain > 1.0 ? max(1.0, max(rgb.r, max(rgb.g, rgb.b))) : 0.0;
+            return vec4(exposureLabLuminance(rgb, y, mix(1.0, scale, amount), ceiling) * image.a, image.a);
+            """, helpers: PhotoExposureProtection.kernel + PhotoExposureProtection.zoneKernel + PhotoExposureColor.kernel)
         let print = make("filmPrint", parameters: "__sample image, vec3 printR, vec3 printG, vec3 printB, vec3 viewR, vec3 viewG, vec3 viewB, vec4 controls", body: """
             if (image.a <= 0.0) { return vec4(0.0); }
             vec3 source = image.rgb / image.a;

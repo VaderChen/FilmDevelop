@@ -95,6 +95,8 @@ extension PhotoStyleWebCoordinator {
             requestPhotoThumbnails(bridgeMessage.payload)
         case .openCustomModel:
             openCustomModelPicker()
+        case .chooseExportDirectory:
+            chooseExportDirectory()
         case .openModelDirectory:
             openModelDirectoryPicker()
         case .cancelModelDirectoryScan:

@@ -135,7 +135,7 @@ extension PhotoStyleWebCoordinator {
                     ? renderer.detectSubjectMask(for: PhotoStyleProcessor.repairedSource(job.maskDetectionImage, patches: job.request.repairPatches)) : nil)
                 let output = renderer.render(.init(
                     style: job.request.style, adjustment: job.request.adjustment,
-                    image: job.request.image, subjectMask: subjectMask, shouldDetectSubjectMask: false, repairPatches: job.request.repairPatches
+                    image: job.request.image, subjectMask: subjectMask, shouldDetectSubjectMask: false, repairPatches: job.request.repairPatches, isPreview: true
                 )).resizedForWebPreview(maxPixel: Self.processingPreviewMaxPixel)
                 var images: [String: String] = [:]
                 images["cropSourceImage"] = sourceCache.value(for: job.request.image, variant: "crop-source") {

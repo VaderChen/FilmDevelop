@@ -6,20 +6,14 @@ public enum PhotoHDRProcessor {
         black: 0, shadows: 38, midtones: 50, highlights: 64, white: 100, detail: 12
     )
 
-    private static let luminanceKernel = CIColorKernel(source: """
-    kernel vec4 hdrLuminance(__sample source) {
+    // Fuse scalar luminance extraction and log encoding. Preserve the original
+    // working-space convention and HDR curve; no conversion to Lab is involved.
+    private static let logLuminanceKernel = PhotoGPUColorKernel.make("hdrLogLuminance", parameters: "__sample source", body: """
         vec3 color = source.rgb / max(source.a, 0.00001);
         float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
-        return vec4(luminance, luminance, luminance, 1.0);
-    }
-    """)
-
-    private static let logLuminanceKernel = CIColorKernel(source: """
-    kernel vec4 hdrLogLuminance(__sample luminance) {
-        float value = log2(max(luminance.r, 0.00001));
-        return vec4(value, value, value, luminance.a);
-    }
-    """)
+        float value = log2(max(luminance, 0.00001));
+        return vec4(value, value, value, 1.0);
+        """)
 
     private static let reconstructionKernel = CIColorKernel(source: """
     float hdrSlope(float left, float right) {
@@ -164,7 +158,8 @@ public enum PhotoHDRProcessor {
     public static func apply(
         to image: CIImage,
         curve: PhotoStylePlan.HDRToneCurve?,
-        amount: Double = 1
+        amount: Double = 1,
+        renderContext: CIContext? = nil
     ) -> CIImage {
         guard amount.isFinite, !image.extent.isEmpty, !image.extent.isInfinite else { return image }
         let resolvedAmount = min(max(amount, 0), 1)
@@ -182,22 +177,17 @@ public enum PhotoHDRProcessor {
             )
         )
         guard
-              let luminanceKernel,
               let logLuminanceKernel,
               let reconstructionKernel,
-              let luminance = luminanceKernel.apply(
-                extent: normalizedImage.extent,
-                arguments: [normalizedImage]
-              ),
               let logLuminance = logLuminanceKernel.apply(
                 extent: normalizedImage.extent,
-                arguments: [luminance]
+                arguments: [normalizedImage]
               ) else {
             return image
         }
 
         let baseLogLuminance = PhotoFastGuidedFilter.smooth(
-            logLuminance, maximumSampleShortEdge: 256, epsilon: 0.0015
+            logLuminance, maximumSampleShortEdge: 256, epsilon: 0.0015, renderContext: renderContext
         )
         let points = resolvedControlPoints(curve)
         let detailGain = 1 + Double(clamped(curve.detail, to: 0...40)) / 40 * 0.10

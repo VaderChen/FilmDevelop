@@ -1,37 +1,28 @@
 import CoreImage
 
 enum PhotoFastGuidedFilter {
-    private static let squaredKernel = CIColorKernel(source: """
-    kernel vec4 guidedSquared(__sample source) {
+    private static let squaredKernel = PhotoGPUColorKernel.make("guidedSquared", parameters: "__sample source", body: """
         float value = source.r * source.r;
         return vec4(value, value, value, source.a);
-    }
     """)
 
-    private static let coefficientsKernel = CIColorKernel(source: """
-    kernel vec4 guidedCoefficients(
-        __sample mean,
-        __sample correlation,
-        float epsilon
-    ) {
+    private static let coefficientsKernel = PhotoGPUColorKernel.make("guidedCoefficients", parameters: "__sample mean, __sample correlation, float epsilon", body: """
         float variance = max(correlation.r - mean.r * mean.r, 0.0);
         float slope = variance / (variance + epsilon);
         float intercept = mean.r * (1.0 - slope);
         return vec4(slope, intercept, 0.0, 1.0);
-    }
     """)
 
-    private static let reconstructionKernel = CIColorKernel(source: """
-    kernel vec4 guidedReconstruction(__sample guide, __sample coefficients) {
+    private static let reconstructionKernel = PhotoGPUColorKernel.make("guidedReconstruction", parameters: "__sample guide, __sample coefficients", body: """
         float value = coefficients.r * guide.r + coefficients.g;
         return vec4(value, value, value, guide.a);
-    }
     """)
 
     static func smooth(
         _ image: CIImage,
         maximumSampleShortEdge: CGFloat = 256,
-        epsilon: Float = 0.0025
+        epsilon: Float = 0.0025,
+        renderContext: CIContext? = nil
     ) -> CIImage {
         let extent = image.extent
         guard maximumSampleShortEdge.isFinite, maximumSampleShortEdge > 0,
@@ -62,12 +53,32 @@ enum PhotoFastGuidedFilter {
             return fallback(image)
         }
 
-        let averagedCoefficients = boxBlur(coefficients, radius: radius)
+        let averagedCoefficients = materialize(boxBlur(coefficients, radius: radius), context: renderContext)
         let upsampledCoefficients = sampling.reconstruct(averagedCoefficients)
         return reconstructionKernel.apply(
             extent: extent,
             arguments: [image, upsampledCoefficients]
         )?.cropped(to: extent) ?? fallback(image)
+    }
+
+    /// Snapshot only the small coefficient map. Native export renders in tiles;
+    /// without this boundary every tile can replay the complete guide branch.
+    /// nil keeps the lazy graph for clients that render once or use another context.
+    private static func materialize(_ image: CIImage, context: CIContext?) -> CIImage {
+        let bounds = image.extent.integral
+        guard let context, bounds.width > 0, bounds.height > 0,
+              bounds.width * bounds.height <= 1_048_576 else { return image }
+        let rowBytes = Int(bounds.width) * 16
+        var data = Data(count: rowBytes * Int(bounds.height))
+        data.withUnsafeMutableBytes {
+            context.render(image, toBitmap: $0.baseAddress!, rowBytes: rowBytes,
+                           bounds: bounds, format: .RGBAf, colorSpace: nil)
+        }
+        // These are slope/intercept DATA, not RGB: do not color-convert them.
+        return CIImage(bitmapData: data, bytesPerRow: rowBytes, size: bounds.size,
+                       format: .RGBAf, colorSpace: nil)
+            .transformed(by: .init(translationX: bounds.minX, y: bounds.minY))
+            .cropped(to: image.extent)
     }
 
     private static func boxBlur(_ image: CIImage, radius: CGFloat) -> CIImage {

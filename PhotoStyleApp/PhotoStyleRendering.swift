@@ -9,6 +9,7 @@ struct PhotoStyleRenderRequest {
     let subjectMask: CIImage?
     let shouldDetectSubjectMask: Bool
     var repairPatches: [PhotoRepairPatch] = []
+    var isPreview = false
     var progress: (@Sendable (Double) -> Void)? = nil
 }
 
@@ -37,6 +38,7 @@ struct CoreImagePhotoStyleRenderer: PhotoStyleRendering {
             subjectMask: request.subjectMask,
             shouldDetectSubjectMask: request.shouldDetectSubjectMask,
             repairPatches: request.repairPatches,
+            isPreview: request.isPreview,
             progress: request.progress
         )
     }

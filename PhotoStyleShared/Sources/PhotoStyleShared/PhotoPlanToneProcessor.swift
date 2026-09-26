@@ -72,13 +72,14 @@ public enum PhotoPlanToneProcessor {
             strength: strength,
             components: components
         )
-        let midtoneAdjusted = applyZone(
+        let midtoneAdjusted = toneZones.midtones == toneZones.shadows ? shadowAdjusted : applyZone(
             to: image,
             adjustment: toneZones.midtones,
             strength: strength,
             components: components
         )
-        let highlightAdjusted = applyZone(
+        let highlightAdjusted = toneZones.highlights == toneZones.shadows ? shadowAdjusted
+            : toneZones.highlights == toneZones.midtones ? midtoneAdjusted : applyZone(
             to: image,
             adjustment: toneZones.highlights,
             strength: strength,

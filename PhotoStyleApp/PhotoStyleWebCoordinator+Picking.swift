@@ -71,7 +71,7 @@ extension PhotoStyleWebCoordinator {
             let preparedProcessingImage = cancellation?.isCancelled == true ? nil : loadedImage?.resizedForWebPreview(maxPixel: Self.processingPreviewMaxPixel)
             let preparedPreview = cancellation?.isCancelled == true ? nil : loadedImage?.resizedForWebPreview(maxPixel: PhotoImage.previewMaxPixel)
             let preparedPreviewPayload = preparedPreview.flatMap { imageDataURL($0) }
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 guard let self else { return }
                 self.isLoadingImage = false
                 self.loadingPreviewImagePayload = nil
@@ -81,9 +81,7 @@ extension PhotoStyleWebCoordinator {
                     return
                 }
                 if let image = loadedImage {
-                    self.sourceFileName = url.lastPathComponent
-                    self.rememberImageImportFile(url, bookmarkData: loadedImageBookmark)
-                    self.setSourceImage(
+                    let accepted = await self.setSourceImage(
                         image,
                         preparedPreview: preparedPreview,
                         preparedProcessingImage: preparedProcessingImage,
@@ -92,8 +90,11 @@ extension PhotoStyleWebCoordinator {
                         persistenceFileExtension: url.pathExtension,
                         sourceIdentifier: loadedImageIdentifier,
                         sourceURL: url,
-                        persistsForNextLaunch: self.persistsImportedImages
+                        persistsForNextLaunch: self.persistsImportedImages,
+                        filename: url.lastPathComponent, cancellation: cancellation
                     )
+                    guard accepted else { completion?(.failure(CancellationError())); return }
+                    self.rememberImageImportFile(url, bookmarkData: loadedImageBookmark)
                     completion?(.success(()))
                 } else if let loadingError {
                     self.sendState(includeImages: true)

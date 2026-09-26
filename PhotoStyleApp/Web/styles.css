@@ -1963,3 +1963,8 @@ img.brand-mark { display: block; object-fit: contain; flex-shrink: 0; background
 .silver-density-reset:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
 .silver-density-reset:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .silver-density-reset:disabled { opacity: 0.45; cursor: default; }
+
+.export-directory-row { grid-template-columns: minmax(120px, 1fr) minmax(0, 2fr); }
+.export-directory-control { display: flex; align-items: center; justify-content: flex-end; gap: 12px; min-width: 0; }
+.export-directory-path { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 13px; }
+.export-directory-control .button { flex-shrink: 0; }

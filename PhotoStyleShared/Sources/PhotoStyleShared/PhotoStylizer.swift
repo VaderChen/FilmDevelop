@@ -117,7 +117,7 @@ public struct PhotoStylizer: Sendable {
             strength: strength
         )
         var printEffects = plan.filmEffects
-        printEffects.printExposure = 0
+        printEffects.clearPrintExposure()
         styled = PhotoFilmEffectsProcessor.applyPrint(to: styled, effects: printEffects, strength: strength)
         styled = applyPostProcessing(
             to: styled,

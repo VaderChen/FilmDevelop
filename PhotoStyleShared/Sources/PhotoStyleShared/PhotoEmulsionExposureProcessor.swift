@@ -6,11 +6,12 @@ import Foundation
 /// chemistry. Fixed cell seeds define one particle realization for the frame.
 /// Captured + transmitted = incident per pixel before display normalization.
 public enum PhotoEmulsionExposureProcessor {
+    public enum Sampling: Sendable { case reference, preview }
     private static let space = CGColorSpace(name: CGColorSpace.extendedLinearSRGB)!
     static var kernelsAreAvailable: Bool { field != nil && transmission != nil && composite != nil && returned != nil }
     public static func apply(to image: CIImage, effects: PhotoFilmEffects,
                              amounts: PhotoToneZoneGrainAmounts, strength: Double = 1,
-                             monochrome: Bool = false, seed: UInt32 = 0, renderContext: CIContext? = nil) -> CIImage {
+                             monochrome: Bool = false, seed: UInt32 = 0, renderContext: CIContext? = nil, sampling: Sampling = .reference) -> CIImage {
         let e = effects.clamped()
         guard e.grainMode == .emulsion,
               max(amounts.shadows, max(amounts.midtones, amounts.highlights)) > 0 || e.halationAmount * strength > 0,
@@ -18,19 +19,24 @@ public enum PhotoEmulsionExposureProcessor {
               let linear = image.matchedFromWorkingSpace(to: space) else { return image }
         let extent = image.extent, longEdge = max(extent.width, extent.height)
         guard longEdge.isFinite, longEdge > 0, extent.width > 0, extent.height > 0 else { return image }
-        // One 3000px integration grid for both preview and export. Physical
-        // particle coordinates remain referenced to a 3000px full-frame edge.
-        // Four area samples/pixel integrate footprints; export cannot invent
-        // additional particles. Very fine grains retain this declared bandwidth.
-        let scale = longEdge / 3000
+        // 3000 is the physical coordinate reference, not a minimum bitmap size.
+        // Preview resolution follows the image with a grain-size sampling floor:
+        // fine crystals still need enough samples to avoid inflated/aliased grain.
+        // Exports retain the original bandwidth, seeds and physical dimensions.
+        let physicalSize = e.grainSize * 36 / e.filmWidthMM
+        let spread = e.grainDistribution / 100
+        let smallestScale = spread > 0.0001 ? exp(-spread) / sqrt(sinh(2 * spread) / (2 * spread)) : 1
+        let samplingFloor = min(3000, ceil(2000 / (physicalSize * smallestScale)))
+        let fieldLongEdge: CGFloat = sampling == .preview ? min(3000, max(longEdge, samplingFloor)) : 3000
+        let samplePitch = 3000 / fieldLongEdge
+        let scale = longEdge / fieldLongEdge
         let source = linear.transformed(by: .init(translationX: -extent.minX, y: -extent.minY))
             .transformed(by: .init(scaleX: 1 / scale, y: 1 / scale))
         let canonical = CGRect(x: 0, y: 0, width: extent.width / scale, height: extent.height / scale)
-        let physicalSize = e.grainSize * 36 / e.filmWidthMM
-        let radius = 12 * physicalSize
+        let radius = 12 * physicalSize / samplePitch
         guard let captureGraph = field.apply(extent: canonical, roiCallback: { _, r in r.insetBy(dx: -radius, dy: -radius) },
             arguments: [source.clampedToExtent(), physicalSize, e.grainClumping / 100,
-                        monochrome ? 0 : e.grainChroma / 100, Double(seed & 0xffff), Double(seed >> 16), e.grainDistribution / 100]) else { return image }
+                        monochrome ? 0 : e.grainChroma / 100, Double(seed & 0xffff), Double(seed >> 16), e.grainDistribution / 100, samplePitch]) else { return image }
         // 紅暈與成品共用同一個捕獲場，避免分支重算晶體取樣。
         let captured = renderContext.map { context in
             autoreleasepool { PhotoFilmFieldSnapshot.resolve(captureGraph, context: context) }
@@ -40,7 +46,7 @@ public enum PhotoEmulsionExposureProcessor {
         if halo > 0 {
             guard let remaining = transmission.apply(extent: canonical, arguments: [source, captured]),
                   let reflected = returned.apply(extent: canonical, arguments: [source, remaining, halo, PhotoFilmEffects.linearLightThreshold(e.halationThreshold), e.halationBase / 100]) else { return image }
-            let sigma = 3000 * e.halationRadius / 100 * 36 / e.filmWidthMM
+            let sigma = fieldLongEdge * e.halationRadius / 100 * 36 / e.filmWidthMM
             bounced = reflected.clampedToExtent().applyingFilter("CIGaussianBlur", parameters: [kCIInputRadiusKey: sigma]).cropped(to: canonical)
         } else {
             // 關閉紅暈時不建立透射、反射與模糊分支；顆粒捕獲仍照常計算。
@@ -62,7 +68,7 @@ public enum PhotoEmulsionExposureProcessor {
     // Exposed internally to test the raw photon budget independently from gain.
     static func capturedField(_ image: CIImage, size: Double = 1, seed: UInt32 = 0) -> CIImage? {
         field?.apply(extent: image.extent, roiCallback: { _, r in r.insetBy(dx: -24, dy: -24) },
-            arguments: [image.clampedToExtent(), size, 0.0, 1.0, Double(seed & 0xffff), Double(seed >> 16), 0.0])
+            arguments: [image.clampedToExtent(), size, 0.0, 1.0, Double(seed & 0xffff), Double(seed >> 16), 0.0, 1.0])
     }
     private static let kernels: [CIKernel] = {
         let source = """
@@ -84,8 +90,8 @@ public enum PhotoEmulsionExposureProcessor {
             return c.a>0.0 ? max(float3(0.0),c.rgb/c.a) : float3(0.0);
         }
         [[ stitchable ]] float4 emulsionCapture(coreimage::sampler src, float size, float clumping,
-            float chroma, float seedLo, float seedHi, float spread, destination dest) {
-            float2 p=dest.coord(); float4 original=src.sample(src.transform(p));
+            float chroma, float seedLo, float seedHi, float spread, float samplePitch, destination dest) {
+            float2 p=dest.coord()*samplePitch; float4 original=src.sample(src.transform(dest.coord()));
             if (!(original.a>0.0)) return float4(0.0);
             float3 incident=max(original.rgb/original.a,float3(0.0));
             if (!all(isfinite(incident))) return float4(0.0,0.0,0.0,original.a);
@@ -93,7 +99,7 @@ public enum PhotoEmulsionExposureProcessor {
             float spacing=3.6f*size;
             float3 total=float3(0.0); float opacity=0.0f;
             for(int sample=0;sample<4;++sample) {
-                float2 q=p+float2((sample&1)?0.25f:-0.25f,(sample&2)?0.25f:-0.25f);
+                float2 q=p+float2((sample&1)?0.25f:-0.25f,(sample&2)?0.25f:-0.25f)*samplePitch;
                 float3 remaining=incident; float throughput=1.0f;
                 for(int layer=0;layer<3;++layer) {
                     uint layerSeed=seed ^ (0x243f6a88u+uint(layer)*0x9e3779b9u);
@@ -116,8 +122,8 @@ public enum PhotoEmulsionExposureProcessor {
                             if(edge<=0.8660254f*radius) {
                                 // One crystal sees a common footprint exposure;
                                 // finite capture capacity occludes sub-grain detail.
-                                footprint+=(radiance(src,center)+radiance(src,center+float2(radius*0.5f,0))+
-                                    radiance(src,center-float2(radius*0.5f,0)))/3.0f;
+                                footprint+=(radiance(src,center/samplePitch)+radiance(src,(center+float2(radius*0.5f,0))/samplePitch)+
+                                    radiance(src,(center-float2(radius*0.5f,0))/samplePitch))/3.0f;
                                 hits+=1.0f;
                             }
                         }

@@ -29,7 +29,7 @@ final class PhotoEditStore {
     }
 
     let directory: URL?
-    private let queue = DispatchQueue(label: "person.vader.PhotoStyleApp.photoEdits", qos: .utility)
+    private let queue: DispatchQueue
     private let cache = NSCache<NSString, Entry>()
     private var volatileRecords: [String: Entry] = [:]
     private var editedPhotos: [String: Bool] = [:]
@@ -38,7 +38,8 @@ final class PhotoEditStore {
     private static let maskColorSpace = CGColorSpace(name: CGColorSpace.extendedLinearSRGB)!
     var onError: ((Error) -> Void)?
 
-    init(directory: URL?) {
+    init(directory: URL?, queue: DispatchQueue = DispatchQueue(label: "person.vader.PhotoStyleApp.photoEdits", qos: .utility)) {
+        self.queue = queue
         self.directory = directory
         if let directory, let data = try? Data(contentsOf: directory.appendingPathComponent("edited-photos.json")) {
             if let saved = try? JSONDecoder().decode([String: Bool].self, from: data) { editedPhotos = saved }
@@ -91,34 +92,51 @@ final class PhotoEditStore {
         return SHA256.hash(data: Data((path + "\n" + identifier).utf8)).map { String(format: "%02x", $0) }.joined()
     }
 
-    func record(for key: String) -> PhotoEditRecord? {
-        queue.sync {
-            if let entry = cache.object(forKey: key as NSString) ?? volatileRecords[key] { return entry.record }
-            guard let directory, let data = try? Data(contentsOf: directory.appendingPathComponent(key + ".json")),
-                  let record = try? JSONDecoder().decode(PhotoEditRecord.self, from: data),
-                  record.version == 1, PhotoStyle(rawValue: record.selectedStyle) != nil else { return nil }
-            return record
+    struct LoadedEdits {
+        let key: String?
+        let record: PhotoEditRecord?
+        let mask: CIImage?
+    }
+
+    /// FIFO with saves; persistence and mask readback never hold the main thread.
+    func load(identifier: String?, url: URL?, maskSize: CGSize) async -> LoadedEdits {
+        await withCheckedContinuation { continuation in
+            queue.async { [self] in
+                let key = Self.key(identifier: identifier, url: url)
+                continuation.resume(returning: LoadedEdits(key: key,
+                    record: key.flatMap { readRecord(for: $0) },
+                    mask: key.flatMap { readMask(for: $0, size: maskSize) }))
+            }
         }
     }
 
-    func mask(for key: String, size: CGSize) -> CIImage? {
-        queue.sync {
-            let entry = cache.object(forKey: key as NSString) ?? volatileRecords[key]
-            let memory = entry?.mask
-            let disk = directory.flatMap { directory -> CIImage? in
-                guard entry == nil,
-                      let data = try? Data(contentsOf: directory.appendingPathComponent(key + ".mask.rgba")),
-                      data.count >= 16, data.prefix(8) == Data("FYPMASK1".utf8) else { return nil }
-                let width = data[8..<12].enumerated().reduce(0) { $0 | Int($1.element) << ($1.offset * 8) }
-                let height = data[12..<16].enumerated().reduce(0) { $0 | Int($1.element) << ($1.offset * 8) }
-                guard width > 0, height > 0, width <= 4096, height <= 4096,
-                      CGSize(width: width, height: height) == size, data.count == 16 + width * height * 16 else { return nil }
-                return CIImage(bitmapData: data.subdata(in: 16..<data.count), bytesPerRow: width * 16,
-                               size: size, format: .RGBAf, colorSpace: Self.maskColorSpace)
-            }
-            guard let mask = memory ?? disk, mask.extent.origin == .zero, mask.extent.size == size else { return nil }
-            return mask
+    func record(for key: String) -> PhotoEditRecord? { queue.sync { readRecord(for: key) } }
+    func mask(for key: String, size: CGSize) -> CIImage? { queue.sync { readMask(for: key, size: size) } }
+
+    private func readRecord(for key: String) -> PhotoEditRecord? {
+        if let entry = cache.object(forKey: key as NSString) ?? volatileRecords[key] { return entry.record }
+        guard let directory, let data = try? Data(contentsOf: directory.appendingPathComponent(key + ".json")),
+              let record = try? JSONDecoder().decode(PhotoEditRecord.self, from: data),
+              record.version == 1, PhotoStyle(rawValue: record.selectedStyle) != nil else { return nil }
+        return record
+    }
+
+    private func readMask(for key: String, size: CGSize) -> CIImage? {
+        let entry = cache.object(forKey: key as NSString) ?? volatileRecords[key]
+        let memory = entry?.mask
+        let disk = directory.flatMap { directory -> CIImage? in
+            guard entry == nil,
+                  let data = try? Data(contentsOf: directory.appendingPathComponent(key + ".mask.rgba")),
+                  data.count >= 16, data.prefix(8) == Data("FYPMASK1".utf8) else { return nil }
+            let width = data[8..<12].enumerated().reduce(0) { $0 | Int($1.element) << ($1.offset * 8) }
+            let height = data[12..<16].enumerated().reduce(0) { $0 | Int($1.element) << ($1.offset * 8) }
+            guard width > 0, height > 0, width <= 4096, height <= 4096,
+                  CGSize(width: width, height: height) == size, data.count == 16 + width * height * 16 else { return nil }
+            return CIImage(bitmapData: data.subdata(in: 16..<data.count), bytesPerRow: width * 16,
+                           size: size, format: .RGBAf, colorSpace: Self.maskColorSpace)
         }
+        guard let mask = memory ?? disk, mask.extent.origin == .zero, mask.extent.size == size else { return nil }
+        return mask
     }
 
     func save(_ record: PhotoEditRecord, mask: CIImage?, for key: String) {

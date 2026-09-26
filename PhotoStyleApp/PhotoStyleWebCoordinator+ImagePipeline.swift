@@ -25,6 +25,8 @@ extension PhotoStyleWebCoordinator {
         let needsPersistence: Bool
     }
 
+    @MainActor
+    @discardableResult
     func setSourceImage(
         _ image: PhotoImage,
         preparedPreview: PhotoImage? = nil,
@@ -34,10 +36,25 @@ extension PhotoStyleWebCoordinator {
         persistenceFileExtension: String? = nil,
         sourceIdentifier: String? = nil,
         sourceURL: URL? = nil,
-        persistsForNextLaunch: Bool = true
-    ) {
+        persistsForNextLaunch: Bool = true,
+        filename: String? = nil,
+        cancellation: PhotoStyleImageLoadCancellation? = nil
+    ) async -> Bool {
         // Commit the outgoing recipe before changing the image's identity.
         persistCurrentPhotoEdits()
+        let restoreID = UUID(), previousGeneration = photoGeneration
+        sourceRestoreID = restoreID
+        isLoadingImage = true
+        let preparedPreview = preparedPreview ?? image.resizedForWebPreview(maxPixel: PhotoImage.previewMaxPixel)
+        let loaded = await photoEditStore.load(identifier: sourceIdentifier, url: sourceURL, maskSize: preparedPreview.size)
+        guard sourceRestoreID == restoreID else { return false }
+        isLoadingImage = false
+        guard !isTerminating, !Task.isCancelled, cancellation?.isCancelled != true,
+              photoGeneration == previousGeneration else {
+            sendState(includeImages: true)
+            return false
+        }
+        if let filename { sourceFileName = filename }
         isRestoringPhotoEdits = true
         cancelCurrentSubjectMaskDetection()
         let hadSourceImage = sourceImage != nil
@@ -45,7 +62,7 @@ extension PhotoStyleWebCoordinator {
         sourceImage = image
         processingImage = preparedProcessingImage
         sourceFileURL = sourceURL
-        previewImage = preparedPreview ?? image.resizedForWebPreview(maxPixel: PhotoImage.previewMaxPixel)
+        previewImage = preparedPreview
         previewImagePayload = [:]
         loadingPreviewImagePayload = preparedPreviewPayload
         outputImage = nil
@@ -55,7 +72,7 @@ extension PhotoStyleWebCoordinator {
                 ?? defaults.string(forKey: Self.sourceAdjustmentIdentifierDefaultsKey)
                 ?? defaults.string(forKey: Self.lastSourceImageIdentifierDefaultsKey)
         )
-        let nextPhotoKey = PhotoEditStore.key(identifier: sourceIdentifier, url: sourceURL)
+        let nextPhotoKey = loaded.key
         let previousPhotoKey = hadSourceImage ? currentPhotoEditKey : defaults.string(forKey: Self.sourceAdjustmentPhotoKeyDefaultsKey)
         let isSameSourceImage = sourceIdentifier != nil && sourceIdentifier == previousSourceIdentifier
             && (previousPhotoKey == nil || previousPhotoKey == nextPhotoKey)
@@ -64,7 +81,7 @@ extension PhotoStyleWebCoordinator {
         }
         repairPatches = []
         // A known photo's recipe wins over the global last-look defaults.
-        if let nextPhotoKey, let record = photoEditStore.record(for: nextPhotoKey),
+        if let record = loaded.record,
            let restoredStyle = PhotoStyle(rawValue: record.selectedStyle) {
             if let sourceURL, !photoEditStore.hasRecordedEditState(at: sourceURL), record.adjustments.contains(where: { raw, adjustment in
                 guard let style = PhotoStyle(rawValue: raw) else { return false }
@@ -86,9 +103,7 @@ extension PhotoStyleWebCoordinator {
             customFilmBaseAdjustment = nil
             selectedStyle = .original
         }
-        if let nextPhotoKey, let size = previewImage?.size {
-            sourceSubjectMask = photoEditStore.mask(for: nextPhotoKey, size: size) ?? sourceSubjectMask
-        }
+        sourceSubjectMask = loaded.mask ?? sourceSubjectMask
         currentPhotoEditKey = nextPhotoKey
         currentSourceIdentifier = sourceIdentifier
         // An empty identifier records an unknown source and prevents legacy cache metadata reuse.
@@ -108,6 +123,7 @@ extension PhotoStyleWebCoordinator {
         // AI analysis and subject detection require an explicit editing command.
         applySelectedStyle()
         sendState(includeImages: true, externalEdit: true)
+        return true
     }
 
     func restoreLastSourceImageIfNeeded() -> Bool {
@@ -131,11 +147,10 @@ extension PhotoStyleWebCoordinator {
             let preparedProcessingImage = restoredImage?.image.resizedForWebPreview(maxPixel: Self.processingPreviewMaxPixel)
             let preparedPreview = restoredImage?.image.resizedForWebPreview(maxPixel: PhotoImage.previewMaxPixel)
             let preparedPreviewPayload = preparedPreview.flatMap { imageDataURL($0) }
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 self.isLoadingImage = false
                 if let restoredImage {
-                    self.sourceFileName = importedImageURL?.lastPathComponent ?? ""
-                    self.setSourceImage(
+                    await self.setSourceImage(
                         restoredImage.image,
                         preparedPreview: preparedPreview,
                         preparedProcessingImage: preparedProcessingImage,
@@ -144,7 +159,8 @@ extension PhotoStyleWebCoordinator {
                         persistenceFileExtension: restoredImage.fileExtension,
                         sourceIdentifier: restoredImage.sourceIdentifier,
                         sourceURL: importedImageURL,
-                        persistsForNextLaunch: restoredImage.needsPersistence
+                        persistsForNextLaunch: restoredImage.needsPersistence,
+                        filename: importedImageURL?.lastPathComponent ?? ""
                     )
                 } else {
                     if let privateImageURL, self.isManagedSourceImageURL(privateImageURL) {

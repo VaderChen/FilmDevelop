@@ -68,7 +68,8 @@ public enum PhotoLocalToneProcessor {
         to image: CIImage,
         contrast: Double = 0,
         highlights: Double = 0,
-        shadows: Double = 0
+        shadows: Double = 0,
+        renderContext: CIContext? = nil
     ) -> CIImage {
         guard [contrast, highlights, shadows].allSatisfy(\.isFinite),
               !image.extent.isInfinite else { return image }
@@ -100,7 +101,8 @@ public enum PhotoLocalToneProcessor {
         let baseLogLuminance = PhotoFastGuidedFilter.smooth(
             logLuminance,
             maximumSampleShortEdge: 256,
-            epsilon: 0.01
+            epsilon: 0.01,
+            renderContext: renderContext
         )
         guard let output = reconstructionKernel.apply(
             extent: normalizedImage.extent,

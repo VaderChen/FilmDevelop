@@ -38,6 +38,7 @@ enum PhotoStyleProcessor {
         subjectMask: CIImage? = nil,
         shouldDetectSubjectMask: Bool = true,
         repairPatches: [PhotoRepairPatch] = [],
+        isPreview: Bool = false,
         progress: (@Sendable (Double) -> Void)? = nil
     ) -> PhotoImage {
         guard let ciImage = CIImage(image: image) else { return image }
@@ -77,7 +78,8 @@ enum PhotoStyleProcessor {
             }
             try pipeline.process("emulsion") {
                 PhotoEmulsionExposureProcessor.apply(to: $0, effects: effects, amounts: amounts,
-                    strength: strength, monochrome: style.isMonochrome, renderContext: pipeline.context)
+                    strength: strength, monochrome: style.isMonochrome, renderContext: pipeline.context,
+                    sampling: isPreview ? .preview : .reference)
             }
             try pipeline.process("development") {
                 PhotoFilmDevelopmentProcessor.apply(to: $0, effects: effects, strength: strength)
@@ -122,15 +124,15 @@ enum PhotoStyleProcessor {
             }
             try pipeline.process("tone") {
                 let planned = applyPlanToneSemantics(to: $0, style: style, toneZones: adjustment.sourceToneZones, strength: strength)
-                return applyGlobalToneAdjustment(to: applyExposure(to: planned, amount: adjustment.exposure * strength),
-                                                 adjustment: adjustment, strength: strength)
+                return applyGlobalToneAdjustment(to: applyExposure(to: planned, amount: adjustment.exposure * strength, renderContext: pipeline.context),
+                                                 adjustment: adjustment, strength: strength, renderContext: pipeline.context)
             }
             try pipeline.process("tone-zones") {
                 applyToneZoneAdjustments(to: $0, style: style, adjustment: adjustment, strength: strength)
             }
             try pipeline.process("hdr") {
                 PhotoHDRProcessor.apply(to: $0, curve: adjustment.hdrToneCurve ?? PhotoHDRProcessor.manualCurve,
-                                        amount: adjustment.hdrAmount / 100)
+                                        amount: adjustment.hdrAmount / 100, renderContext: pipeline.context)
             }
             let geometry = try pipeline.inspect("crop-geometry") { input in
                 (adjustment.cropRect(in: input.extent, verticalAxisInverted: true),
@@ -168,7 +170,7 @@ enum PhotoStyleProcessor {
                                   adjustment: StyleAdjustment, strength: Double, isRAW: Bool) -> CIImage {
         // 曝光已在底片前的亮度階段套用，所有底片／相機／原片分支皆避免重複曝光。
         var adjustment = adjustment
-        adjustment.filmEffects.printExposure = 0
+        adjustment.filmEffects.clearPrintExposure()
         if style.cameraProfile != nil { adjustment.filmEffects.scannerProfile = .off }
         let monochromeSource = style.isMonochrome && style.filmStock == nil
             ? PhotoFilmEffectsProcessor.applyMonochromeFilter(to: correctedBaseImage, effects: adjustment.filmEffects, strength: strength)
@@ -492,14 +494,15 @@ enum PhotoStyleProcessor {
         PhotoImageEffectsProcessor.blend(filtered, with: original, opacity: intensity)
     }
 
-    private static func applyExposure(to image: CIImage, amount: Double) -> CIImage {
-        PhotoToneProcessor.applyExposure(to: image, ev: PhotoExposureScale.ev(fromSlider: amount))
+    private static func applyExposure(to image: CIImage, amount: Double, renderContext: CIContext? = nil) -> CIImage {
+        PhotoToneProcessor.applyExposure(to: image, ev: PhotoExposureScale.ev(fromSlider: amount), renderContext: renderContext)
     }
 
     private static func applyGlobalToneAdjustment(
         to image: CIImage,
         adjustment: StyleAdjustment,
-        strength: Double
+        strength: Double,
+        renderContext: CIContext? = nil
     ) -> CIImage {
         let contrastOffset = adjustment.contrast.clamped(to: -100...100) / 100 * strength
         let brightnessOffset = (adjustment.brightness.clamped(to: 0...100) - 50) / 50 * strength
@@ -516,7 +519,8 @@ enum PhotoStyleProcessor {
             : image
         return PhotoToneProcessor.applyContrast(
             to: brightnessAdjusted,
-            amount: contrastOffset
+            amount: contrastOffset,
+            renderContext: renderContext
         )
     }
 

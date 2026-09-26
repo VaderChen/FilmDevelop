@@ -24,7 +24,7 @@ public enum PhotoFilmSpectralProcessor {
             return PhotoPositiveScannerProcessor.apply(to: paper, effects: e)
         }
         let image = PhotoFilmEffectsProcessor.applyExposure(to: image, effects: e)
-        e.printExposure = 0
+        e.clearPrintExposure()
         guard let kernel = compiled.kernel,
               let index = PhotoFilmStock.allCases.firstIndex(of: stock),
               let linear = image.matchedFromWorkingSpace(to: linearSRGB) else { return image }

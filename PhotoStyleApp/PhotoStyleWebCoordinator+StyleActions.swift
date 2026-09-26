@@ -324,7 +324,7 @@ extension PhotoStyleWebCoordinator {
         defer { editHistoryBatchID = previousHistoryBatch }
         // Film edits have a strict shared contract. Reject a malformed batch before
         // changing any style so a bad enum/value cannot partially apply other edits.
-        let filmKeys = Set(["scannerSource", "printRecipe", "paperProfile", "layerResponse", "couplerAmount", "couplerRadius", "filmWidthMM", "grainDistribution", "emulsionMTF", "paperScatter", "paperWhite", "paperDensityOffset", "reciprocityAmount", "exposureSeconds", "halationBase", "silverRetention", "developerTemperature", "developerActivity", "scannerProfile", "scannerIlluminant", "scanExposure", "scanContrast", "scanSaturation", "scanDensityCorrection", "scanFlare", "scanMidtoneWarmth", "scanHighlightWarmth", "printIlluminant", "viewIlluminant", "filmColorModel", "printExposure", "printContrast", "developmentAmount", "developmentTime", "developmentDiffusion", "developmentAgitation", "grainMode", "grainSize", "grainClumping", "grainChroma",
+        let filmKeys = Set(["scannerSource", "printRecipe", "paperProfile", "layerResponse", "couplerAmount", "couplerRadius", "filmWidthMM", "grainDistribution", "emulsionMTF", "paperScatter", "paperWhite", "paperDensityOffset", "reciprocityAmount", "exposureSeconds", "halationBase", "silverRetention", "developerTemperature", "developerActivity", "scannerProfile", "scannerIlluminant", "scanExposure", "scanContrast", "scanSaturation", "scanDensityCorrection", "scanFlare", "scanMidtoneWarmth", "scanHighlightWarmth", "printIlluminant", "viewIlluminant", "filmColorModel", "printExposure", "printExposureHighlights", "printExposureMidtones", "printExposureShadows", "printContrast", "developmentAmount", "developmentTime", "developmentDiffusion", "developmentAgitation", "grainMode", "grainSize", "grainClumping", "grainChroma",
                             "bloomAmount", "bloomRadius", "bloomThreshold",
                             "halationAmount", "halationRadius", "halationThreshold",
                             "monochromeFilter", "monochromeFilterStrength"])
@@ -415,7 +415,13 @@ extension PhotoStyleWebCoordinator {
                 case "scanFlare": adjustment.filmEffects.scanFlare = doubleValue(from: value)!
                 case "scanMidtoneWarmth": adjustment.filmEffects.scanMidtoneWarmth = doubleValue(from: value)!
                 case "scanHighlightWarmth": adjustment.filmEffects.scanHighlightWarmth = doubleValue(from: value)!
-                case "printExposure": adjustment.filmEffects.printExposure = doubleValue(from: value)!
+                case "printExposure":
+                    adjustment.filmEffects.clearPrintExposure()
+                    adjustment.filmEffects.printExposure = doubleValue(from: value)!
+                case "printExposureHighlights": adjustment.filmEffects.printExposureHighlights = doubleValue(from: value)!
+                case "printExposureMidtones": adjustment.filmEffects.printExposureMidtones = doubleValue(from: value)!
+                case "printExposureShadows": adjustment.filmEffects.printExposureShadows = doubleValue(from: value)!
+
                 case "printContrast": adjustment.filmEffects.printContrast = doubleValue(from: value)!
                 case "developmentAmount": adjustment.filmEffects.developmentAmount = doubleValue(from: value)!
                 case "developmentTime": adjustment.filmEffects.developmentTime = doubleValue(from: value)!

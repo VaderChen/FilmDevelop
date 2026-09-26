@@ -11,19 +11,13 @@ A film-inspired photo editor for Apple Silicon Mac. Open a photo folder, choose 
 Requires macOS 14 or later. AI features require a compatible local model, downloaded separately.
 
 
-## Development updates (unreleased)
+## Latest changes — 1.26.0926 build 1603
 
-The source now includes material defaults for all 23 core film stocks, four print recipes below Print Illuminant, and a separate Silver Density section. Film Default preserves the original paper settings. Printing and scanning can be combined: print the film first, then scan the photo. These features are not yet included in the release listed below.
-
-## Latest changes — 1.26.0925 build 1416
-
-Six artistic scan styles are available: Neutral, Warm, Soft Portrait, Vivid, Cool Clean and Faded Vintage. They are not measured commercial-scanner profiles. GR digital camera simulations force scanning off and disable the entire panel, including for old recipes and exports. Film stocks and Original retain scanning support; with default controls, Neutral and Off look identical on Original.
-
-All 74 workbench adjustment controls have help. Click an underlined label, or focus it and press Enter/Space; Escape closes it. “Show help automatically” only controls automatic hints: clicking still works when it is off. Help clicks and double-clicks do not change or reset values. Original is hidden from the film-library list, always available in the workbench, and selected on first launch.
-
-Exposure adjusts linear luminance before film color processing: ±8 EV normally, ±16 EV with expansion. Highlight protection applies only when enabled and cannot recover clipped source detail. Portra 800 saturation ordering, Lomo Purple red preservation and fixed tungsten casts on white-balanced inputs have been refined; these remain qualitative approximations.
-
-On first launch, `run.command` downloads missing llama.cpp/libwebp submodules; network access and full Xcode are required. Restart an already-open app after rebuilding to load the updated interface.
+- Fixed independent highlight, midtone and shadow exposure with smooth transitions. Equal EV values scale linear luminance by 2^EV. Exposure separates Lab lightness/chroma while preserving existing RGB and spectral models.
+- Photo recipes and materials can be mixed independently. Controls sit below Scan Source and are enabled for Photo. Silver Density supports −100 to 100, below Print Illuminant.
+- Added a default export folder in General settings. Dependent sliders are disabled when their parent effect is off, preserving saved values.
+- Improved asynchronous edit restoration during photo switching and emulsion preview sampling; export retains reference sampling. Global digital exposure, local contrast and HDR reuse small per-stage filter coefficients. Equal tone-zone recipes share branches, and unchanged stages skip full-image readback.
+- Added material defaults for 23 core films, four photo recipes and repair-model preparation when opening the repair brush. Material and development effects remain artistic approximations.
 
 ## Download and languages
 
@@ -80,7 +74,7 @@ HDR can be adjusted without an AI tone curve. Lens blur respects crop and depth 
 
 ### Adjustments and AI
 
-Film intensity defaults to 50. All built-in films, including Original, default to neutral scanning. Exposure and contrast remain available under Develop while scanning is enabled. Positive exposure brightens and negative darkens. Raising EV gently compresses highlights; lowering EV protects shadow detail. Zero EV leaves the appearance unchanged. Scan controls color density, layer separation, scanner flare and midtone/highlight warmth.
+Film intensity defaults to 50. All built-in films, including Original, default to neutral scanning. Exposure and contrast remain available under Develop while scanning is enabled. Exposure converts linear sRGB through XYZ to Lab (D65), updates lightness while preserving a/b, then reconstructs RGB before film processing. Gamut compression moves toward neutral at the same luminance instead of clipping individual channels; it retains existing wide-gamut and HDR headroom without amplifying shadow chroma. Positive exposure brightens and negative darkens. Highlight protection gently compresses positive EV when enabled; negative EV does not lift shadows. Highlights, midtones and shadows use smooth transitions with fixed boundaries, preserving tone order and ensuring that increasing EV never weakens the adjustment. Equal zone values scale global linear luminance by 2^EV, so three −8 EV values reduce luminance to 1/256. Zero EV leaves the appearance unchanged. Scan controls color density, layer separation, scanner flare and midtone/highlight warmth.
 
 Opening a photo does not start AI. Select a compatible local model, then run AI Assistance. Analysis can be cancelled and its results adjusted manually. Judge the result by your photo.
 
@@ -134,30 +128,23 @@ Use the save icon above intensity to name and save all current adjustments as a 
 
 ## Emulsion, development and print materials
 
-New controls cover color-layer curves and inhibition, film width (8–120 mm), grain-size distribution, emulsion detail loss, virtual exposure time (0.0001–3600 s) and reciprocity loss, anti-halation absorption, additional silver density, developer temperature (10–40°C) and activity, and paper material, scatter, white and maximum density. They are artistic approximations, not measured manufacturer film, chemistry, paper or scanner profiles. Developer temperature is a relative model, not a processing-time recommendation; virtual exposure does not read or change EXIF.
+New controls cover color-layer curves and inhibition, film width (8–120 mm), grain-size distribution, emulsion detail loss, virtual exposure time (0.0001–3600 s) and reciprocity loss, anti-halation absorption, silver density adjustment, developer temperature (10–40°C) and activity, and paper material, scatter, white and maximum density. They are artistic approximations, not measured manufacturer film, chemistry, paper or scanner profiles. Developer temperature is a relative model, not a processing-time recommendation; virtual exposure does not read or change EXIF.
 
 All 23 core stocks, including five retained for legacy recipes, have conservative material defaults. Existing saved recipes are not overwritten. Missing fields retain the old neutral values: film width 36 mm, paper white 100, anti-halation 50, temperature 20°C and activity 100. CineStill 800T uses anti-halation 35 and halation 28 to keep red return energy near its previous baseline. Bleach Bypass retains its built-in silver effect; SX-70 keeps its original low print density under Film Default.
 
-### Print recipes and photo scanning
+### Photo recipes, materials and silver density
 
-In Development, Print Recipe appears immediately below Print Illuminant. It defaults to Film Default. Selecting a recipe preserves scan on/off, scan style, exposure and film settings, and selects Printed Photo as the scan source. Reversal film, Original and digital camera looks do not use print recipes.
+In Development, Print Illuminant precedes Silver Density. The silver adjustment ranges from −100 to 100; zero displays Film Default. Negative values reduce retained silver without allowing negative total density. Saved photos, custom films and undo/redo retain the adjustment.
 
-| Recipe | Paper | Scatter | Paper white | Black-density offset |
-| --- | --- | ---: | ---: | ---: |
-| Film Default | reference | 0 | 100 | 0 |
-| Glossy Print | glossy | 4 | 100 | 0 |
-| Soft Matte | matte | 22 | 96 | 0 |
-| Warm Fiber | warmFiber | 14 | 94 | 0 |
+In Scanning, Scan Source offers Film or Photo. Photo Recipe, Photo Material, paper scatter, paper white and black-density offset sit below it and are enabled only for a supported film with Photo selected. Reversal film, Original and digital camera looks do not use photo recipes.
 
-Fine-tuning the paper controls shows Custom Print when the values no longer match a recipe. Save the result as a custom film; actual values persist with photos and recipes and support undo/redo.
+Recipes change scatter, white and black-density offset while preserving the selected material. Material is independently selectable: Film Default, Glossy, Matte or Warm Fiber. Recipe values (scatter / white / density offset): Film Default 0/100/0; Glossy 4/100/0; Soft Matte 22/96/0; Warm Fiber 14/94/0.
 
-Scan Source selects direct Film scanning or **film → optical print → paper effects → photo scan**. Photo scanning retains paper white, density and scatter, then applies scan style, color and flare. It does not repeat exposure or invert negative dyes; layer-separation correction is disabled. With scanning off, the result is the print itself. Direct film scans and reversal film bypass paper controls. Old recipes default to direct film scanning. Photo scanning is an artistic positive-image model, not a measured reflective scanner.
+Photo scanning follows film → optical print → paper effects → photo scan. Paper properties remain visible, with no repeated exposure or negative inversion. Direct film scanning and reversal film bypass paper effects. Older recipes default to Film. These are artistic approximations.
 
-### Silver density
+Virtual exposure time is disabled when reciprocity loss is zero. Development, bloom and halation dependencies are similarly disabled without erasing saved values. General settings provide a folder chooser for the default export directory.
 
-The separate Silver Density section displays Film Default when additional silver is 0. The 0–100 slider adds neutral silver density and affects printing and both scan paths. Film Default clears only this extra adjustment, preserving the stock's own silver, including Bleach Bypass, and leaving paper, exposure and scanner settings intact.
-
-MCP `update_adjustments` accepts `printRecipe` (`reference`, `glossy`, `matte`, `warmFiber`), `scannerSource` (`film`, `paper`) and `silverRetention` (0–100). Explicit adjustments in the same batch run after a recipe. Saved/AI JSON uses `scanner_source` and `silver_retention` within `film_effects`. The print recipe is stored as its paper values, not a separate recipe identifier.
+MCP update_adjustments accepts printRecipe (reference/glossy/matte/warmFiber), scannerSource (film/paper) and silverRetention (−100 to 100). Recipes store actual paper values; explicit values in the same batch apply after the recipe.
 
 ## License
 

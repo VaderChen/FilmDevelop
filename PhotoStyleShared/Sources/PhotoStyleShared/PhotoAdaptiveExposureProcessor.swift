@@ -52,7 +52,7 @@ public enum PhotoAdaptiveExposureProcessor {
     }
     """)
 
-    public static func apply(to image: CIImage, ev: Double) -> CIImage {
+    public static func apply(to image: CIImage, ev: Double, renderContext: CIContext? = nil) -> CIImage {
         let exposureValue = ev.isFinite ? min(max(ev, -4), PhotoExposureScale.maximumEV) : 0
         guard abs(exposureValue) > 0.001,
               !image.extent.isEmpty,
@@ -74,7 +74,7 @@ public enum PhotoAdaptiveExposureProcessor {
         ) else {
             return image
         }
-        let illumination = PhotoFastGuidedFilter.smooth(initialIllumination)
+        let illumination = PhotoFastGuidedFilter.smooth(initialIllumination, renderContext: renderContext)
         guard let output = exposureKernel.apply(
             extent: normalizedImage.extent,
             arguments: [normalizedImage, illumination, Float(exposureValue)]
