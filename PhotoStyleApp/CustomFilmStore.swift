@@ -5,6 +5,29 @@ struct CustomFilm: Codable, Equatable, Identifiable {
     let name: String
     let baseStyle: String
     let adjustment: StyleAdjustment
+
+    enum CodingKeys: String, CodingKey { case id, name, baseStyle, adjustment }
+
+    init(id: String, name: String, baseStyle: String, adjustment: StyleAdjustment) {
+        self.id = id; self.name = name; self.baseStyle = baseStyle
+        self.adjustment = adjustment.preservingPhotoGeometry(from: .default)
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(id: try c.decode(String.self, forKey: .id),
+                  name: try c.decode(String.self, forKey: .name),
+                  baseStyle: try c.decode(String.self, forKey: .baseStyle),
+                  adjustment: try c.decode(StyleAdjustment.self, forKey: .adjustment))
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(name, forKey: .name)
+        try c.encode(baseStyle, forKey: .baseStyle)
+        try adjustment.encode(to: c.superEncoder(forKey: .adjustment), includingPhotoGeometry: false)
+    }
 }
 
 /// Named recipes stay independent of the working adjustments of each photo.
@@ -65,6 +88,14 @@ final class CustomFilmStore {
         let name: String
         let baseStyle: String
         let adjustment: StyleAdjustment
+
+        enum CodingKeys: String, CodingKey { case id, format, version, name, baseStyle, adjustment }
+        func encode(to encoder: Encoder) throws {
+            try CustomFilm(id: id, name: name, baseStyle: baseStyle, adjustment: adjustment).encode(to: encoder)
+            var c = encoder.container(keyedBy: CodingKeys.self)
+            try c.encode(format, forKey: .format)
+            try c.encode(version, forKey: .version)
+        }
     }
 
     func exportData(id: String) throws -> Data {

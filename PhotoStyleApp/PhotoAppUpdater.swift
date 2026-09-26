@@ -39,20 +39,21 @@ final class PhotoAppUpdater {
     func checkAtLaunch() {
         guard !didCheckAtLaunch else { return }
         didCheckAtLaunch = true
-        PhotoAppUpdateInstaller.finishInstallation(arguments: ProcessInfo.processInfo.arguments)
+        let confirmed = PhotoAppUpdateInstaller.finishInstallation(arguments: ProcessInfo.processInfo.arguments)
+        if let currentVersion { Self.recordLaunch(version: currentVersion, installationConfirmed: confirmed) }
         check(manual: false)
     }
 
     func check(manual: Bool = true) {
         guard task == nil else {
-            if manual, checkingNetwork {
+            if manual {
                 manualRequested = true
-                if progressAlert == nil { showProgress(title: "正在檢查更新", detail: "正在連線至 GitHub…", cancellable: true) }
+                if checkingNetwork, progressAlert == nil { showProgress(title: "正在檢查更新", detail: "正在連線至 GitHub…", cancellable: true) }
             }
             progressAlert?.window.makeKeyAndOrderFront(nil)
             return
         }
-        checkingNetwork = true
+        checkingNetwork = false
         phase = .checking
         manualRequested = manual
         task = Task { [weak self] in
@@ -60,6 +61,8 @@ final class PhotoAppUpdater {
             defer { closeProgress(); transferID = nil; task = nil; checkingNetwork = false; manualRequested = false }
             do {
                 if !manual { try await Task.sleep(nanoseconds: launchDelay) }
+                try await presentUpdateNoticeIfNeeded()
+                checkingNetwork = true
                 guard let current = currentVersion else {
                     throw PhotoAppUpdateError(message: "無法辨識目前版本，請先安裝正式版本。")
                 }
@@ -106,6 +109,43 @@ final class PhotoAppUpdater {
                 }
             }
         }
+    }
+
+    static let lastLaunchedVersionKey = "appUpdate.lastLaunchedVersion.v1"
+    static let pendingNoticeKey = "appUpdate.pendingNotice.v1"
+    static let acknowledgedNoticeKey = "appUpdate.acknowledgedNotice.v1"
+
+    static func recordLaunch(version: PhotoAppVersion, installationConfirmed: Bool,
+                             defaults: UserDefaults = .standard) {
+        let previous = defaults.string(forKey: lastLaunchedVersionKey).flatMap { PhotoAppVersion(tag: $0) }
+        if (installationConfirmed || previous.map { version > $0 } == true),
+           defaults.string(forKey: acknowledgedNoticeKey) != version.tag {
+            defaults.set(version.tag, forKey: pendingNoticeKey)
+        }
+        defaults.set(version.tag, forKey: lastLaunchedVersionKey)
+    }
+
+    // Bundled with this release so the notice is available without a network request.
+    static let releaseHighlights = [
+        "裁切第一次拖曳就能調整，不必再拖第二次。",
+        "切換底片不會清除裁切與修復；切到未編輯照片時會顯示原片。",
+        "各款底片與掃描風格更容易分辨，新增五款掃描設備模擬。",
+        "可選擇顯示更多同系列底片，底片清單也能收合。"
+    ]
+
+    private func presentUpdateNoticeIfNeeded() async throws {
+        guard let currentVersion,
+              UserDefaults.standard.string(forKey: Self.pendingNoticeKey) == currentVersion.tag,
+              UserDefaults.standard.string(forKey: Self.acknowledgedNoticeKey) != currentVersion.tag else { return }
+        while !readyToPresent {
+            try Task.checkCancellation()
+            guard coordinator?.isTerminating != true else { return }
+            try await Task.sleep(nanoseconds: 500_000_000)
+        }
+        _ = await alert("更新完成", "目前版本：\(currentVersion.display)", buttons: ["好"],
+                        bullets: Self.releaseHighlights)
+        UserDefaults.standard.set(currentVersion.tag, forKey: Self.acknowledgedNoticeKey)
+        UserDefaults.standard.removeObject(forKey: Self.pendingNoticeKey)
     }
 
     private var readyToPresent: Bool {
@@ -244,10 +284,22 @@ final class PhotoAppUpdater {
         }
     }
 
-    private func alert(_ title: String, _ detail: String, buttons: [String]) async -> NSApplication.ModalResponse {
+    private func alert(_ title: String, _ detail: String, buttons: [String], bullets: [String] = []) async -> NSApplication.ModalResponse {
         let dialog = NSAlert()
         dialog.messageText = PhotoL10n.text(title); dialog.informativeText = PhotoL10n.text(detail)
         buttons.forEach { dialog.addButton(withTitle: PhotoL10n.text($0)) }
+        if !bullets.isEmpty {
+            let screenWidth = coordinator?.webView?.window?.screen?.visibleFrame.width
+                ?? NSScreen.main?.visibleFrame.width ?? 1024
+            let width = min(760, max(280, screenWidth - 180))
+            let label = NSTextField(wrappingLabelWithString: bullets.map { "• " + PhotoL10n.text($0) }.joined(separator: "\n\n"))
+            label.font = .systemFont(ofSize: 13)
+            label.preferredMaxLayoutWidth = width
+            label.maximumNumberOfLines = 0
+            let height = ceil(label.cell?.cellSize(forBounds: NSRect(x: 0, y: 0, width: width, height: 10_000)).height ?? 160)
+            label.frame = NSRect(x: 0, y: 0, width: width, height: height + 8)
+            dialog.accessoryView = label
+        }
         if let window = coordinator?.webView?.window ?? NSApp.mainWindow {
             return await withCheckedContinuation { continuation in
                 dialog.beginSheetModal(for: window) { continuation.resume(returning: $0) }

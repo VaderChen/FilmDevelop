@@ -99,12 +99,12 @@ public enum PhotoFilmStock: String, CaseIterable, Codable, Sendable {
         switch self {
         case .filmGold200: return "暖黃感色層偏移、較鮮明的中調，搭配日常負片顆粒；與 Portra 的柔和膚色方向區隔。"
         case .filmCineStill800T: return "以已白平衡影像為基準保留鎢絲片階調，預設開啟亮部紅暈；色溫可依光源調整。"
-        case .filmPolaroidSX70: return "即影即有靈感的暖色、較低印相密度與柔光；使用共用光譜核心作藝術近似，未重建 SX-70 的完整化學製程。"
+        case .filmPolaroidSX70: return "即影即有的暖色、較低印相密度與柔光。"
         case .filmDelta3200: return "高感度黑白靈感的大尺寸顆粒、柔展階調與顯影局部反差；與 HP5 的中等顆粒區隔。"
         case .filmLomoPurple: return "保留紅色並重新配置感色層響應，讓綠色轉紫、黃色轉粉、藍色轉綠。"
         case .filmOrtho80: return "藍綠感光、抑制紅色響應，再經銀鹽與印相雙曲線。"
-        case .filmSFX200: return "加重紅色感光的黑白雙曲線；延伸紅感以 RGB 近似。"
-        case .filmInfrared400: return "綠葉提亮、藍天壓暗的 RGB 創意近似，無法還原真實紅外線。"
+        case .filmSFX200: return "加重紅色感光的黑白雙曲線，讓紅色物體呈現較亮階調。"
+        case .filmInfrared400: return "提亮綠葉、壓暗藍天，強調明暗分離。"
         case .filmBleachBypass: return "印片端加入保留銀密度，產生深黑與更強反差。"
         case .filmCrossProcess: return "各感色層使用不同曝光斜率與偏移，形成隨明暗變化的色偏。"
         default:
@@ -159,8 +159,8 @@ public enum PhotoFilmStock: String, CaseIterable, Codable, Sendable {
         case .filmHP5: return .init("HP5 PLUS 400", "全色黑白・紀實顆粒", ["D4D0C8", "85837E", "30312F"], 28, 1.25, 24)
         case .filmFP4: return .init("FP4 PLUS 125", "全色黑白・精細層次", ["E1DDD5", "96938B", "46443F"], 15, 0.8, 10)
         case .filmOrtho80: return .init("ORTHO PLUS 80", "正色黑白・紅色深沉", ["CEC9BE", "787F78", "2F3434"], 12, 0.7, 9)
-        case .filmSFX200: return .init("SFX 200", "延伸紅感・RGB 近似", ["DEDCD3", "848B80", "344345"], 21, 1.0, 17)
-        case .filmInfrared400: return .init("Infrared 400", "紅外線意象・RGB 近似", ["E7E7D9", "A3AB98", "263A42"], 24, 1.1, 18)
+        case .filmSFX200: return .init("SFX 200", "延伸紅感・明亮紅色", ["DEDCD3", "848B80", "344345"], 21, 1.0, 17)
+        case .filmInfrared400: return .init("Infrared 400", "紅外線意象・亮葉深空", ["E7E7D9", "A3AB98", "263A42"], 24, 1.1, 18)
         case .filmBleachBypass: return .init("Bleach Bypass", "保留銀・深黑強反差", ["B8B3A7", "787C78", "303B42"], 26, 1.1, 23)
         case .filmCrossProcess: return .init("Cross Process", "交叉沖洗・色彩交錯", ["D3B353", "799B75", "55577F"], 18, 0.9, 14)
         case .filmGold200: return .init("Kodak Gold 200", "暖金日常・鮮明懷舊", ["D9AD58", "BD754D", "708A64"], 20, 1.0, 16)

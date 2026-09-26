@@ -68,7 +68,7 @@ enum PhotoStyleMCPTools {
         let descriptions = [
             "scannerSource": "film 直接掃描底片（相容預設）；paper 先印相再掃描紙本正像。相片掃描略過負片色層分離，保留紙白與紙基效果；反轉片維持直接掃描。",
             "printRecipe": "印相配方：reference 底片預設、glossy 亮面、matte 霧面柔階、warmFiber 暖調纖維。限非反轉片底片；保留目前紙材，只套用紙白、紙黑密度偏移與散射並將掃描來源設為相片，保留底掃開關及風格，保留曝光、反差及底片設定。同批個別參數會在配方後套用。",
-            "scannerProfile": "off 關閉掃描；neutral 中性掃描（預設）；warmCool 暖中調冷亮部；softPortrait 柔和人像；vivid 鮮明掃描；coolClean 冷色清透；fadedVintage 復古褪色。底片與原片皆可使用；數位相機模擬強制 off 並停用底掃；原片僅套用掃描色彩調整。非實測商用掃描器。",
+            "scannerProfile": "off 關閉掃描；neutral 中性掃描（預設）；warmCool 暖中調冷亮部；softPortrait 柔和人像；vivid 鮮明掃描；coolClean 冷色清透；fadedVintage 復古褪色。底片與原片皆可使用；數位相機模擬強制 off 並停用底掃；原片僅套用掃描色彩調整。設備工作流程參考風格：frontierSP500、noritsuHS1800、flextightX5、coolscan9000、epsonV850。非實測商用掃描器。",
             "scannerIlluminant": "底掃穿透光源，片基自動平衡；與印相、觀看光源分開。",
             "scanSaturation": "底掃色彩濃度，50 為中性，0 灰階；黑白底片維持灰階。",
             "scanDensityCorrection": "負片密度域色層去耦合程度，100 完整校正；正片與黑白略過。",

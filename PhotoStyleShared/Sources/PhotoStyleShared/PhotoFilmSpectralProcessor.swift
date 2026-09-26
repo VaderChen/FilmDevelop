@@ -13,7 +13,8 @@ public enum PhotoFilmSpectralProcessor {
         to image: CIImage,
         stock: PhotoFilmStock,
         effects: PhotoFilmEffects = .neutral,
-        strength: Double = 1
+        strength: Double = 1,
+        deferScannerRendering: Bool = false
     ) -> CIImage {
         var e = effects.clamped()
         // 相片掃描先完成光學印相與紙材，再對正像掃描；不再反解負片染料。
@@ -21,7 +22,7 @@ public enum PhotoFilmSpectralProcessor {
             var printing = e
             printing.scannerProfile = .off
             let paper = apply(to: image, stock: stock, effects: printing, strength: strength)
-            return PhotoPositiveScannerProcessor.apply(to: paper, effects: e)
+            return deferScannerRendering ? paper : PhotoPositiveScannerProcessor.apply(to: paper, effects: e)
         }
         let image = PhotoFilmEffectsProcessor.applyExposure(to: image, effects: e)
         e.clearPrintExposure()
@@ -42,8 +43,8 @@ public enum PhotoFilmSpectralProcessor {
         let calibration = PhotoFilmScanner.calibration(profile, light:light)
         func vector(_ value: SIMD3<Double>) -> CIVector { CIVector(x:value.x,y:value.y,z:value.z) }
         let scanRows = (0..<3).map { r in vector(.init(calibration.inverse.columns.0[r], calibration.inverse.columns.1[r], calibration.inverse.columns.2[r])) }
-        let warmth = e.scannerProfile.warmth
-        let style = e.scannerProfile.rendering
+        let warmth = deferScannerRendering ? SIMD2<Double>.zero : e.scannerProfile.warmth
+        let style = deferScannerRendering ? SIMD4<Double>(1, 1, 0, 0) : e.scannerProfile.rendering
         guard let result = kernel.apply(extent: image.extent, roiCallback: { input, rect in
             input == 0 || input == 6 ? rect : PhotoFilmSpectralReconstruction.extent
         }, arguments: [
@@ -55,8 +56,8 @@ public enum PhotoFilmSpectralProcessor {
             CIVector(x:e.scannerProfile == .off ? 0 : 1,
                      y:Double(PhotoFilmEffects.Illuminant.allCases.firstIndex(of:e.scannerIlluminant)!),
                      z:calibration.slope, w:pow(e.scanFlare / 100, 2) * 0.005),
-            CIVector(x:0, y:1, z:e.scanSaturation/50, w:e.scanDensityCorrection/100),
-            CIVector(x:0, y:(e.scanMidtoneWarmth + warmth.x)/100, z:(e.scanHighlightWarmth + warmth.y)/100, w:0),
+            CIVector(x:0, y:1, z:deferScannerRendering ? 1 : e.scanSaturation/50, w:e.scanDensityCorrection/100),
+            CIVector(x:0, y:deferScannerRendering ? 0 : (e.scanMidtoneWarmth + warmth.x)/100, z:deferScannerRendering ? 0 : (e.scanHighlightWarmth + warmth.y)/100, w:0),
             CIVector(x:style.x,y:style.y,z:style.z,w:style.w),
             vector(calibration.base), vector(calibration.middle), scanRows[0], scanRows[1], scanRows[2],
             CIVector(x:curves[0].x,y:curves[0].y,z:curves[0].z,w:curves[0].w),

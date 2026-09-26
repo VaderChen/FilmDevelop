@@ -23,11 +23,14 @@
     whiteBalancePicking: false,
     repairEditing: false,
     isRepairingImage: false,
+    sidebarCustomCollapsed: localStorage.getItem("photoStyle.sidebarGroup.custom") === "true",
+    sidebarBuiltinCollapsed: localStorage.getItem("photoStyle.sidebarGroup.builtin") === "true",
     sidebarCollapsed: localStorage.getItem("photoStyle.sidebarCollapsed") === "true",
     showHelp: localStorage.getItem("photoStyle.showHelp") !== "false",
     appearance: localStorage.getItem("photoStyle.appearance") || "comfortable",
     language: L.preference(),
     thumbnailSize: normalizedThumbnailSize(localStorage.getItem("photoStyle.thumbnailSize")),
+    showAllFilms: false,
     exposureExpansionEnabled: false,
     highlightProtectionEnabled: true,
     hdrFeatureEnabled: true,
@@ -161,6 +164,7 @@
   var adjustmentInteractionSequence = 0;
   var styleDrag = null;
   var cropGesture = null;
+  var cropMouseFallbackController = null;
   var cropEditSnapshot = null;
   var cropUpdateTimer = null;
   var pendingCropValues = null;
@@ -488,7 +492,7 @@
   // 收藏偏好合併至代表款式；照片與自訂底片的配方 ID 維持原樣。
   function catalogStyleID(id) {
     var style = (state.styles || []).find(function (item) { return item.id === id; });
-    return style && style.mergedInto ? style.mergedInto : id;
+    return style && style.mergedInto && !state.showAllFilms ? style.mergedInto : id;
   }
 
   function catalogStyleIDs(ids) {
@@ -498,7 +502,7 @@
   }
 
   function catalogStyles() {
-    return (state.styles || []).filter(function (style) { return !style.mergedInto; });
+    return (state.styles || []).filter(function (style) { return state.showAllFilms || !style.mergedInto; });
   }
 
   function readStyleOrder() {
@@ -536,12 +540,23 @@
     var ordered = applyStyleOrder(catalogStyles(), readStyleOrder()).filter(function (style) { return style.isOriginal || style.isFilmStock || style.isCustom; });
     var allIDs = ordered.map(function (style) { return style.id; });
     if (allIDs.length === 0) return [];
-    var defaults = allIDs;
+    var defaults = ordered.filter(function (style) { return !style.mergedInto; }).map(function (style) { return style.id; });
 
     try {
       var raw = localStorage.getItem(enabledStylesKey);
-      if (raw == null) return defaults;
-      var stored = JSON.parse(raw);
+      var stored = raw == null ? defaults : JSON.parse(raw);
+      // Expanded family members have independent opt-in preferences; legacy
+      // merged selections never implicitly enable them.
+      if (Array.isArray(stored)) stored = stored.map(function (id) {
+        var style = state.styles.find(function (item) { return item.id === id; });
+        return style && style.mergedInto ? style.mergedInto : id;
+      });
+      if (state.showAllFilms && Array.isArray(stored)) {
+        var extras = JSON.parse(localStorage.getItem("photoStyle.enabledExpandedFilms.v1") || "[]");
+        if (Array.isArray(extras)) stored = stored.concat(extras.filter(function (id) {
+          return state.styles.some(function (style) { return style.id === id && style.mergedInto; });
+        }));
+      }
       var enabled = Array.isArray(stored)
         ? catalogStyleIDs(stored).filter(function (id) { return allIDs.indexOf(id) >= 0; })
         : [];
@@ -560,7 +575,14 @@
     });
     if (allIDs.indexOf("original") >= 0 && filtered.indexOf("original") < 0) filtered.unshift("original");
     if (filtered.length === 0 && allIDs.length > 0) filtered = [allIDs[0]];
-    localStorage.setItem(enabledStylesKey, JSON.stringify(filtered));
+    if (state.showAllFilms) {
+      localStorage.setItem("photoStyle.enabledExpandedFilms.v1", JSON.stringify(filtered.filter(function (id) {
+        return state.styles.some(function (style) { return style.id === id && style.mergedInto; });
+      })));
+    }
+    localStorage.setItem(enabledStylesKey, JSON.stringify(filtered.filter(function (id) {
+      return !state.styles.some(function (style) { return style.id === id && style.mergedInto; });
+    })));
     return filtered;
   }
 
@@ -624,6 +646,7 @@
 
   function render() {
     sidebarReorder.cancel();
+    if (cropMouseFallbackController) { cropMouseFallbackController.abort(); cropMouseFallbackController = null; }
     L.setLanguage(state.language);
     document.title = text("appName");
     filmHoverPreview.sync();
@@ -748,7 +771,11 @@
         var label = (style.isOriginal ? "" : L.text("底片：")) + styleTitle(style);
         var group = style.isCustom ? 'custom' : style.id === 'original' ? 'original' : 'builtin';
         var previous = index ? (styles[index - 1].isCustom ? 'custom' : styles[index - 1].id === 'original' ? 'original' : 'builtin') : group;
-        var divider = index && group !== previous ? '<div class="sidebar-film-divider" role="separator" aria-label="' + (group === 'custom' ? L.text('自訂底片') : L.text('內建底片')) + '"><span>' + (group === 'custom' ? L.text('自訂底片') : L.text('內建底片')) + '</span></div>' : '';
+        var collapsed = group === 'custom' ? state.sidebarCustomCollapsed : group === 'builtin' ? state.sidebarBuiltinCollapsed : false;
+        var groupTitle = group === 'custom' ? L.text('自訂底片') : L.text('內建底片');
+        var divider = group !== 'original' && (!index || group !== previous)
+          ? '<button class="sidebar-film-divider" type="button" data-toggle-sidebar-group="' + group + '" aria-expanded="' + !collapsed + '" aria-label="' + escapeHtml(groupTitle) + '" title="' + escapeHtml(groupTitle) + '"><span>' + escapeHtml(groupTitle) + '</span>' + iconSvg('chevronDown') + '</button>' : '';
+        if (collapsed) return divider;
         return divider + '<button class="sidebar-style ' + (active ? "active" : "") + '" data-select-style="' + escapeHtml(style.id) + '" title="' + escapeHtml(styleTitle(style)) + '" data-sort-group="' + group + '" data-style-kind="' + kind + '" data-tooltip="' + escapeHtml(styleTitle(style) + "：" + L.text(style.subtitle)) + '" type="button" aria-label="' + escapeHtml(label) + '" aria-pressed="' + active + '">' +
           '<span class="sidebar-swatch" style="background:linear-gradient(140deg,' + colors.map(escapeHtml).join(",") + ')">' + iconSvg(style.isOriginal ? "photos" : style.isFilmStock ? "film" : "styles") + '</span>' +
           '<span><strong>' + escapeHtml(styleTitle(style)) + '</strong></span></button>';
@@ -928,7 +955,7 @@
   function renderCropEditor() {
     return [
       '<img class="preview-image crop-source-image" src="' + state.cropSourceImage + L.html('" alt="裁切來源照片" draggable="false">'),
-      '<div class="crop-frame-box" data-crop-box>',
+      L.html('<div id="cropFrameBox" class="crop-frame-box" data-crop-box tabindex="-1" aria-label="調整裁切框">'),
       '<div class="crop-image-clip"><img class="crop-window-image" src="' + state.cropSourceImage + '" draggable="false" alt=""></div>',
       '<div class="crop-rule-grid" aria-hidden="true"><i></i><i></i><i></i><i></i></div>',
       L.html('<div class="crop-move-surface" data-crop-move role="button" aria-label="拖曳移動裁切範圍"></div>'),
@@ -1132,7 +1159,7 @@
     });
     var busy = photoIsBusy(state);
     return [
-      renderPageHeading("底片收藏", L.text("底片收藏"), L.text("複選喜歡的底片加入工作台，隨時切換並調整各自的效果。\n\n底片靈感模擬：參數為自行設計，尚未經原廠實測校準。紅外線款使用可見光 RGB 近似，不會還原實際紅外線資訊。"), '<button class="button film-import-button" data-action="importCustomFilm" type="button"' + (busy ? ' disabled' : '') + '>' + iconSvg("folderOpen") + '<span>' + L.text("匯入") + '</span></button>'),
+      renderPageHeading("底片收藏", L.text("底片收藏"), L.text("複選喜歡的底片加入工作台，隨時切換並調整各自的效果。"), '<button class="button film-import-button" data-action="importCustomFilm" type="button"' + (busy ? ' disabled' : '') + '>' + iconSvg("folderOpen") + '<span>' + L.text("匯入") + '</span></button>'),
       L.html('<div class="film-library-tools"><div class="film-categories" role="group" aria-label="底片分類">'),
       categories.map(function (category) {
         var count = films.filter(function (film) { return category[0] === "all" || film.filmFamily === category[0]; }).length;
@@ -1265,7 +1292,7 @@
     sections.push(renderRange(L.text("彩色比例"), "grainChroma", value("grainChroma", 0), 0, 100, 1, "", null, monochrome));
     sections.push(renderRange(L.text("片幅長邊"), "filmWidthMM", value("filmWidthMM", 36), 8, 120, 1, " mm", L.text("以毫米指定曝光片幅長邊；同樣輸出尺寸下，片幅越大，顆粒及光學散射尺度越小。"), false));
     sections.push(renderRange(L.text("粒徑分布"), "grainDistribution", value("grainDistribution", 0), 0, 100, 1, "", L.text("增加大小晶體的分布寬度，並校正平均覆蓋面積；需啟用顆粒。"), false));
-    sections.push(renderRange(L.text("乳劑解析力衰減"), "emulsionMTF", value("emulsionMTF", 0), 0, 100, 1, "", L.text("模擬片種與色層的光學細節衰減；0 保留原始解析力，數值不是實測 MTF。"), false));
+    sections.push(renderRange(L.text("乳劑解析力衰減"), "emulsionMTF", value("emulsionMTF", 0), 0, 100, 1, "", L.text("模擬片種與色層的光學細節衰減；0 保留原始解析力。"), false));
     var developmentHelp = L.text('模擬顯影液消耗與補充，調整局部反差。效果設為 0 時關閉，時間、擴散與攪拌不會生效；提高效果後，時間與擴散影響局部反差，提高攪拌補充會減弱顯影液耗竭效果。');
     sections.push('</div><div class="film-section">');
     sections.push(renderRange(L.text("顯影效果"), "developmentAmount", value("developmentAmount", 0), 0, 100, 1, "", developmentHelp));
@@ -1273,15 +1300,15 @@
     sections.push(renderRange(L.text("擴散範圍"), "developmentDiffusion", value("developmentDiffusion", 0.15), 0.02, 1, 0.01, "%"));
     sections.push(renderRange(L.text("攪拌補充"), "developmentAgitation", value("developmentAgitation", 50)));
     sections.push(renderRange(L.text("顯影溫度"), "developerTemperature", value("developerTemperature", 20), 10, 40, 1, " °C", L.text("以 20°C 為參考的相對反應速率模型；需啟用顯影效果，不是特定藥水的時間表。"), false));
-    sections.push(renderRange(L.text("顯影劑活性"), "developerActivity", value("developerActivity", 100), 20, 200, 1, "", L.text("顯影劑相對活性；100 為參考，用於反應速率，不代表實測藥水配方。"), false));
+    sections.push(renderRange(L.text("顯影劑活性"), "developerActivity", value("developerActivity", 100), 20, 200, 1, "", L.text("顯影劑相對活性；100 為參考，用於反應速率。"), false));
     sections.push('</div><div class="film-section">');
-    sections.push(renderRange(L.text("色層感光差異"), "layerResponse", value("layerResponse", 0), 0, 100, 1, "", L.text("各感色層使用獨立暗部、斜率與高光曲線；0 保留原曲線。片種數據為藝術近似。"), !filmStock || monochrome));
+    sections.push(renderRange(L.text("色層感光差異"), "layerResponse", value("layerResponse", 0), 0, 100, 1, "", L.text("各感色層使用獨立暗部、斜率與高光曲線；0 保留原曲線。"), !filmStock || monochrome));
     sections.push(renderRange(L.text("色層抑制"), "couplerAmount", value("couplerAmount", 0), 0, 100, 1, "", L.text("模擬色層間的密度依賴顯影抑制；0 關閉，並非一般彩度。"), !filmStock));
-    sections.push(renderRange(L.text("抑制擴散範圍"), "couplerRadius", value("couplerRadius", 0.1), 0, 1, 0.01, "%", L.text("抑制劑影響鄰近區域的近似範圍，以畫面長邊百分比表示；需啟用色層抑制。"), !filmStock));
+    sections.push(renderRange(L.text("抑制擴散範圍"), "couplerRadius", value("couplerRadius", 0.1), 0, 1, 0.01, "%", L.text("抑制劑影響鄰近區域的範圍，以畫面長邊百分比表示；需啟用色層抑制。"), !filmStock));
     if (filmStock) {
       sections.push('<p class="status-line" role="note">' + escapeHtml(L.text("需先提高互易律失效。此模型在 0.001～1 秒不增加失效；短於 0.001 秒或長於 1 秒才會改變感度與色層響應，不改動原圖 EXIF。")) + '</p>');
     }
-    sections.push(renderRange(L.text("互易律失效"), "reciprocityAmount", value("reciprocityAmount", 0), 0, 100, 1, "", L.text("依虛擬曝光時間模擬感度與色層響應下降；0 關閉，並非數位照片 EXIF 的自動還原。"), !filmStock));
+    sections.push(renderRange(L.text("互易律失效"), "reciprocityAmount", value("reciprocityAmount", 0), 0, 100, 1, "", L.text("依虛擬曝光時間調整感度與色層響應；0 關閉。"), !filmStock));
     sections.push(renderRange(L.text("虛擬曝光秒數"), "exposureSeconds", value("exposureSeconds", 1), 0.0001, 3600, 0.0001, " s", L.text("需先提高互易律失效。此模型在 0.001～1 秒不增加失效；短於 0.001 秒或長於 1 秒才會改變感度與色層響應，不改動原圖 EXIF。"), !filmStock));
     var bloomHelp = L.text('讓明亮邊緣泛出中性的柔和光暈。強度設為 0 時關閉，提高強度即可啟用。範圍為原圖長邊的百分比，提高範圍會擴大光暈；降低亮部門檻可涵蓋更多亮部，提高門檻則集中於最亮區域。');
     sections.push('</div><div class="film-section">');
@@ -1312,6 +1339,7 @@
   }
 
   function renderPrintRecipeControls(adjustment, selected) {
+    if (adjustment.scannerSource !== "paper") return "";
     var filmStock = !!(selected && selected.filmFamily && selected.filmFamily !== "camera" && !selected.isOriginal);
     var reversal = !!(selected && selected.filmFamily === "reversal");
     var value = function (key, fallback) { return adjustment[key] == null ? fallback : adjustment[key]; };
@@ -1327,7 +1355,7 @@
     var printRecipeControls = [];
     printRecipeControls.push(renderSelect(L.text("相片配方"), "printRecipe", matchedRecipe ? matchedRecipe.id : "", recipeOptions,
       disabled, L.text("配方只套用散射、紙白與紙黑密度，保留目前相片材料，可自由搭配。掃描來源設為相片，保留底掃開關與風格；反轉片不適用。")));
-    printRecipeControls.push(renderSelect(L.text("相片材料"), "paperProfile", value("paperProfile", "reference"), [{id:"reference",title:L.text("底片預設")},{id:"glossy",title:L.text("亮面印相")},{id:"matte",title:L.text("霧面印相")},{id:"warmFiber",title:L.text("暖調纖維紙") }], disabled, L.text("紙材可用於光學印相及相片掃描；直接掃描底片與正片不套用。不代表原廠紙材量測。")));
+    printRecipeControls.push(renderSelect(L.text("相片材料"), "paperProfile", value("paperProfile", "reference"), [{id:"reference",title:L.text("底片預設")},{id:"glossy",title:L.text("亮面印相")},{id:"matte",title:L.text("霧面印相")},{id:"warmFiber",title:L.text("暖調纖維紙") }], disabled, L.text("紙材可用於光學印相及相片掃描；直接掃描底片與正片不套用。")));
     printRecipeControls.push(renderRange(L.text("紙基散射"), "paperScatter", value("paperScatter", 0), 0, 100, 1, "", L.text("印相後的紙基散射會保留於相片掃描；直接掃描底片與正片不套用。"), disabled));
     printRecipeControls.push(renderRange(L.text("紙白反射率"), "paperWhite", value("paperWhite", 100), 80, 100, 1, "", L.text("光學印相紙白的相對反射率；100 不額外降低紙白。"), disabled));
     printRecipeControls.push(renderRange(L.text("紙黑密度偏移"), "paperDensityOffset", value("paperDensityOffset", 0), -1, 1, 0.01, "", L.text("調整相片材料最大密度；正值使紙黑更深，相片掃描也會保留此效果。"), disabled));
@@ -1342,11 +1370,12 @@
     var value = function (key, fallback) { return adjustment[key] == null ? fallback : adjustment[key]; };
     var enabled = film && value("scannerProfile", "off") !== "off";
     return renderAdjustmentCard("scanner", null, [
-      renderSelect(L.text("掃描風格"), "scannerProfile", film ? value("scannerProfile", "off") : "off", [
+      renderSelect(L.text("掃描風格"), "scannerProfile", film ? (value("scannerProfile", "neutral") === "off" ? "neutral" : value("scannerProfile", "neutral")) : "off", [
         {id:"off",title:L.text("關閉")}, {id:"neutral",title:L.text("中性掃描")}, {id:"warmCool",title:L.text("暖調掃描")},
         {id:"softPortrait",title:L.text("柔和人像")}, {id:"vivid",title:L.text("鮮明掃描")},
-        {id:"coolClean",title:L.text("冷色清透")}, {id:"fadedVintage",title:L.text("復古褪色")}
-      ], !film, film ? L.text("中性保留原色；暖調帶暖中調與冷亮部；柔和人像降低彩度與反差；鮮明增加色彩與反差；冷色清透偏冷；復古褪色提亮黑位。皆為藝術風格。") : L.text("數位模擬不使用底片掃描；此區已關閉並停用。選擇底片或原片後可使用。")),
+        {id:"coolClean",title:L.text("冷色清透")}, {id:"fadedVintage",title:L.text("復古褪色")},
+        {id:"frontierSP500",title:L.text("Frontier SP500 模擬")}, {id:"noritsuHS1800",title:L.text("Noritsu HS-1800 模擬")}, {id:"flextightX5",title:L.text("Flextight X5 模擬")}, {id:"coolscan9000",title:L.text("Coolscan 9000 ED 模擬")}, {id:"epsonV850",title:L.text("Epson V850 Pro 模擬")}
+      ].filter(function (option) { return film ? option.id !== "off" : option.id === "off"; }), !film, film ? L.text("中性保留原色；暖調帶暖中調與冷亮部；柔和人像降低彩度與反差；鮮明增加色彩與反差；冷色清透偏冷；復古褪色提亮黑位。") : L.text("數位模擬不使用底片掃描；此區已關閉並停用。選擇底片或原片後可使用。")),
       renderSelect(L.text("掃描來源"), "scannerSource", value("scannerSource", "film"), [
         {id:"film",title:L.text("底片")}, {id:"paper",title:L.text("相片")}
       ], !film || reversal || !!(selected && selected.isOriginal), L.text("直接掃描底片，或先完成印相再掃描相片。選用相片配方會切換為相片，保留掃描風格。")),
@@ -1709,6 +1738,8 @@
       '<button id="originalResolutionToggle" class="switch ' + (state.originalResolutionEditing !== false ? "on" : "") + L.html('" type="button" role="switch" aria-label="使用原檔編輯" aria-describedby="originalResolutionHelp" aria-checked="') + (state.originalResolutionEditing !== false ? "true" : "false") + '" ' + (photoIsBusy(state) ? "disabled" : "") + '></button></div>',
       '<div class="settings-row"><span>' + renderHelp(exposureExpansionHelp, L.text("使用曝光拓展")) + '</span><span id="exposureExpansionHelp" hidden>' + escapeHtml(exposureExpansionHelp) + '</span>',
       '<button id="exposureExpansionToggle" class="switch ' + (state.exposureExpansionEnabled ? "on" : "") + L.html('" type="button" role="switch" aria-label="使用曝光拓展" aria-describedby="exposureExpansionHelp" aria-checked="') + Boolean(state.exposureExpansionEnabled) + '" ' + (photoIsBusy(state) ? "disabled" : "") + '></button></div>',
+      '<div class="settings-row"><span>' + L.text("顯示所有底片") + '</span>',
+      '<button id="showAllFilmsToggle" class="switch ' + (state.showAllFilms ? "on" : "") + L.html('" type="button" role="switch" aria-label="顯示所有底片" aria-checked="') + Boolean(state.showAllFilms) + '"></button></div>',
       '<div class="settings-row"><span>' + renderHelp(highlightProtectionHelp, L.text("使用高光抑制")) + '</span><span id="highlightProtectionHelp" hidden>' + escapeHtml(highlightProtectionHelp) + '</span>',
       '<button id="highlightProtectionToggle" class="switch ' + (state.highlightProtectionEnabled !== false ? "on" : "") + L.html('" type="button" role="switch" aria-label="使用高光抑制" aria-describedby="highlightProtectionHelp" aria-checked="') + (state.highlightProtectionEnabled !== false ? "true" : "false") + '" ' + (photoIsBusy(state) ? "disabled" : "") + '></button></div>',
       '<div class="settings-row"><span>' + renderHelp(hdrFeatureHelp, L.text("啟用 HDR 模擬")) + '</span><span id="hdrFeatureHelp" hidden>' + escapeHtml(hdrFeatureHelp) + '</span>',
@@ -2004,6 +2035,17 @@
       sidebarToggle.setAttribute('aria-label', state.sidebarCollapsed ? L.text('展開底片收藏') : L.text('收合底片收藏'));
       fitPreviewImage();
       scheduleThumbnailRequest();
+    });
+    app.querySelectorAll('[data-toggle-sidebar-group]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var group = button.dataset.toggleSidebarGroup;
+        var key = group === 'custom' ? 'sidebarCustomCollapsed' : 'sidebarBuiltinCollapsed';
+        state[key] = !state[key];
+        localStorage.setItem('photoStyle.sidebarGroup.' + group, String(state[key]));
+        render();
+        var heading = app.querySelector('[data-toggle-sidebar-group="' + group + '"]');
+        if (heading) heading.focus({ preventScroll: true });
+      });
     });
     bindRepositoryEvents();
     bindPhotoDirectoryEvents();
@@ -2358,6 +2400,7 @@
           post("updateAdjustment", { style: state.selectedStyle, key: key, value: select.value });
         }
         render();
+        if (key === "cropAspectRatio") focusCropEditor();
       });
     });
 
@@ -2367,6 +2410,7 @@
         state.cropEditing = true;
         resetPreviewZoom();
         render();
+        focusCropEditor();
       });
     });
 
@@ -2483,6 +2527,14 @@
         render();
       });
     }
+    var showAllFilmsToggle = document.getElementById("showAllFilmsToggle");
+    if (showAllFilmsToggle) {
+      showAllFilmsToggle.addEventListener("click", function () {
+        state.showAllFilms = !state.showAllFilms;
+        post("setShowAllFilms", { enabled: state.showAllFilms });
+        render();
+      });
+    }
     var highlightProtectionToggle = document.getElementById("highlightProtectionToggle");
     if (highlightProtectionToggle) {
       highlightProtectionToggle.addEventListener("click", function () {
@@ -2500,6 +2552,11 @@
         render();
       });
     }
+  }
+
+  function focusCropEditor() {
+    var box = app.querySelector("[data-crop-box]");
+    if (box && state.cropEditing) box.focus({ preventScroll: true });
   }
 
   function beginCropEditing() {
@@ -2527,8 +2584,11 @@
     if (!box || !isCropEditorVisible(currentAdjustment())) return;
     var generation = photoEditGeneration;
 
-    box.addEventListener("pointerdown", function (event) {
-      if (event.button !== 0 || !previewFit || !box.isConnected || generation !== photoEditGeneration || photoIsBusy(state)) return;
+    function startCropGesture(event, mouseFallback) {
+      if (cropGesture) return;
+      if (event.button !== 0 || !box.isConnected || generation !== photoEditGeneration || photoIsBusy(state)) return;
+      fitPreviewImage();
+      if (!previewFit) return;
       var rotationHandle = event.target.closest("[data-crop-rotate]");
       var handle = event.target && event.target.closest
         ? event.target.closest("[data-crop-handle]")
@@ -2555,12 +2615,21 @@
         geometry: geometry
       };
       box.classList.toggle("is-rotating", !!rotationHandle);
-      if (box.setPointerCapture && event.pointerId != null) {
+      if (mouseFallback) {
+        cropMouseFallbackController = new AbortController();
+        var options = { signal: cropMouseFallbackController.signal };
+        document.addEventListener("mousemove", moveCropGesture, options);
+        document.addEventListener("mouseup", finishCropGesture, options);
+      } else if (box.setPointerCapture && event.pointerId != null) {
         box.setPointerCapture(event.pointerId);
       }
-    });
+    }
+    box.addEventListener("pointerdown", function (event) { startCropGesture(event, false); });
+    // WebKit's native select may consume the next pointerdown while still
+    // delivering mousedown. Start that first drag without synthesizing a click.
+    box.addEventListener("mousedown", function (event) { startCropGesture(event, true); });
 
-    box.addEventListener("pointermove", function (event) {
+    function moveCropGesture(event) {
       if (!box.isConnected || generation !== photoEditGeneration || photoIsBusy(state)) return;
       if (!cropGesture || cropGesture.pointerId !== event.pointerId) return;
       event.preventDefault();
@@ -2569,13 +2638,15 @@
       updateLocalCropValues(values);
       updateCropEditorLayout();
       scheduleCropAdjustment(values);
-    });
+    }
+    box.addEventListener("pointermove", moveCropGesture);
 
     var finishCropGesture = function (event) {
       if (!box.isConnected || generation !== photoEditGeneration) return;
       if (!cropGesture || cropGesture.pointerId !== event.pointerId) return;
       event.preventDefault();
       cropGesture = null;
+      if (cropMouseFallbackController) { cropMouseFallbackController.abort(); cropMouseFallbackController = null; }
       box.classList.remove("is-rotating");
       isDraggingCrop = false;
       document.body.classList.remove("preview-gesture-active");
@@ -3170,13 +3241,16 @@
 
     function applyFit() {
       if (!image.isConnected) return;
-      var naturalWidth = image.naturalWidth || 0;
-      var naturalHeight = image.naturalHeight || 0;
+      // Crop geometry is known before the newly inserted source image decodes.
+      // Do not retain the previous (possibly cropped) preview's coordinate space.
+      var cropMode = isCropEditorVisible(currentAdjustment());
+      var cropSize = cropMode ? (state.cropSourceImageSize || {}) : {};
+      var naturalWidth = image.naturalWidth || Number(cropSize.width) || 0;
+      var naturalHeight = image.naturalHeight || Number(cropSize.height) || 0;
       if (!naturalWidth || !naturalHeight) return;
 
       var frameWidth = frame.clientWidth;
       var frameHeight = frame.clientHeight;
-      var cropMode = isCropEditorVisible(currentAdjustment());
       var padding = 0;
       var comparingOriginal = image._requestedPreviewSource === state.sourceImage && state.sourceImage !== state.outputImage;
       var outputSize = (cropMode || state.repairEditing) ? (state.cropSourceImageSize || {}) : ((comparingOriginal ? state.sourceImageSize : state.previewOutputSize) || {});
@@ -3208,11 +3282,9 @@
       repairBrush.redraw();
     }
 
-    if (image.complete) {
-      applyFit();
-    } else {
-      image.addEventListener("load", applyFit, { once: true });
-    }
+    // Apply crop sizing synchronously; load will refine pixel dimensions later.
+    applyFit();
+    if (!image.complete) image.addEventListener("load", applyFit, { once: true });
   }
 
   // MCP replies only after the current preview has decoded and its geometry is applied.
@@ -3508,6 +3580,7 @@
   }
 
   function discardPendingPhotoEdits() {
+    if (cropMouseFallbackController) { cropMouseFallbackController.abort(); cropMouseFallbackController = null; }
     cropEditSnapshot = null;
     endLiveAdjustment();
     photoEditGeneration += 1;
@@ -3678,6 +3751,7 @@
     var previousSourceImage = state.sourceImage;
     repairBrush.receive(nextState);
     if (!state.isLoadingImage && nextState.isLoadingImage) resetPreviewZoom();
+    var changedFilmVisibility = payload && payload.showAllFilms !== undefined && payload.showAllFilms !== state.showAllFilms;
     state = Object.assign({}, state, payload || {});
     if (pendingCropValues && pendingCropGeneration === photoEditGeneration && pendingCropStyle === state.selectedStyle) {
       updateLocalCropValues(pendingCropValues);
@@ -3696,7 +3770,7 @@
     }
     // Native and MCP selection is authoritative, including styles hidden in the library.
     var enabled = readEnabledStyleIDs();
-    if (enabled.indexOf(catalogStyleID(currentLookID())) < 0 && state.styles.some(function (style) { return style.id === currentLookID(); })) {
+    if (!changedFilmVisibility && enabled.indexOf(catalogStyleID(currentLookID())) < 0 && state.styles.some(function (style) { return style.id === currentLookID(); })) {
       persistEnabledStyleIDs(enabled.concat([currentLookID()]));
     }
     if ((currentAdjustment().cropAspectRatio || "original") === "original") {
@@ -3794,6 +3868,7 @@
     window.addEventListener("resize", scheduleThumbnailRequest);
     window.addEventListener("beforeunload", rememberThumbnailViewport);
     window.addEventListener("blur", function () {
+      if (cropMouseFallbackController) { cropMouseFallbackController.abort(); cropMouseFallbackController = null; }
       cropGesture = null;
       isDraggingCrop = false;
       var cropBox = app.querySelector("[data-crop-box]");

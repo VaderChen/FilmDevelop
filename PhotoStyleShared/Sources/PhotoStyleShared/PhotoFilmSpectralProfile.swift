@@ -137,6 +137,77 @@ struct PhotoFilmSpectralProfile: Sendable {
         // 染料頻寬的倒平方是藝術近似，不能當成片種彩度量測；800 單獨校正
         // 掃描輸出意圖，保留原染料、階調與膚色設定。1.04 是定性調整而非實測值。
         if stock == .filmPortra800 { scannerChroma = 1.04 }
+
+        // Expand each film's existing artistic signature around neutral.
+        // This profile is exclusive to film stocks: camera simulations and original
+        // rendering never enter it. Preserve ordering, neutral anchors and scanner
+        // calibration; no additional image pass or change to user exposure.
+        // Keep low-contrast paper whites and calibrated monochrome filter response.
+        if !stock.isMonochrome && printSlope >= 0.8 {
+            printSlope = 1 + (printSlope - 1) * 1.5
+        }
+        scannerChroma = pow(scannerChroma, 1.5)
+        layerEV *= 1.35
+        layerGain = SIMD3<Double>(repeating: 1) + (layerGain - SIMD3<Double>(repeating: 1)) * 1.25
+
+        // Per-stock artistic curation replaces generic amplification for these stocks.
+        // Manufacturer descriptions guide qualitative direction, not these coefficients.
+        // The four already-distinct looks intentionally retain the preceding parameters.
+        switch stock {
+        case .filmPortra160:
+            printSlope = 0.82; scannerChroma = 0.76
+            layerEV = .init(0.10, 0.03, -0.08); layerGain = .init(0.98, 1, 1.02)
+        case .filmPortra400:
+            printSlope = 0.98; scannerChroma = 0.98
+            layerEV = .init(0.20, 0.06, -0.13); layerGain = .init(0.98, 1, 1.04)
+        case .filmPortra800:
+            printSlope = 1.12; scannerChroma = 1.18
+            layerEV = .init(0.30, 0.07, -0.20); layerGain = .init(1.04, 1, 0.97)
+        case .filmEktar100:
+            printSlope = 1.28; scannerChroma = 1.38
+            layerEV = .zero; layerGain = .init(1.05, 1, 1.035)
+        case .filmVision50D:
+            printSlope = 1.15; scannerChroma = 1.10
+            layerEV = .zero; layerGain = .init(1.02, 1.02, 0.98)
+        case .filmVision250D:
+            printSlope = 0.96; scannerChroma = 0.96
+            layerEV = .init(0.045, 0.025, -0.02); layerGain = .init(1, 1.02, 0.98)
+        case .filmVision200T:
+            printSlope = 1.04; scannerChroma = 1.04
+            layerEV = .init(-0.04, 0, 0.045); layerGain = .init(1.03, 1, 0.97)
+        case .filmVision500T:
+            printSlope = 0.84; scannerChroma = 0.88
+            layerEV = .init(-0.10, 0.015, 0.08); layerGain = .init(0.94, 1, 1.06)
+        case .filmEktachrome100:
+            toe = -8; shoulder = 4; bend = 1; maxDensity = 3.3
+            layerGain = .init(repeating: 1)
+        case .filmVelvia50:
+            toe = -5.4; shoulder = 2.5; bend = 1.55
+            layerGain = .init(1.02, 1.07, 1.01)
+        case .filmProvia100F:
+            layerGain = .init(1.01, 1, 0.99)
+        case .filmHP5:
+            printSlope = 1.18
+        case .filmFP4:
+            printSlope = 0.92; monoWeights = .init(0.23, 0.65, 0.12)
+        case .filmOrtho80:
+            printSlope = 1.00
+        case .filmSFX200:
+            printSlope = 1.10; monoWeights = .init(0.56, 0.43, 0.01)
+        case .filmInfrared400:
+            printSlope = 1.24; monoWeights = .init(0.10, 0.895, 0.005)
+        case .filmBleachBypass:
+            retainedSilver = 0.55
+        case .filmLomoPurple:
+            printSlope = 1.25; scannerChroma = 1.42
+        case .filmDelta3200:
+            // Preserve its intentionally soft curve; stock-specific coarse grain
+            // already differentiates it from HP5/FP4 without sacrificing white.
+            break
+        case .filmCrossProcess, .filmGold200, .filmCineStill800T, .filmPolaroidSX70:
+            break
+        }
+
         sensitivity = Self.normalizeChannels(Self.wavelengths.map { lambda in
             SIMD3<Double>(Self.gaussian(lambda, 625, 30 * sensitivityWidth),
                           Self.gaussian(lambda, 540, 27 * sensitivityWidth),

@@ -43,10 +43,12 @@ enum PhotoStyleProcessor {
     ) -> PhotoImage {
         guard let ciImage = CIImage(image: image) else { return image }
         let source = ciImage.oriented(forExifOrientation: image.cgImageOrientation)
-        let stages = ["repair-input", "denoise-calibration", "luminance-exposure", "light-scatter", "emulsion", "development",
-                      "raw-display-mapping", "subject-mask", "skin-mask", "skin-white-balance", "skin-enhancement",
-                      "white-balance", "film-look", "tone", "tone-zones", "hdr", "crop-geometry", "crop-vignette",
-                      "depth-blur", "monochrome"]
+        let geometry = (adjustment.cropRect(in: source.extent, verticalAxisInverted: true),
+                        PhotoCropCalculator.rotationTransform(in: source.extent, clockwiseDegrees: adjustment.cropRotation))
+        let stages = ["physical-input", "input-calibration", "subject-mask", "skin-mask",
+                      "skin-white-balance", "white-balance", "luminance-exposure", "light-scatter", "emulsion",
+                      "development", "raw-display-mapping", "film-look", "skin-enhancement", "tone",
+                      "tone-zones", "hdr", "crop-vignette", "depth-blur", "monochrome", "scanner"]
         let pipeline = PhotoProcessingPipeline(source: source,
             colorSpace: image.cgImage?.colorSpace ?? CGColorSpace(name: CGColorSpace.extendedLinearSRGB)!,
             progress: progress.map { report in
@@ -63,12 +65,44 @@ enum PhotoStyleProcessor {
             globalAmount: adjustment.grain / 100 * strength, highlightAmount: adjustment.highlightGrain / 100 * strength,
             midtoneAmount: adjustment.midtoneGrain / 100 * strength, shadowAmount: adjustment.shadowGrain / 100 * strength)
         do {
-            try pipeline.process("repair-input") {
+            try pipeline.process("physical-input") {
+                // Patches stay in their saved original-image coordinates. Composite
+                // first, then crop/rotate the whole image once; never remap patches.
                 PhotoRepairPatch.applying(repairPatches, to: $0)
+                    .transformed(by: geometry.1).cropped(to: geometry.0)
             }
-            try pipeline.process("denoise-calibration") {
-                PhotoColorCalibrationProcessor.apply(to: applyDenoise(to: $0, amount: adjustment.denoise / 100 * strength),
+            try pipeline.process("input-calibration") {
+                PhotoColorCalibrationProcessor.apply(to: $0,
                     calibration: adjustment.colorCalibration?.stage == .input ? adjustment.colorCalibration : nil)
+            }
+            let resolvedSubjectMask = try pipeline.inspect("subject-mask") { input in
+                subjectMask.map {
+                    let fitted = $0.extent == source.extent ? $0 : PhotoSubjectMaskGenerator.fitMask($0, to: source.extent)
+                    return fitted.transformed(by: geometry.1).cropped(to: input.extent)
+                }
+                    ?? (shouldDetectSubjectMask ? makeSubjectMask(from: input, extent: input.extent) : nil)
+            }
+            let whitening = adjustment.skinWhitening / 100 * strength
+            let smoothing = adjustment.skinSmoothing / 100 * strength
+            let warmth = adjustment.skinWarmth / 100 * strength
+            let adjustsSkin = whitening > 0.005 || smoothing > 0.005 || abs(warmth) > 0.001
+            let adjustsSkinWB = strength > 0 && !style.isMonochrome && style != .original && resolvedSubjectMask != nil
+            var skinMask: CIImage?
+            if adjustsSkin || adjustsSkinWB {
+                // Both skin operations use the same pre-WB mask. Store just its
+                // scalar samples; retaining its lazy graph would retain an old buffer.
+                skinMask = try pipeline.inspect("skin-mask") {
+                    try pipeline.mask(makeSkinMask(from: $0, subjectMask: resolvedSubjectMask, extent: $0.extent))
+                }
+                if adjustsSkinWB, let skinMask {
+                    try pipeline.process("skin-white-balance") {
+                        blend(applySkinWhiteBalance(to: $0, skinMask: skinMask, context: pipeline.context), with: $0, intensity: strength)
+                    }
+                }
+            }
+            try pipeline.process("white-balance") {
+                applyWhiteBalanceAdjustment(to: $0, warmth: adjustment.whiteBalanceWarmth * strength,
+                                            tint: adjustment.whiteBalanceTint * strength)
             }
             try pipeline.process("luminance-exposure") {
                 PhotoFilmEffectsProcessor.applyExposure(to: $0, effects: effects)
@@ -88,42 +122,17 @@ enum PhotoStyleProcessor {
                 image.requiresRAWDisplayMapping && style.filmStock == nil && style != .original
                     ? PhotoRAWDynamicRangeProcessor.prepareForDisplayAdjustments($0) : $0
             }
-            let resolvedSubjectMask = try pipeline.inspect("subject-mask") { input in
-                subjectMask.map { $0.extent == input.extent ? $0 : PhotoSubjectMaskGenerator.fitMask($0, to: input.extent) }
-                    ?? (shouldDetectSubjectMask ? makeSubjectMask(from: input, extent: input.extent) : nil)
-            }
-            let whitening = adjustment.skinWhitening / 100 * strength
-            let smoothing = adjustment.skinSmoothing / 100 * strength
-            let warmth = adjustment.skinWarmth / 100 * strength
-            let adjustsSkin = whitening > 0.005 || smoothing > 0.005 || abs(warmth) > 0.001
-            let adjustsSkinWB = strength > 0 && !style.isMonochrome && style != .original && resolvedSubjectMask != nil
-            if adjustsSkin || adjustsSkinWB {
-                // Both skin operations use the same pre-WB mask. Store just its
-                // scalar samples; retaining its lazy graph would retain an old buffer.
-                let skinMask = try pipeline.inspect("skin-mask") {
-                    try pipeline.mask(makeSkinMask(from: $0, subjectMask: resolvedSubjectMask, extent: $0.extent))
-                }
-                if adjustsSkinWB {
-                    try pipeline.process("skin-white-balance") {
-                        blend(applySkinWhiteBalance(to: $0, skinMask: skinMask, context: pipeline.context), with: $0, intensity: strength)
-                    }
-                }
-                if adjustsSkin {
-                    try pipeline.process("skin-enhancement") {
-                        PhotoSkinEnhancementProcessor.apply(to: $0, skinMask: skinMask, whitening: whitening,
-                            smoothing: smoothing, profile: .app, warmth: warmth)
-                    }
-                }
-            }
-            try pipeline.process("white-balance") {
-                applyWhiteBalanceAdjustment(to: $0, warmth: adjustment.whiteBalanceWarmth * strength,
-                                            tint: adjustment.whiteBalanceTint * strength)
-            }
             try pipeline.process("film-look") {
                 applyLook(to: $0, style: style, adjustment: adjustment, strength: strength, isRAW: image.requiresRAWDisplayMapping)
             }
+            if adjustsSkin, let skinMask {
+                try pipeline.process("skin-enhancement") {
+                    PhotoSkinEnhancementProcessor.apply(to: $0, skinMask: skinMask, whitening: whitening,
+                        smoothing: smoothing, profile: .app, warmth: warmth)
+                }
+            }
             try pipeline.process("tone") {
-                let planned = applyPlanToneSemantics(to: $0, style: style, toneZones: adjustment.sourceToneZones, strength: strength)
+                let planned = applyPlanToneSemantics(to: applyDenoise(to: $0, amount: adjustment.denoise / 100 * strength), style: style, toneZones: adjustment.sourceToneZones, strength: strength)
                 return applyGlobalToneAdjustment(to: applyExposure(to: planned, amount: adjustment.exposure * strength, renderContext: pipeline.context),
                                                  adjustment: adjustment, strength: strength, renderContext: pipeline.context)
             }
@@ -134,13 +143,8 @@ enum PhotoStyleProcessor {
                 PhotoHDRProcessor.apply(to: $0, curve: adjustment.hdrToneCurve ?? PhotoHDRProcessor.manualCurve,
                                         amount: adjustment.hdrAmount / 100, renderContext: pipeline.context)
             }
-            let geometry = try pipeline.inspect("crop-geometry") { input in
-                (adjustment.cropRect(in: input.extent, verticalAxisInverted: true),
-                 PhotoCropCalculator.rotationTransform(in: input.extent, clockwiseDegrees: adjustment.cropRotation))
-            }
             try pipeline.process("crop-vignette") {
-                let cropped = $0.transformed(by: geometry.1).cropped(to: geometry.0)
-                let devignetted = PhotoVignetteProcessor.applyDevignette(to: cropped, amount: adjustment.devignette / 100 * strength, profile: .app)
+                let devignetted = PhotoVignetteProcessor.applyDevignette(to: $0, amount: adjustment.devignette / 100 * strength, profile: .app)
                 return PhotoVignetteProcessor.applyVignette(to: devignetted, amount: adjustment.vignette / 100 * strength, profile: .app)
             }
             if adjustment.backgroundBlur > 0 {
@@ -148,7 +152,7 @@ enum PhotoStyleProcessor {
                     let repaired = PhotoRepairPatch.applying(repairPatches, to: source)
                     return applyDepthLensBlur(to: $0,
                         sourceForDepth: image.requiresRAWDisplayMapping ? PhotoRAWDynamicRangeProcessor.prepareForDisplayAdjustments(repaired) : repaired,
-                        subjectMask: resolvedSubjectMask?.transformed(by: geometry.1).cropped(to: geometry.0),
+                        subjectMask: resolvedSubjectMask,
                         amount: adjustment.backgroundBlur / 100, sourceImage: image.cgImage,
                         allowSubjectDetection: shouldDetectSubjectMask, geometryTransform: geometry.1,
                         depthRevision: repairPatches.map { $0.id.uuidString }.joined())
@@ -156,6 +160,19 @@ enum PhotoStyleProcessor {
             }
             if style.isMonochrome {
                 try pipeline.process("monochrome") { PhotoImageEffectsProcessor.monochrome($0, profile: .desaturate) }
+            }
+            if style.filmStock != nil || style == .original {
+                try pipeline.process("scanner") { input in
+                    var scanning = effects
+                    if scanning.scannerProfile == .off { scanning.scannerProfile = .neutral }
+                    // Negative sensor flare is part of dye reconstruction; do not apply it twice.
+                    if let stock = style.filmStock, scanning.scannerSource == .film || stock.family == "reversal" {
+                        scanning.scanFlare = 0
+                    }
+                    let scanned = PhotoPositiveScannerProcessor.apply(to: input, effects: scanning)
+                    let toned = style.isMonochrome ? PhotoImageEffectsProcessor.monochrome(scanned, profile: .desaturate) : scanned
+                    return blend(toned, with: input, intensity: strength)
+                }
             }
             let output = renderDecorations(on: try pipeline.finish(), adjustment: adjustment)
             progress?(1)
@@ -172,6 +189,9 @@ enum PhotoStyleProcessor {
         var adjustment = adjustment
         adjustment.filmEffects.clearPrintExposure()
         if style.cameraProfile != nil { adjustment.filmEffects.scannerProfile = .off }
+        if (style.filmStock != nil || style == .original) && adjustment.filmEffects.scannerProfile == .off {
+            adjustment.filmEffects.scannerProfile = .neutral
+        }
         let monochromeSource = style.isMonochrome && style.filmStock == nil
             ? PhotoFilmEffectsProcessor.applyMonochromeFilter(to: correctedBaseImage, effects: adjustment.filmEffects, strength: strength)
             : correctedBaseImage
@@ -182,7 +202,7 @@ enum PhotoStyleProcessor {
 
         switch style {
         case .original:
-            filtered = PhotoPositiveScannerProcessor.apply(to: correctedBaseImage, effects: adjustment.filmEffects)
+            filtered = correctedBaseImage
         case .autoDetection:
             filtered = correctedBaseImage
         case .japaneseColor1:
@@ -239,8 +259,9 @@ enum PhotoStyleProcessor {
         default:
             if let stock = style.filmStock {
                 // Sensitivity weights must see RGB before any grayscale conversion.
-                filtered = PhotoFilmStockProcessor.apply(to: monochromeSource, stock: stock,
-                                                        effects: adjustment.filmEffects, strength: strength)
+                let developed = PhotoFilmStockProcessor.apply(to: monochromeSource, stock: stock,
+                                                             effects: adjustment.filmEffects, strength: strength, deferScannerRendering: true)
+                filtered = PhotoFilmCharacterProcessor.apply(to: developed, stock: stock)
             } else if let camera = style.cameraProfile {
                 filtered = PhotoCameraProcessor.apply(to: monochromeSource, profile: camera)
             } else {

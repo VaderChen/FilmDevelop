@@ -159,8 +159,9 @@ enum PhotoAppUpdateInstaller {
     }
 
     /// The newly launched, validated app acknowledges installation before the backup is removed.
-    static func finishInstallation(arguments: [String], bundle: Bundle = .main) {
-        guard let index = arguments.firstIndex(of: "--finish-update"), index + 1 < arguments.count else { return }
+    @discardableResult
+    static func finishInstallation(arguments: [String], bundle: Bundle = .main) -> Bool {
+        guard let index = arguments.firstIndex(of: "--finish-update"), index + 1 < arguments.count else { return false }
         let fm = FileManager.default
         let work = URL(fileURLWithPath: arguments[index + 1]).standardizedFileURL.resolvingSymlinksInPath()
         let temporary = fm.temporaryDirectory.resolvingSymlinksInPath()
@@ -171,7 +172,7 @@ enum PhotoAppUpdateInstaller {
               receipt["target"] == bundle.bundleURL.resolvingSymlinksInPath().path,
               receipt["tag"] == PhotoAppVersion.installed(in: bundle)?.tag,
               receipt["identifier"] == bundle.bundleIdentifier,
-              let stagedPath = receipt["staged"], let backupPath = receipt["backup"] else { return }
+              let stagedPath = receipt["staged"], let backupPath = receipt["backup"] else { return false }
         let staged = URL(fileURLWithPath: stagedPath)
         let backup = URL(fileURLWithPath: backupPath)
         let parent = bundle.bundleURL.resolvingSymlinksInPath().deletingLastPathComponent()
@@ -180,8 +181,8 @@ enum PhotoAppUpdateInstaller {
               // An existing backup is a directory URL; compare canonical path text,
               // not URL equality, which also compares the trailing directory slash.
               backup.standardizedFileURL.path == staged.deletingPathExtension().appendingPathExtension("bak").standardizedFileURL.path,
-              !fm.fileExists(atPath: staged.path) else { return }
+              !fm.fileExists(atPath: staged.path) else { return false }
         // The installer waits for this acknowledgement; it owns cleanup and rollback.
-        fm.createFile(atPath: work.appendingPathComponent("confirmed").path, contents: Data())
+        return fm.createFile(atPath: work.appendingPathComponent("confirmed").path, contents: Data())
     }
 }

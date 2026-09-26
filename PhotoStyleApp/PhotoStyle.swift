@@ -574,6 +574,10 @@ struct StyleAdjustment: Codable, Equatable {
     }
 
     func encode(to encoder: Encoder) throws {
+        try encode(to: encoder, includingPhotoGeometry: true)
+    }
+
+    func encode(to encoder: Encoder, includingPhotoGeometry: Bool) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(12, forKey: .schemaVersion)
         try container.encodeIfPresent(colorCalibration, forKey: .colorCalibration)
@@ -596,13 +600,15 @@ struct StyleAdjustment: Codable, Equatable {
         try container.encode(skinSmoothing, forKey: .skinSmoothing)
         try container.encode(hdrAmount, forKey: .hdrAmount)
         try container.encodeIfPresent(hdrToneCurve, forKey: .hdrToneCurve)
-        try container.encode(cropAspectRatio, forKey: .cropAspectRatio)
-        try container.encode(cropRotation, forKey: .cropRotation)
-        try container.encode(cropScale, forKey: .cropScale)
-        try container.encode(cropWidth, forKey: .cropWidth)
-        try container.encode(cropHeight, forKey: .cropHeight)
-        try container.encode(cropHorizontalPosition, forKey: .cropHorizontalPosition)
-        try container.encode(cropVerticalPosition, forKey: .cropVerticalPosition)
+        if includingPhotoGeometry {
+            try container.encode(cropAspectRatio, forKey: .cropAspectRatio)
+            try container.encode(cropRotation, forKey: .cropRotation)
+            try container.encode(cropScale, forKey: .cropScale)
+            try container.encode(cropWidth, forKey: .cropWidth)
+            try container.encode(cropHeight, forKey: .cropHeight)
+            try container.encode(cropHorizontalPosition, forKey: .cropHorizontalPosition)
+            try container.encode(cropVerticalPosition, forKey: .cropVerticalPosition)
+        }
         try container.encode(highlightExposure, forKey: .highlightExposure)
         try container.encode(highlightIntensity, forKey: .highlightIntensity)
         try container.encode(highlightWarmth, forKey: .highlightWarmth)
@@ -776,6 +782,9 @@ final class StyleAdjustmentStore: ObservableObject {
     func adjustment(for style: PhotoStyle) -> StyleAdjustment {
         var result = adjustments[style] ?? StyleAdjustment.default(for: style)
         if style.cameraProfile != nil { result.filmEffects.scannerProfile = .off }
+        if (style.filmStock != nil || style == .original) && result.filmEffects.scannerProfile == .off {
+            result.filmEffects.scannerProfile = .neutral
+        }
         return result
     }
 
@@ -940,10 +949,34 @@ final class StyleAdjustmentStore: ObservableObject {
         for style in PhotoStyle.allCases where style.cameraProfile != nil {
             adjustments[style]?.filmEffects.scannerProfile = .off
         }
+        for style in PhotoStyle.allCases where style.filmStock != nil || style == .original {
+            if adjustments[style]?.filmEffects.scannerProfile == .off {
+                adjustments[style]?.filmEffects.scannerProfile = .neutral
+            }
+        }
         let encoded = Dictionary(uniqueKeysWithValues: adjustments.map { ($0.key.rawValue, $0.value) })
         guard let data = try? JSONEncoder().encode(encoded) else { return }
         defaults.set(data, forKey: defaultsKey)
         onChange?()
+    }
+}
+
+extension StyleAdjustment {
+    /// Geometry belongs to the current photo, never to a selected film recipe.
+    func preservingPhotoGeometry(from photo: StyleAdjustment) -> StyleAdjustment {
+        var next = self
+        next.cropAspectRatio = photo.cropAspectRatio
+        next.cropRotation = photo.cropRotation
+        next.cropScale = photo.cropScale
+        next.cropWidth = photo.cropWidth
+        next.cropHeight = photo.cropHeight
+        next.cropHorizontalPosition = photo.cropHorizontalPosition
+        next.cropVerticalPosition = photo.cropVerticalPosition
+        next.imageScoped = next.imageScoped || photo.cropAspectRatio != .original
+            || photo.cropRotation != 0 || photo.cropScale != 100
+            || photo.cropWidth != 100 || photo.cropHeight != 100
+            || photo.cropHorizontalPosition != 0 || photo.cropVerticalPosition != 0
+        return next
     }
 }
 

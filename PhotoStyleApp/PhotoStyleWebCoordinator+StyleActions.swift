@@ -138,16 +138,21 @@ extension PhotoStyleWebCoordinator {
 
     func applyCustomFilm(_ film: CustomFilm) {
         guard let base = PhotoStyle(rawValue: film.baseStyle) else { return }
+        let nextAdjustment = adjustmentForSelectingCustomFilm(film)
         restoreCustomFilmBaseAdjustment()
         customFilmBaseAdjustment = adjustmentStore.adjustment(for: base)
         selectedStyle = base
         selectedCustomFilmID = film.id
         UserDefaults.standard.set(base.rawValue, forKey: Self.selectedStyleDefaultsKey)
-        adjustmentStore.setAdjustment(film.adjustment, for: base)
+        adjustmentStore.setAdjustment(nextAdjustment, for: base)
         recordEditHistory()
         persistCurrentPhotoEdits()
         applySelectedStyle()
         sendState(includeImages: true, externalEdit: true)
+    }
+
+    func adjustmentForSelectingCustomFilm(_ film: CustomFilm) -> StyleAdjustment {
+        film.adjustment.preservingPhotoGeometry(from: adjustmentStore.adjustment(for: selectedStyle))
     }
 
     func sampleWhiteBalance(_ payload: [String: Any]) {
@@ -281,6 +286,13 @@ extension PhotoStyleWebCoordinator {
         UserDefaults.standard.set(enabled, forKey: Self.originalResolutionEditingDefaultsKey)
         applySelectedStyle()
         sendState(includeImages: true)
+    }
+
+    func setShowAllFilms(_ payload: [String: Any]) {
+        guard let enabled = boolValue(from: payload["enabled"]), enabled != showAllFilms else { return }
+        showAllFilms = enabled
+        UserDefaults.standard.set(enabled, forKey: "showAllFilms.v1")
+        sendState(includeImages: false)
     }
 
     func setExposureExpansionEnabled(_ payload: [String: Any]) {

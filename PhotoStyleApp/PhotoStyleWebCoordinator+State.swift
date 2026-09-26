@@ -53,6 +53,7 @@ extension PhotoStyleWebCoordinator {
                     "endpoint": mcpServer.endpoint, "connectionFile": mcpServer.connectionFile.path],
             "selectedStyle": selectedStyle.rawValue,
             "selectedCustomFilmID": selectedCustomFilmID as Any? ?? NSNull(),
+            "showAllFilms": showAllFilms,
             "exposureExpansionEnabled": exposureExpansionEnabled,
             "highlightProtectionEnabled": highlightProtectionEnabled,
             "hdrFeatureEnabled": hdrFeatureEnabled,

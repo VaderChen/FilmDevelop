@@ -80,28 +80,38 @@ extension PhotoStyleWebCoordinator {
             sourceSubjectMask = nil
         }
         repairPatches = []
-        // A known photo's recipe wins over the global last-look defaults.
-        if let record = loaded.record,
+        // Merely viewing a photo can create a cache record. Only an actual edit
+        // record may restore a look; never inherit the outgoing photo's recipe.
+        let hasSavedEdits: Bool
+        if sourceURL == nil {
+            hasSavedEdits = loaded.record != nil
+        } else if let url = sourceURL, photoEditStore.hasRecordedEditState(at: url) {
+            hasSavedEdits = photoEditStore.hasEdits(at: url)
+        } else if let record = loaded.record, let style = PhotoStyle(rawValue: record.selectedStyle) {
+            let defaults = StyleAdjustment.default(for: style)
+            var legacyDefaults = defaults
+            legacyDefaults.filmEffects.scannerProfile = .off
+            let adjustment = record.adjustments[record.selectedStyle] ?? defaults
+            hasSavedEdits = record.customFilmID != nil || !(record.repairPatches ?? []).isEmpty
+                || (adjustment != defaults && adjustment != legacyDefaults)
+            if hasSavedEdits, let url = sourceURL { photoEditStore.markEdited(at: url) }
+        } else {
+            hasSavedEdits = false
+        }
+        if hasSavedEdits, let record = loaded.record,
            let restoredStyle = PhotoStyle(rawValue: record.selectedStyle) {
-            if let sourceURL, !photoEditStore.hasRecordedEditState(at: sourceURL), record.adjustments.contains(where: { raw, adjustment in
-                guard let style = PhotoStyle(rawValue: raw) else { return false }
-                let defaults = StyleAdjustment.default(for: style)
-                var legacyDefaults = defaults
-                legacyDefaults.filmEffects.scannerProfile = .off
-                // Earlier versions saved even untouched photos with scanning off.
-                return adjustment != defaults && adjustment != legacyDefaults
-            }) { photoEditStore.markEdited(at: sourceURL) }
             let custom = customFilmStore.film(id: record.customFilmID)
             selectedCustomFilmID = custom?.baseStyle == restoredStyle.rawValue ? custom?.id : nil
             customFilmBaseAdjustment = selectedCustomFilmID == nil ? nil : record.customFilmBaseAdjustment
             repairPatches = record.repairPatches ?? []
             selectedStyle = restoredStyle
             adjustmentStore.restorePhotoAdjustments(record.adjustments)
-        } else if !isSameSourceImage {
+        } else {
             adjustmentStore.startNewPhoto()
             selectedCustomFilmID = nil
             customFilmBaseAdjustment = nil
             selectedStyle = .original
+            if let url = sourceURL { photoEditStore.clearEdited(at: url) }
         }
         sourceSubjectMask = loaded.mask ?? sourceSubjectMask
         currentPhotoEditKey = nextPhotoKey

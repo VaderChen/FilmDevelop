@@ -21,25 +21,34 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
 
     public enum ScannerProfile: String, Codable, CaseIterable, Sendable {
         case off, neutral, warmCool, softPortrait, vivid, coolClean, fadedVintage
+        case frontierSP500, noritsuHS1800, flextightX5, coolscan9000, epsonV850
 
         // Artistic scan renderings, not measured commercial scanner profiles.
         // x: saturation, y: luminance contrast, z: black lift, w: reserved.
         var rendering: SIMD4<Double> {
             switch self {
-            case .softPortrait: return .init(0.88, 0.90, 0.006, 0)
-            case .vivid: return .init(1.18, 1.15, 0, 0)
-            case .coolClean: return .init(0.95, 1.05, 0, 0)
-            case .fadedVintage: return .init(0.78, 0.86, 0.025, 0)
+            // Workflow-inspired artistic presets; coefficients are not device measurements.
+            case .frontierSP500: return .init(1.34, 1.30, 0, 0)
+            case .noritsuHS1800: return .init(1.15, 0.78, 0, 0)
+            case .flextightX5: return .init(1.02, 1.16, 0, 0)
+            case .coolscan9000: return .init(1.18, 1.42, 0, 0)
+            case .epsonV850: return .init(0.74, 0.65, 0, 0)
+            case .softPortrait: return .init(0.80, 0.82, 0.006, 0)
+            case .vivid: return .init(1.32, 1.25, 0, 0)
+            case .coolClean: return .init(0.90, 1.12, 0, 0)
+            case .fadedVintage: return .init(0.68, 0.78, 0.025, 0)
             default: return .init(1, 1, 0, 0)
             }
         }
 
         var warmth: SIMD2<Double> {
             switch self {
-            case .warmCool: return .init(18, -18)
-            case .softPortrait: return .init(14, 4)
-            case .coolClean: return .init(-22, -10)
-            case .fadedVintage: return .init(28, 10)
+            case .frontierSP500: return .init(32, -22)
+            case .noritsuHS1800: return .init(8, 0)
+            case .warmCool: return .init(28, -28)
+            case .softPortrait: return .init(20, 6)
+            case .coolClean: return .init(-32, -16)
+            case .fadedVintage: return .init(38, 16)
             default: return .zero
             }
         }

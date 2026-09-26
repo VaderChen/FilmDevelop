@@ -109,6 +109,19 @@ enum PhotoFilmScanner {
         return .init(repeating: y) + delta * max(0, scale)
     }
 
+    /// Reduce chroma along a constant-luminance ray instead of clipping channels.
+    /// Preserve HDR luminance; SDR colors remain inside the unit RGB cube.
+    static func fitChroma(_ rgb: SIMD3<Double>, luminance y: Double) -> SIMD3<Double> {
+        let delta = rgb - SIMD3<Double>(repeating: y)
+        let ceiling = max(1, y)
+        var scale = 1.0
+        for c in 0..<3 {
+            if delta[c] < 0 { scale = min(scale, y / -delta[c]) }
+            if delta[c] > 0 { scale = min(scale, (ceiling - y) / delta[c]) }
+        }
+        return .init(repeating: y) + delta * max(0, scale)
+    }
+
     static func grade(_ input: SIMD3<Double>, effects e: PhotoFilmEffects, monochrome: Bool) -> SIMD3<Double> {
         let weights = SIMD3<Double>(0.2126, 0.7152, 0.0722)
         let style = e.scannerProfile.rendering
@@ -123,14 +136,14 @@ enum PhotoFilmScanner {
         }
         let toned = sourceY > 1e-12 ? input * (luma / sourceY) : .init(repeating: luma)
         if monochrome { return .init(repeating:luma) }
-        var rgb = simd_max(.zero, .init(repeating:luma) + (toned - .init(repeating:luma)) * (e.scanSaturation / 50 * style.x))
+        var rgb = fitChroma(.init(repeating:luma) + (toned - .init(repeating:luma)) * (e.scanSaturation / 50 * style.x), luminance: luma)
         func smooth(_ a:Double,_ b:Double,_ x:Double) -> Double { let t=min(1,max(0,(x-a)/(b-a))); return t*t*(3-2*t) }
         let middle = smooth(0.02,0.18,luma) * (1-smooth(0.3,0.65,luma))
         let high = smooth(0.25,0.7,luma) * (1-smooth(0.85,1,luma))
         let preset = e.scannerProfile.warmth
         let warmth = ((e.scanMidtoneWarmth + preset.x) * middle + (e.scanHighlightWarmth + preset.y) * high) / 100
         rgb *= .init(pow(2,0.35*warmth),pow(2,0.10*warmth),pow(2,-0.4*warmth))
-        return rgb * (luma / max(1e-12,simd_dot(rgb,weights)))
+        return fitChroma(rgb * (luma / max(1e-12,simd_dot(rgb,weights))), luminance: luma)
     }
 
     static let metal = """
@@ -156,6 +169,15 @@ enum PhotoFilmScanner {
         }
         return float3(y)+delta*max(0.0f,scale);
     }
+    float3 scanFitChroma(float3 rgb, float y) {
+        float3 delta=rgb-y;
+        float ceiling=max(1.0f,y), scale=1.0f;
+        for(int c=0;c<3;++c) {
+            if(delta[c]<0) scale=min(scale,y/-delta[c]);
+            if(delta[c]>0) scale=min(scale,(ceiling-y)/delta[c]);
+        }
+        return float3(y)+delta*max(0.0f,scale);
+    }
     float3 scanGrade(float3 rgb, float4 scanTone, float4 scanLook, float4 style, float mono) {
         float3 w=float3(0.2126,0.7152,0.0722);
         float sourceY=max(0.0f,dot(rgb,w)), y=sourceY;
@@ -168,12 +190,12 @@ enum PhotoFilmScanner {
         }
         rgb=sourceY>1e-12f ? rgb*(y/sourceY) : float3(y);
         if(mono>0.5) return float3(y);
-        rgb=max(float3(0),float3(y)+(rgb-y)*scanTone.z*style.x);
+        rgb=scanFitChroma(float3(y)+(rgb-y)*scanTone.z*style.x,y);
         float middle=smoothstep(0.02f,0.18f,y)*(1-smoothstep(0.3f,0.65f,y));
         float high=smoothstep(0.25f,0.7f,y)*(1-smoothstep(0.85f,1.0f,y));
         float warmth=scanLook.y*middle+scanLook.z*high;
         rgb*=exp2(float3(0.35,0.10,-0.4)*warmth);
-        return rgb*(y/max(1.0e-12f,dot(rgb,w)));
+        return scanFitChroma(rgb*(y/max(1.0e-12f,dot(rgb,w))),y);
     }
     """
 }

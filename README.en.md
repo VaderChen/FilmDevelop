@@ -11,10 +11,24 @@ A film-inspired photo editor for Apple Silicon Mac. Open a photo folder, choose 
 Requires macOS 14 or later. AI features require a compatible local model, downloaded separately.
 
 
-## Latest changes — 1.26.0926 build 1714
+## Film character and scanning
 
-Includes all changes from 1.26.0926 build 1603.
+Film recipes now combine layer response, tone curves, hue-selective saturation and shadow/highlight color. Portra emphasizes skin tones, Ektar vivid color, and VISION3 tonal latitude; E100, Velvia and Provia receive distinct rendering. Digital grading is part of each film look and follows style intensity. Black-and-white stocks retain distinct sensitivity, tone and grain.
 
+Cross Process, Kodak Gold 200, CineStill 800T and Polaroid SX-70 retain their current rendering. Digital simulations and the original receive no film-specific grading. Scanner device labels use simulation; legacy off becomes neutral. Paper controls are hidden for film scanning. UI help describes controls and their visual effects. Processing uses Metal point operations without CPU image readback.
+
+## Latest changes — 1.26.0926 build 1935
+
+- After updating, a dialog shows the version and a short list of changes in your interface language, even offline. Once dismissed, it stays hidden until the next update.
+
+- Fixed the first crop drag after choosing an aspect ratio from the native macOS menu. Moving and resizing now work on the first drag, even when the menu suppresses the initial pointer event.
+- Crop, rotation and repairs belong to each photo and survive film or custom-recipe changes. Saved and exported film recipes exclude these settings; crop settings in older recipes are ignored.
+- Unmodified photos open as Original instead of inheriting the previous photo’s recipe. Edited photos restore their own settings; stale asynchronous results cannot overwrite the current photo.
+- Added Show All Films, off by default. Enabling it reveals merged film-family variants without selecting them automatically. Custom and built-in film sections can collapse and remember their state.
+
+Includes all changes from 1.26.0926 build 1714.
+
+- Repair patches are composited in original-image coordinates before the complete image is cropped and rotated; patch positions are not remapped separately. White balance, film, digital adjustments, scanner grading, and the frame follow. Negative-to-positive reconstruction remains in the film stage.
 - Replaced the highlight slider with Global Exposure Compensation: shift all three zones by the same EV while preserving their differences. Midtones and shadows remain independently adjustable. The group stops when any zone reaches its limit.
 - Fixed midtone adjustments moving highlights. Smooth local exposure replaces the global midtone baseline, preserving outer highlights and deep shadows. Extreme local adjustments ease toward zone boundaries to prevent tone reversal; equal values across all zones retain global 2^EV exposure.
 
@@ -22,7 +36,7 @@ Includes all changes from 1.26.0926 build 1603.
 - Photo recipes and materials can be mixed independently. Controls sit below Scan Source and are enabled for Photo. Silver Density supports −100 to 100, below Print Illuminant.
 - Added a default export folder in General settings. Dependent sliders are disabled when their parent effect is off, preserving saved values.
 - Improved asynchronous edit restoration during photo switching and emulsion preview sampling; export retains reference sampling. Global digital exposure, local contrast and HDR reuse small per-stage filter coefficients. Equal tone-zone recipes share branches, and unchanged stages skip full-image readback.
-- Added material defaults for 23 core films, four photo recipes and repair-model preparation when opening the repair brush. Material and development effects remain artistic approximations.
+- Added material defaults for 23 core films, four photo recipes and repair-model preparation when opening the repair brush.
 
 ## Download and languages
 
@@ -95,7 +109,7 @@ Photos, models and adjustment records stay local. Model searches, downloads and 
 
 ### App updates
 
-Check for Updates appears on the same line as the Settings heading, aligned with the card's right edge. It checks the latest stable GitHub Release. Downloads show progress and file size and can be cancelled. The app verifies the installer, saves adjustments, installs the update and restarts.
+Check for Updates is in Settings → About. It checks the latest stable GitHub Release. Downloads show progress and file size and can be cancelled. The app verifies the installer, saves adjustments, installs the update and restarts.
 
 The app also checks at launch and only notifies you when an update is available. Offline checks or missing releases do not interrupt editing. Install in a writable Applications folder to use updates. Versions use `1.YY.MMdd build HHmm`, for example `1.26.0924 build 0109`, in Taiwan time.
 
@@ -133,7 +147,7 @@ Use the save icon above intensity to name and save all current adjustments as a 
 
 ## Emulsion, development and print materials
 
-New controls cover color-layer curves and inhibition, film width (8–120 mm), grain-size distribution, emulsion detail loss, virtual exposure time (0.0001–3600 s) and reciprocity loss, anti-halation absorption, silver density adjustment, developer temperature (10–40°C) and activity, and paper material, scatter, white and maximum density. They are artistic approximations, not measured manufacturer film, chemistry, paper or scanner profiles. Developer temperature is a relative model, not a processing-time recommendation; virtual exposure does not read or change EXIF.
+New controls cover color-layer curves and inhibition, film width (8–120 mm), grain-size distribution, emulsion detail loss, virtual exposure time (0.0001–3600 s) and reciprocity loss, anti-halation absorption, silver density adjustment, developer temperature (10–40°C) and activity, and paper material, scatter, white and maximum density. Developer temperature is a relative model, not a processing-time recommendation; virtual exposure does not read or change EXIF.
 
 All 23 core stocks, including five retained for legacy recipes, have conservative material defaults. Existing saved recipes are not overwritten. Missing fields retain the old neutral values: film width 36 mm, paper white 100, anti-halation 50, temperature 20°C and activity 100. CineStill 800T uses anti-halation 35 and halation 28 to keep red return energy near its previous baseline. Bleach Bypass retains its built-in silver effect; SX-70 keeps its original low print density under Film Default.
 
@@ -145,7 +159,7 @@ In Scanning, Scan Source offers Film or Photo. Photo Recipe, Photo Material, pap
 
 Recipes change scatter, white and black-density offset while preserving the selected material. Material is independently selectable: Film Default, Glossy, Matte or Warm Fiber. Recipe values (scatter / white / density offset): Film Default 0/100/0; Glossy 4/100/0; Soft Matte 22/96/0; Warm Fiber 14/94/0.
 
-Photo scanning follows film → optical print → paper effects → photo scan. Paper properties remain visible, with no repeated exposure or negative inversion. Direct film scanning and reversal film bypass paper effects. Older recipes default to Film. These are artistic approximations.
+Photo scanning follows film → optical print → paper effects → photo scan. Paper properties remain visible, with no repeated exposure or negative inversion. Direct film scanning and reversal film bypass paper effects. Older recipes default to Film.
 
 Virtual exposure time is disabled when reciprocity loss is zero. Development, bloom and halation dependencies are similarly disabled without erasing saved values. General settings provide a folder chooser for the default export directory.
 
