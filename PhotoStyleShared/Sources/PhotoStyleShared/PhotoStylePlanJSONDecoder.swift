@@ -174,8 +174,32 @@ public enum PhotoStylePlanJSONDecoder {
             for (key, value) in scannerRanges { extendedRanges[key] = value }
             let scannerKeys = Set(scannerRanges.keys).union(["scanner_profile", "scanner_illuminant"])
             let oldKeys = previousKeys.union(lightingKeys)
-            let allowedKeys = oldKeys.union(scannerKeys)
-            let mandatoryKeys = schemaVersion >= 6 ? allowedKeys : (schemaVersion >= 5 ? oldKeys : (schemaVersion >= 3 ? previousKeys : requiredKeys))
+            let materialRanges: [String: ClosedRange<Double>] = [
+                "layer_response": 0...100,
+                "coupler_amount": 0...100,
+                "coupler_radius": 0...1,
+                "film_width_mm": 8...120,
+                "grain_distribution": 0...100,
+                "emulsion_mtf": 0...100,
+                "paper_scatter": 0...100,
+                "paper_white": 80...100,
+                "paper_density_offset": -1...1,
+                "reciprocity_amount": 0...100,
+                "exposure_seconds": 0.0001...3600,
+                "halation_base": 0...100,
+                "silver_retention": 0...100,
+                "developer_temperature": 10...40,
+                "developer_activity": 20...200,
+            ]
+            for (key, range) in materialRanges { extendedRanges[key] = range }
+            if let raw = film["scanner_source"] {
+                guard let raw = raw as? String, PhotoFilmEffects.ScannerSource(rawValue: raw) != nil else { throw generatedPlanError("Invalid scanner_source.") }
+            }
+            if let raw = film["paper_profile"] {
+                guard let raw = raw as? String, PhotoFilmEffects.PaperProfile(rawValue: raw) != nil else { throw generatedPlanError("Invalid paper_profile.") }
+            }
+            let allowedKeys = oldKeys.union(scannerKeys).union(materialRanges.keys).union(["paper_profile", "scanner_source"])
+            let mandatoryKeys = schemaVersion >= 6 ? oldKeys.union(scannerKeys) : (schemaVersion >= 5 ? oldKeys : (schemaVersion >= 3 ? previousKeys : requiredKeys))
             for key in lightingKeys.union(["scanner_illuminant"]) where film[key] != nil {
                 guard let raw = film[key] as? String, PhotoFilmEffects.Illuminant(rawValue: raw) != nil else {
                     throw generatedPlanError("film_effects.\(key) must be one of: \(PhotoFilmEffects.Illuminant.allCases.map(\.rawValue).joined(separator: ", ")).")

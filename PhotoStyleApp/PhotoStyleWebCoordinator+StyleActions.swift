@@ -324,11 +324,15 @@ extension PhotoStyleWebCoordinator {
         defer { editHistoryBatchID = previousHistoryBatch }
         // Film edits have a strict shared contract. Reject a malformed batch before
         // changing any style so a bad enum/value cannot partially apply other edits.
-        let filmKeys = Set(["scannerProfile", "scannerIlluminant", "scanExposure", "scanContrast", "scanSaturation", "scanDensityCorrection", "scanFlare", "scanMidtoneWarmth", "scanHighlightWarmth", "printIlluminant", "viewIlluminant", "filmColorModel", "printExposure", "printContrast", "developmentAmount", "developmentTime", "developmentDiffusion", "developmentAgitation", "grainMode", "grainSize", "grainClumping", "grainChroma",
+        let filmKeys = Set(["scannerSource", "printRecipe", "paperProfile", "layerResponse", "couplerAmount", "couplerRadius", "filmWidthMM", "grainDistribution", "emulsionMTF", "paperScatter", "paperWhite", "paperDensityOffset", "reciprocityAmount", "exposureSeconds", "halationBase", "silverRetention", "developerTemperature", "developerActivity", "scannerProfile", "scannerIlluminant", "scanExposure", "scanContrast", "scanSaturation", "scanDensityCorrection", "scanFlare", "scanMidtoneWarmth", "scanHighlightWarmth", "printIlluminant", "viewIlluminant", "filmColorModel", "printExposure", "printContrast", "developmentAmount", "developmentTime", "developmentDiffusion", "developmentAgitation", "grainMode", "grainSize", "grainClumping", "grainChroma",
                             "bloomAmount", "bloomRadius", "bloomThreshold",
                             "halationAmount", "halationRadius", "halationThreshold",
                             "monochromeFilter", "monochromeFilterStrength"])
         for payload in payloads {
+            if payload["key"] as? String == "printRecipe" {
+                let style = (payload["style"] as? String).flatMap(PhotoStyle.init(rawValue:)) ?? selectedStyle
+                guard PhotoPrintRecipe.supports(style.filmStock) else { return }
+            }
             if let key = payload["key"] as? String, filmKeys.contains(key) {
                 guard let value = payload["value"],
                       (try? PhotoStyleMCPTools.validate("update_adjustments", arguments: ["changes": [key: value]])) != nil else { return }
@@ -336,7 +340,10 @@ extension PhotoStyleWebCoordinator {
         }
         var updates: [PhotoStyle: StyleAdjustment] = [:]
         var needsSubjectMask = false
-        for payload in payloads {
+        // 配方先套用，再套用同批的個別微調，避免字典順序影響結果。
+        let orderedPayloads = payloads.filter { $0["key"] as? String == "printRecipe" }
+            + payloads.filter { $0["key"] as? String != "printRecipe" }
+        for payload in orderedPayloads {
             let style = (payload["style"] as? String).flatMap(PhotoStyle.init(rawValue:)) ?? selectedStyle
             var adjustment = updates[style] ?? adjustmentStore.adjustment(for: style)
             let previous = adjustment
@@ -398,6 +405,7 @@ extension PhotoStyleWebCoordinator {
                     if let rawValue = value as? String, let model = PhotoFilmEffects.ColorModel(rawValue: rawValue) { adjustment.filmEffects.colorModel = model }
                 case "printIlluminant": adjustment.filmEffects.printIlluminant = PhotoFilmEffects.Illuminant(rawValue: value as! String)!
                 case "viewIlluminant": adjustment.filmEffects.viewIlluminant = PhotoFilmEffects.Illuminant(rawValue: value as! String)!
+                case "scannerSource": adjustment.filmEffects.scannerSource = PhotoFilmEffects.ScannerSource(rawValue: value as! String)!
                 case "scannerProfile": adjustment.filmEffects.scannerProfile = PhotoFilmEffects.ScannerProfile(rawValue: value as! String)!
                 case "scannerIlluminant": adjustment.filmEffects.scannerIlluminant = PhotoFilmEffects.Illuminant(rawValue: value as! String)!
                 case "scanExposure": adjustment.filmEffects.scanExposure = doubleValue(from: value)!
@@ -412,6 +420,25 @@ extension PhotoStyleWebCoordinator {
                 case "developmentAmount": adjustment.filmEffects.developmentAmount = doubleValue(from: value)!
                 case "developmentTime": adjustment.filmEffects.developmentTime = doubleValue(from: value)!
                 case "developmentDiffusion": adjustment.filmEffects.developmentDiffusion = doubleValue(from: value)!
+                case "printRecipe":
+                    let recipe = PhotoPrintRecipe(rawValue: value as! String)!
+                    adjustment.filmEffects = recipe.applying(to: adjustment.filmEffects, stock: style.filmStock)
+                case "paperProfile": adjustment.filmEffects.paperProfile = PhotoFilmEffects.PaperProfile(rawValue: value as! String)!
+                case "layerResponse": adjustment.filmEffects.layerResponse = doubleValue(from: value)!
+                case "couplerAmount": adjustment.filmEffects.couplerAmount = doubleValue(from: value)!
+                case "couplerRadius": adjustment.filmEffects.couplerRadius = doubleValue(from: value)!
+                case "filmWidthMM": adjustment.filmEffects.filmWidthMM = doubleValue(from: value)!
+                case "grainDistribution": adjustment.filmEffects.grainDistribution = doubleValue(from: value)!
+                case "emulsionMTF": adjustment.filmEffects.emulsionMTF = doubleValue(from: value)!
+                case "paperScatter": adjustment.filmEffects.paperScatter = doubleValue(from: value)!
+                case "paperWhite": adjustment.filmEffects.paperWhite = doubleValue(from: value)!
+                case "paperDensityOffset": adjustment.filmEffects.paperDensityOffset = doubleValue(from: value)!
+                case "reciprocityAmount": adjustment.filmEffects.reciprocityAmount = doubleValue(from: value)!
+                case "exposureSeconds": adjustment.filmEffects.exposureSeconds = doubleValue(from: value)!
+                case "halationBase": adjustment.filmEffects.halationBase = doubleValue(from: value)!
+                case "silverRetention": adjustment.filmEffects.silverRetention = doubleValue(from: value)!
+                case "developerTemperature": adjustment.filmEffects.developerTemperature = doubleValue(from: value)!
+                case "developerActivity": adjustment.filmEffects.developerActivity = doubleValue(from: value)!
                 case "developmentAgitation": adjustment.filmEffects.developmentAgitation = doubleValue(from: value)!
                 case "monochromeFilter":
                     if let rawValue = value as? String, let filter = PhotoFilmEffects.MonochromeFilter(rawValue: rawValue) { adjustment.filmEffects.monochromeFilter = filter }

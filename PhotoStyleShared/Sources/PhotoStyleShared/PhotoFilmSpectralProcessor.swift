@@ -16,6 +16,13 @@ public enum PhotoFilmSpectralProcessor {
         strength: Double = 1
     ) -> CIImage {
         var e = effects.clamped()
+        // 相片掃描先完成光學印相與紙材，再對正像掃描；不再反解負片染料。
+        if e.scannerSource == .paper && e.scannerProfile != .off && stock.family != "reversal" {
+            var printing = e
+            printing.scannerProfile = .off
+            let paper = apply(to: image, stock: stock, effects: printing, strength: strength)
+            return PhotoPositiveScannerProcessor.apply(to: paper, effects: e)
+        }
         let image = PhotoFilmEffectsProcessor.applyExposure(to: image, effects: e)
         e.printExposure = 0
         guard let kernel = compiled.kernel,
@@ -25,6 +32,12 @@ public enum PhotoFilmSpectralProcessor {
         let amount = strength.isFinite ? min(1, max(0, strength)) : 0
         let filterIndex = PhotoFilmEffects.MonochromeFilter.allCases.firstIndex(of: e.monochromeFilter) ?? 0
         let profile = PhotoFilmSpectralProfile.all[index]
+        let curves = PhotoFilmMaterialProcessor.layerCurves(profile, amount: e.layerResponse)
+        let paper = PhotoFilmMaterialProcessor.paper(profile, effects: e)
+        let reciprocity = PhotoFilmMaterialProcessor.reciprocityLoss(profile, effects: e)
+        let radius = max(image.extent.width,image.extent.height) * e.couplerRadius / 100
+        let guide = e.couplerAmount > 0 && radius > 0
+            ? linear.clampedToExtent().applyingFilter("CIGaussianBlur",parameters:[kCIInputRadiusKey:radius]).cropped(to:image.extent) : linear
         let light = PhotoFilmIllumination.spectrum(e.scannerIlluminant, wavelengths: PhotoFilmSpectralProfile.wavelengths)
         let calibration = PhotoFilmScanner.calibration(profile, light:light)
         func vector(_ value: SIMD3<Double>) -> CIVector { CIVector(x:value.x,y:value.y,z:value.z) }
@@ -32,9 +45,9 @@ public enum PhotoFilmSpectralProcessor {
         let warmth = e.scannerProfile.warmth
         let style = e.scannerProfile.rendering
         guard let result = kernel.apply(extent: image.extent, roiCallback: { input, rect in
-            input == 0 ? rect : PhotoFilmSpectralReconstruction.extent
+            input == 0 || input == 6 ? rect : PhotoFilmSpectralReconstruction.extent
         }, arguments: [
-            linear] + PhotoFilmSpectralReconstruction.planes + [Double(index),
+            linear] + PhotoFilmSpectralReconstruction.planes + [guide, Double(index),
             CIVector(x: Double(PhotoFilmEffects.Illuminant.allCases.firstIndex(of: e.printIlluminant)!),
                      y: Double(PhotoFilmEffects.Illuminant.allCases.firstIndex(of: e.viewIlluminant)!), z: e.highlightProtectionEnabled ? 1 : 0),
             CIVector(x: 0, y: pow(2, (e.printContrast - 50) / 50),
@@ -45,7 +58,12 @@ public enum PhotoFilmSpectralProcessor {
             CIVector(x:0, y:1, z:e.scanSaturation/50, w:e.scanDensityCorrection/100),
             CIVector(x:0, y:(e.scanMidtoneWarmth + warmth.x)/100, z:(e.scanHighlightWarmth + warmth.y)/100, w:0),
             CIVector(x:style.x,y:style.y,z:style.z,w:style.w),
-            vector(calibration.base), vector(calibration.middle), scanRows[0], scanRows[1], scanRows[2]
+            vector(calibration.base), vector(calibration.middle), scanRows[0], scanRows[1], scanRows[2],
+            CIVector(x:curves[0].x,y:curves[0].y,z:curves[0].z,w:curves[0].w),
+            CIVector(x:curves[1].x,y:curves[1].y,z:curves[1].z,w:curves[1].w),
+            CIVector(x:curves[2].x,y:curves[2].y,z:curves[2].z,w:curves[2].w),
+            CIVector(x:paper.x,y:paper.y,z:paper.z,w:paper.w),
+            vector(reciprocity), e.couplerAmount/100, e.silverRetention/100
         ]) else { return image }
         var output = (result.matchedToWorkingSpace(from: linearSRGB) ?? image).cropped(to: image.extent)
         // 掃描／正片略過光學負片印相，改在成品套用光源色彩補償。
@@ -59,7 +77,7 @@ public enum PhotoFilmSpectralProcessor {
                 output = PhotoImageEffectsProcessor.monochrome(output, profile: .desaturate)
             }
         }
-        return output
+        return PhotoFilmMaterialProcessor.printMaterial(to:output,effects:e,stock:stock)
     }
 
     static var kernelIsAvailable: Bool { compiled.kernel != nil }
@@ -133,9 +151,11 @@ public enum PhotoFilmSpectralProcessor {
         }
         [[ stitchable ]] float4 filmSpectral(coreimage::sampler input,
             coreimage::sampler table0, coreimage::sampler table1, coreimage::sampler table2, coreimage::sampler table3, coreimage::sampler table4,
-            float stockIndex, float3 lights, float4 controls,
+            coreimage::sampler dirGuide, float stockIndex, float3 lights, float4 controls,
             float4 scanSettings, float4 scanTone, float4 scanLook, float4 scanStyle,
-            float3 scanBase, float3 scanMiddle, float3 scanRow0, float3 scanRow1, float3 scanRow2, destination dest) {
+            float3 scanBase, float3 scanMiddle, float3 scanRow0, float3 scanRow1, float3 scanRow2,
+            float4 layerR, float4 layerG, float4 layerB, float4 paperControl,
+            float3 reciprocity, float coupler, float retainedSilver, destination dest) {
             float4 image = input.sample(input.transform(dest.coord()));
             float alpha = isfinite(image.a) ? clamp(image.a, 0.0, 1.0) : 0.0;
             if (alpha <= 0.0) { return float4(0.0); }
@@ -158,7 +178,7 @@ public enum PhotoFilmSpectralProcessor {
             int base = stock * 13;
             float4 mode = spMode[stock];
             float4 curve = spCurve[stock];
-            float4 paper = spPaper[stock];
+            float4 paper = paperControl;
             int printLight = clamp(int(lights.x), 0, \(PhotoFilmEffects.Illuminant.allCases.count - 1)) * 13;
             int viewLight = clamp(int(lights.y), 0, \(PhotoFilmEffects.Illuminant.allCases.count - 1)) * 13;
             int filterBase = clamp(int(controls.w), 0, 4) * 13;
@@ -177,14 +197,33 @@ public enum PhotoFilmSpectralProcessor {
                 h=mix(float3(0.45f*h.r+0.55f*h.g,h.b,h.g),h,preserve);
             }
             float3 ev = log2(max(h, float3(1.0e-7)) / 0.18) * spGain[stock] + spEV[stock];
-            float3 density = spDensity(ev + mode.z, curve);
+            ev -= reciprocity;
+            float3 density = float3(spDensity(ev + mode.z,layerR).r,
+                                   spDensity(ev + mode.z,layerG).g,
+                                   spDensity(ev + mode.z,layerB).b);
+            float3 reference = float3(spDensity(float3(mode.z),layerR).r,
+                                     spDensity(float3(mode.z),layerG).g,
+                                     spDensity(float3(mode.z),layerB).b);
+            density = clamp(density + spDensity(float3(mode.z),curve) - reference, float3(0),float3(curve.w));
+            if(coupler>0) {
+                float4 guide=dirGuide.sample(dirGuide.transform(dest.coord()));
+                float3 neighboring=guide.a>0 ? max(guide.rgb/guide.a,float3(0)):float3(0);
+                // 有界準穩態 DIR 近似：鄰域曝光調制釋放量、跨色層飽和抑制。
+                float3 activation=density*clamp((neighboring+0.02f)/(rgb+0.02f),float3(0.25f),float3(4));
+                float3 inhibitor=activation/(1+activation);
+                float3 cross=float3(dot(inhibitor,float3(0.1f,0.55f,0.35f)),
+                                    dot(inhibitor,float3(0.4f,0.1f,0.5f)),
+                                    dot(inhibitor,float3(0.55f,0.35f,0.1f)));
+                density*=1-0.35f*coupler*cross;
+            }
             if (scanSettings.x > 0.5) {
                 int scanLight=clamp(int(scanSettings.y),0,\(PhotoFilmEffects.Illuminant.allCases.count - 1))*13;
                 float3 measured=float3(0), white=float3(0);
                 float3 material=mode.y>0.5 ? curve.w-density : density;
                 for(int k=0;k<13;++k) {
                     float optical=(mode.y>0.5 ? 0.0f : spBase[base+k])
-                        +(mode.x>0.5 ? material.x : dot(spNegativeDyes[base+k],material));
+                        +(mode.x>0.5 ? material.x : dot(spNegativeDyes[base+k],material))
+                        +retainedSilver*dot(material,float3(0.2126f,0.7152f,0.0722f));
                     float3 sensor=spScanner[k]*spLights[scanLight+k];
                     measured+=sensor*exp(-2.302585092994046f*optical);
                     white+=sensor;
@@ -211,10 +250,12 @@ public enum PhotoFilmSpectralProcessor {
                 // second negative. Contrast pivots around 18% transmission.
                 float anchor = 0.744727494896694;
                 density = max(float3(0.0), anchor + (curve.w - density - anchor));
+                density += retainedSilver * dot(density,float3(0.2126f,0.7152f,0.0722f));
             } else {
                 float3 printH = float3(0.0);
                 for (int k = 0; k < 13; ++k) {
-                    float optical = spBase[base + k] + (mode.x > 0.5 ? density.x : dot(spNegativeDyes[base + k], density));
+                    float optical = spBase[base + k] + (mode.x > 0.5 ? density.x : dot(spNegativeDyes[base + k], density))
+                        + retainedSilver*dot(density,float3(0.2126f,0.7152f,0.0722f));
                     printH += spPrintSensitivity[base + k] * spLights[printLight + k] * exp(-2.302585092994046 * optical);
                 }
                 // Develop the print baseline before the shared output controls.

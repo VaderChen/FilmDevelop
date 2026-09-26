@@ -1949,3 +1949,17 @@ img.brand-mark { display: block; object-fit: contain; flex-shrink: 0; background
 @media (max-width: 449px) {
   .desktop-page .library-grid.compact-film-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+.silver-density-reset {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 10px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.silver-density-reset:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
+.silver-density-reset:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.silver-density-reset:disabled { opacity: 0.45; cursor: default; }

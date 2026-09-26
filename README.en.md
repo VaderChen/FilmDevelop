@@ -11,6 +11,10 @@ A film-inspired photo editor for Apple Silicon Mac. Open a photo folder, choose 
 Requires macOS 14 or later. AI features require a compatible local model, downloaded separately.
 
 
+## Development updates (unreleased)
+
+The source now includes material defaults for all 23 core film stocks, four print recipes below Print Illuminant, and a separate Silver Density section. Film Default preserves the original paper settings. Printing and scanning can be combined: print the film first, then scan the photo. These features are not yet included in the release listed below.
+
 ## Latest changes — 1.26.0925 build 1416
 
 Six artistic scan styles are available: Neutral, Warm, Soft Portrait, Vivid, Cool Clean and Faded Vintage. They are not measured commercial-scanner profiles. GR digital camera simulations force scanning off and disable the entire panel, including for old recipes and exports. Film stocks and Original retain scanning support; with default controls, Neutral and Off look identical on Original.
@@ -127,6 +131,33 @@ During export, a central dialog reveals the photo gradually from black, like dev
 A red dot marks edited thumbnails and disappears after resetting. Original also supports scanning, color density, flare and warmth adjustments. Once the preview is ready, use the eyedropper beside Crop to sample a gray or white area for white balance; Esc cancels sampling.
 
 Use the save icon above intensity to name and save all current adjustments as a custom film. Delete on its card removes the recipe while preserving adjustments already applied to photos. Recipes remain on this Mac across launches; subsequent photo edits do not overwrite them. Switching custom films preserves built-in films' adjustments. The library separates custom and built-in films; the workspace lists Original first, then custom and built-in films. Collapsed sidebar icons remain clickable.
+
+## Emulsion, development and print materials
+
+New controls cover color-layer curves and inhibition, film width (8–120 mm), grain-size distribution, emulsion detail loss, virtual exposure time (0.0001–3600 s) and reciprocity loss, anti-halation absorption, additional silver density, developer temperature (10–40°C) and activity, and paper material, scatter, white and maximum density. They are artistic approximations, not measured manufacturer film, chemistry, paper or scanner profiles. Developer temperature is a relative model, not a processing-time recommendation; virtual exposure does not read or change EXIF.
+
+All 23 core stocks, including five retained for legacy recipes, have conservative material defaults. Existing saved recipes are not overwritten. Missing fields retain the old neutral values: film width 36 mm, paper white 100, anti-halation 50, temperature 20°C and activity 100. CineStill 800T uses anti-halation 35 and halation 28 to keep red return energy near its previous baseline. Bleach Bypass retains its built-in silver effect; SX-70 keeps its original low print density under Film Default.
+
+### Print recipes and photo scanning
+
+In Development, Print Recipe appears immediately below Print Illuminant. It defaults to Film Default. Selecting a recipe preserves scan on/off, scan style, exposure and film settings, and selects Printed Photo as the scan source. Reversal film, Original and digital camera looks do not use print recipes.
+
+| Recipe | Paper | Scatter | Paper white | Black-density offset |
+| --- | --- | ---: | ---: | ---: |
+| Film Default | reference | 0 | 100 | 0 |
+| Glossy Print | glossy | 4 | 100 | 0 |
+| Soft Matte | matte | 22 | 96 | 0 |
+| Warm Fiber | warmFiber | 14 | 94 | 0 |
+
+Fine-tuning the paper controls shows Custom Print when the values no longer match a recipe. Save the result as a custom film; actual values persist with photos and recipes and support undo/redo.
+
+Scan Source selects direct Film scanning or **film → optical print → paper effects → photo scan**. Photo scanning retains paper white, density and scatter, then applies scan style, color and flare. It does not repeat exposure or invert negative dyes; layer-separation correction is disabled. With scanning off, the result is the print itself. Direct film scans and reversal film bypass paper controls. Old recipes default to direct film scanning. Photo scanning is an artistic positive-image model, not a measured reflective scanner.
+
+### Silver density
+
+The separate Silver Density section displays Film Default when additional silver is 0. The 0–100 slider adds neutral silver density and affects printing and both scan paths. Film Default clears only this extra adjustment, preserving the stock's own silver, including Bleach Bypass, and leaving paper, exposure and scanner settings intact.
+
+MCP `update_adjustments` accepts `printRecipe` (`reference`, `glossy`, `matte`, `warmFiber`), `scannerSource` (`film`, `paper`) and `silverRetention` (0–100). Explicit adjustments in the same batch run after a recipe. Saved/AI JSON uses `scanner_source` and `silver_retention` within `film_effects`. The print recipe is stored as its paper values, not a separate recipe identifier.
 
 ## License
 

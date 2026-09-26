@@ -72,3 +72,17 @@ HDR、局部明暗與膚色判定先解除預乘 alpha，輸出仍保留原透�
 `ScannerProfile` 支援 `off`、`neutral`、`warmCool`、`softPortrait`、`vivid`、`coolClean`、`fadedVintage`。新風格在掃描後調整亮度階調、彩度與冷暖；保留原片種輸出意圖，黑白只改階調。桌面 GR 數位相機模擬強制 `off`，原片透過 `PhotoPositiveScannerProcessor` 只套用成品色彩調整。
 
 曝光與掃描演算法更新會改變舊配方重新渲染的外觀，儲存欄位與舊風格 ID 保持可讀。Portra 800 彩度修正依據 [Kodak 原廠比較冊](https://www.kodakprofessional.com/sites/default/files/wysiwyg/film/KODAKPROFESSIONAL_Film_Brochure2018.pdf)的定性排序，非實測物理係數。
+
+## 材料預設、印相配方與相片掃描（尚未發布）
+
+`PhotoFilmStock.defaultEffects` 提供全部 23 款核心片種的粒徑分布、乳劑解析衰減與色層預設；舊照片／配方的解碼不回填片種新值。`PhotoFilmMaterialProcessor` 負責乳劑 PSF、分層密度曲線、互易律、紙材曲線、紙白與紙基散射，數值為藝術近似。片幅預設 36 mm、虛擬曝光 1 秒、互易律 0、20°C／活性 100，不由片名猜測真實攝影或沖洗條件。
+
+`PhotoPrintRecipe` 包含 reference／glossy／matte／warmFiber，套用時寫入 paperProfile、paperScatter、paperWhite、paperDensityOffset，並將 scannerSource 設為 paper；保留 scannerProfile、曝光、底片與顯影參數。reference 的使用者名稱為「底片預設」。配方 ID 不另存，儲存實際參數即可還原與辨識自訂狀態。
+
+`ScannerSource.film` 維持原有底片透射／密度反解。`paper` 且掃描開啟時，`PhotoFilmSpectralProcessor` 先以 scannerProfile=off 完成光學印相，再由 `PhotoPositiveScannerProcessor` 套用正像掃描色彩與雜散光，不重複曝光、紙材或負片密度反解。掃描關閉則直接輸出印相；反轉片維持直接觀看／掃描。相片掃描不是反射式掃描器的量測模型，scannerIlluminant 與 scanDensityCorrection 的底片透射／分色用途不套用到此正像路徑。
+
+銀鹽密度 UI 沿用 silverRetention（JSON: silver_retention）0–100；0 顯示「底片預設」，只代表無額外銀密度。Bleach Bypass 既有印片端 retainedSilver=0.38 仍保留，新值不覆蓋它。銀密度進入底片光學階段，可影響兩種掃描及印相；預設重設不改其他控制。
+
+Codable、嚴格 AI 解碼、生成文法、Web bridge 與 MCP 均包含 scanner_source／scannerSource。舊配方缺少該欄位時使用 film；MCP printRecipe 先套用，再執行同批個別欄位。非底片／反轉片拒絕印相配方，數位相機模擬維持關閉掃描。
+
+CPU FP64 參考已補齊新密度曲線、抑制、互易律、額外保留銀、紙材及相片掃描；空間 PSF／紙基散射另由影像流程驗證。此次本機 28 項核心測試通過，涵蓋全片種材料、CPU/GPU 色塊一致性、兩種掃描、曝光不重複及配方往返。UI 邏輯檢查驗證配方位置、預設／自訂顯示及銀密度重設入口；這不等同真實照片或原廠片種校準。

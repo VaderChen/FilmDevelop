@@ -44,7 +44,9 @@ public enum PhotoFilmStock: String, CaseIterable, Codable, Sendable {
         )
         switch self {
         case .filmCineStill800T:
-            effects.halationAmount = 38; effects.halationRadius = 0.14
+            // 降低抗暈並同步回收強度，避免返照能量無意間加倍。
+            effects.halationBase = 35
+            effects.halationAmount = 28; effects.halationRadius = 0.14
             effects.bloomAmount = 6
         case .filmPolaroidSX70:
             effects.bloomAmount = 12; effects.bloomRadius = 0.55
@@ -53,9 +55,46 @@ public enum PhotoFilmStock: String, CaseIterable, Codable, Sendable {
             effects.developmentAmount = 20
         default: break
         }
+        let material = materialDefaults
+        effects.grainDistribution = material.distribution
+        effects.emulsionMTF = material.mtf
+        effects.layerResponse = material.layers
+        effects.couplerAmount = material.coupler
+        // 這是新增選用時的藝術預設；舊配方解碼不補套片種預設。
+        // 保留銀 0 表示不額外疊加，Bleach Bypass 自帶的印片銀密度仍保留。
+        // 紙材 reference 保留 SX-70 的低密度；拍攝／沖洗條件沿用中性基準。
         effects.scannerProfile = .neutral
         return effects
     }
+    /// 保守的藝術起點，非原廠量測。順序：粒徑分布、解析衰減、色層差異、色層抑制。
+    private var materialDefaults: (distribution: Double, mtf: Double, layers: Double, coupler: Double) {
+        switch self {
+        case .filmPortra160: return (12, 3, 6, 3)
+        case .filmPortra400: return (22, 5, 8, 5)
+        case .filmPortra800: return (32, 8, 8, 4)
+        case .filmEktar100: return (8, 1, 3, 4)
+        case .filmVision50D: return (10, 2, 4, 8)
+        case .filmVision250D: return (20, 4, 5, 8)
+        case .filmVision200T: return (18, 4, 4, 7)
+        case .filmVision500T: return (30, 7, 5, 7)
+        case .filmEktachrome100: return (12, 2, 3, 0)
+        case .filmVelvia50: return (8, 1, 0, 0)
+        case .filmProvia100F: return (10, 2, 2, 0)
+        case .filmHP5: return (38, 6, 0, 0)
+        case .filmFP4: return (16, 3, 0, 0)
+        case .filmOrtho80: return (12, 2, 0, 0)
+        case .filmSFX200: return (26, 5, 0, 0)
+        case .filmInfrared400: return (30, 5, 0, 0)
+        case .filmBleachBypass: return (32, 5, 0, 0)
+        case .filmCrossProcess: return (24, 4, 12, 2)
+        case .filmGold200: return (28, 6, 6, 3)
+        case .filmCineStill800T: return (36, 8, 4, 5)
+        case .filmPolaroidSX70: return (18, 12, 0, 0)
+        case .filmDelta3200: return (48, 8, 0, 0)
+        case .filmLomoPurple: return (24, 4, 0, 0)
+        }
+    }
+
     public var algorithmDescription: String {
         switch self {
         case .filmGold200: return "暖黃感色層偏移、較鮮明的中調，搭配日常負片顆粒；與 Portra 的柔和膚色方向區隔。"

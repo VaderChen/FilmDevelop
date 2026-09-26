@@ -23,9 +23,27 @@ enum PhotoStyleMCPTools {
         ranges["scanFlare"] = 0...100
         ranges["scanMidtoneWarmth"] = -100...100
         ranges["scanHighlightWarmth"] = -100...100
+        ranges["layerResponse"] = 0...100
+        ranges["couplerAmount"] = 0...100
+        ranges["couplerRadius"] = 0...1
+        ranges["filmWidthMM"] = 8...120
+        ranges["grainDistribution"] = 0...100
+        ranges["emulsionMTF"] = 0...100
+        ranges["paperScatter"] = 0...100
+        ranges["paperWhite"] = 80...100
+        ranges["paperDensityOffset"] = -1...1
+        ranges["reciprocityAmount"] = 0...100
+        ranges["exposureSeconds"] = 0.0001...3600
+        ranges["halationBase"] = 0...100
+        ranges["silverRetention"] = 0...100
+        ranges["developerTemperature"] = 10...40
+        ranges["developerActivity"] = 20...200
         return ranges
     }()
     static let stringValues: [String: [String]] = [
+        "scannerSource": PhotoFilmEffects.ScannerSource.allCases.map(\.rawValue),
+        "printRecipe": PhotoPrintRecipe.allCases.map(\.rawValue),
+        "paperProfile": PhotoFilmEffects.PaperProfile.allCases.map(\.rawValue),
         "cropAspectRatio": CropAspectRatio.allCases.map(\.rawValue),
         "frameStyle": FrameStyle.allCases.map(\.rawValue),
         "dateStyle": DateStampStyle.allCases.map(\.rawValue),
@@ -44,6 +62,8 @@ enum PhotoStyleMCPTools {
         for (key, options) in stringValues { values[key] = ["type": "string", "enum": options] }
         let illuminants = PhotoFilmEffects.Illuminant.allCases.map { "\($0.rawValue) \($0.title)" }.joined(separator: "、")
         let descriptions = [
+            "scannerSource": "film 直接掃描底片（相容預設）；paper 先印相再掃描紙本正像。相片掃描略過負片色層分離，保留紙白與紙基效果；反轉片維持直接掃描。",
+            "printRecipe": "印相配方：reference 底片預設、glossy 亮面、matte 霧面柔階、warmFiber 暖調纖維。限非反轉片底片；一次套用紙材、紙白、紙黑密度偏移與散射並將掃描來源設為相片，保留底掃開關及風格，保留曝光、反差及底片設定。同批個別參數會在配方後套用。",
             "scannerProfile": "off 關閉掃描；neutral 中性掃描（預設）；warmCool 暖中調冷亮部；softPortrait 柔和人像；vivid 鮮明掃描；coolClean 冷色清透；fadedVintage 復古褪色。底片與原片皆可使用；數位相機模擬強制 off 並停用底掃；原片僅套用掃描色彩調整。非實測商用掃描器。",
             "scannerIlluminant": "底掃穿透光源，片基自動平衡；與印相、觀看光源分開。",
             "scanSaturation": "底掃色彩濃度，50 為中性，0 灰階；黑白底片維持灰階。",
@@ -59,6 +79,21 @@ enum PhotoStyleMCPTools {
             "developmentAmount": "顯影擴散效果量，0 關閉；模擬共享顯影液耗竭與補充。",
             "developmentTime": "相對顯影時間，50 為基準，越大耗竭與鄰接作用越明顯。",
             "developmentDiffusion": "顯影液擴散尺度，以完整影像長邊百分比表示。",
+            "layerResponse": "各感色層使用獨立暗部、斜率與高光曲線；0 保留原曲線。片種數據為藝術近似。",
+            "couplerAmount": "模擬色層間的密度依賴顯影抑制；0 關閉，並非一般彩度。",
+            "couplerRadius": "抑制劑影響鄰近區域的近似範圍，以畫面長邊百分比表示；需啟用色層抑制。",
+            "filmWidthMM": "以毫米指定曝光片幅長邊；同樣輸出尺寸下，片幅越大，顆粒及光學散射尺度越小。",
+            "grainDistribution": "增加大小晶體的分布寬度，並校正平均覆蓋面積；需啟用顆粒。",
+            "emulsionMTF": "模擬片種與色層的光學細節衰減；0 保留原始解析力，數值不是實測 MTF。",
+            "paperScatter": "印相後的紙基散射，相片掃描亦保留；直接底片掃描與正片不套用。",
+            "paperWhite": "光學印相紙白的相對反射率；100 不額外降低紙白。",
+            "paperDensityOffset": "調整印相材料最大密度；正值使紙黑更深，相片掃描亦保留。",
+            "reciprocityAmount": "依虛擬曝光時間模擬感度與色層響應下降；0 關閉，並非數位照片 EXIF 的自動還原。",
+            "exposureSeconds": "底片模擬的曝光時間；只用於互易律失效，不改動原圖 EXIF。",
+            "halationBase": "增加吸收並減弱基底返照；50 保留既有返照比例，需啟用紅暈。",
+            "silverRetention": "在已顯影負片加入中性銀密度，影響掃描與印相；0 不額外保留銀。",
+            "developerTemperature": "以 20°C 為參考的相對反應速率模型；需啟用顯影效果，不是特定藥水的時間表。",
+            "developerActivity": "顯影劑相對活性；100 為參考，用於反應速率，不代表實測藥水配方。",
             "developmentAgitation": "顯影液攪拌／補充程度；越高越能補充局部耗竭。",
             "grainMode": "統一使用 emulsion：顯影前 Poisson 晶體捕光與分層返照。顆粒量沿用 grain 與各分區 Grain。",
             "grainSize": "顆粒尺寸：原圖長邊 3000 像素時的像素大小；預覽與匯出依原圖比例換算。",

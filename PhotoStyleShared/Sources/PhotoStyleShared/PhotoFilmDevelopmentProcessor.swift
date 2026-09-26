@@ -51,7 +51,9 @@ public enum PhotoFilmDevelopmentProcessor {
               let linear = image.matchedFromWorkingSpace(to: linearSRGB) else { return image }
 
         let steps = min(48, max(4, stepCount))
-        let time = 0.4 + 2.6 * effects.developmentTime / 100
+        // Q10=2 的有界相對動力學；不是特定藥水校準。
+        let activity = effects.developerActivity / 100 * pow(2, (effects.developerTemperature - 20) / 10)
+        let time = min(6, (0.4 + 2.6 * effects.developmentTime / 100) * activity)
         let dt = time / Double(steps)
         let reaction = 1.6 * dt
         let replenishment = 1 - exp(-2.5 * effects.developmentAgitation / 100 * dt)

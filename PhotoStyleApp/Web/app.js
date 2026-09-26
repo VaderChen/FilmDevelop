@@ -49,6 +49,7 @@
     frameStyles: [],
     dateStyles: [],
     filmIlluminants: [],
+    printRecipes: [],
     sourceImage: null,
     cropSourceImage: null,
     outputImage: null,
@@ -419,6 +420,23 @@
       developmentAmount: 0,
       developmentTime: 50,
       developmentDiffusion: 0.15,
+      scannerSource: "film",
+      paperProfile: "reference",
+      layerResponse: 0,
+      couplerAmount: 0,
+      couplerRadius: 0.1,
+      filmWidthMM: 36,
+      grainDistribution: 0,
+      emulsionMTF: 0,
+      paperScatter: 0,
+      paperWhite: 100,
+      paperDensityOffset: 0,
+      reciprocityAmount: 0,
+      exposureSeconds: 1,
+      halationBase: 50,
+      silverRetention: 0,
+      developerTemperature: 20,
+      developerActivity: 100,
       developmentAgitation: 50,
       grainMode: "emulsion",
       grainSize: 1,
@@ -1220,18 +1238,37 @@
       '<div class="film-section">',
       renderRange(L.text("顆粒量"), "grain", value("grain", 0), 0, 100, 1, "", grainHelp)
     ];
-    var filmStock = !!(selected && selected.filmFamily);
+    var filmStock = !!(selected && selected.filmFamily && selected.filmFamily !== "camera");
     var reversal = filmStock && selected.filmFamily === "reversal";
     var scanning = filmStock && value("scannerProfile", "off") !== "off";
+    var directFilmScan = scanning && value("scannerSource", "film") === "film";
     var printHelp = filmStock
       ? (reversal ? L.text('正片直接觀看，略過印相光源；曝光正值變亮、負值變暗。') : L.text('負片成像、印相與觀看分開計算；曝光正值變亮、負值變暗。'))
       : L.text('在目前風格上調整印相與觀看光源、曝光及反差；原始參考、0 EV 與反差 50 保留原有外觀。黑白風格維持灰階。');
-    if (scanning || reversal) printHelp = L.text("掃描或正片模式在成品上套用印相光源色彩補償；曝光正值變亮、負值變暗。原始參考不改變光源色調。");
+    if (directFilmScan || reversal) printHelp = L.text("掃描或正片模式在成品上套用印相光源色彩補償；曝光正值變亮、負值變暗。原始參考不改變光源色調。");
     printHelp += " " + L.text("提高 EV 時柔和壓縮高光，降低 EV 時保留暗部層次；0 EV 保留原有外觀。");
     var lights = state.filmIlluminants;
+    var printRecipes = state.printRecipes || [];
+    var matchedRecipe = filmStock && !reversal && printRecipes.find(function (recipe) {
+      return ["paperProfile", "paperScatter", "paperWhite", "paperDensityOffset"].every(function (key) {
+        var defaults = {paperProfile:"reference", paperScatter:0, paperWhite:100, paperDensityOffset:0};
+        return value(key, defaults[key]) === recipe[key];
+      });
+    });
+    var recipeOptions = [{id:"", disabled:true, title: L.text("自訂印相")}].concat(printRecipes);
+    var printRecipeControls = [];
+    printRecipeControls.push(renderSelect(L.text("印相配方"), "printRecipe", matchedRecipe ? matchedRecipe.id : "", recipeOptions,
+      !filmStock || reversal, L.text("選用配方會套用紙材並將掃描來源設為相片，保留底掃開關與風格。底片先印相，再掃描相片；可微調並存為自訂底片。反轉片不適用。")));
+    printRecipeControls.push(renderSelect(L.text("印相材料"), "paperProfile", value("paperProfile", "reference"), [{id:"reference",title:L.text("底片預設")},{id:"glossy",title:L.text("亮面印相")},{id:"matte",title:L.text("霧面印相")},{id:"warmFiber",title:L.text("暖調纖維紙") }], !filmStock || directFilmScan || reversal, L.text("紙材可用於光學印相及相片掃描；直接掃描底片與正片不套用。不代表原廠紙材量測。")));
+    printRecipeControls.push(renderRange(L.text("紙基散射"), "paperScatter", value("paperScatter", 0), 0, 100, 1, "", L.text("印相後的紙基散射會保留於相片掃描；直接掃描底片與正片不套用。"), !filmStock || directFilmScan || reversal));
+    printRecipeControls.push(renderRange(L.text("紙白反射率"), "paperWhite", value("paperWhite", 100), 80, 100, 1, "", L.text("光學印相紙白的相對反射率；100 不額外降低紙白。"), !filmStock || directFilmScan || reversal));
+    printRecipeControls.push(renderRange(L.text("紙黑密度偏移"), "paperDensityOffset", value("paperDensityOffset", 0), -1, 1, 0.01, "", L.text("調整印相材料最大密度；正值使紙黑更深，相片掃描也會保留此效果。"), !filmStock || directFilmScan || reversal));
     sections.unshift([
       '<div class="film-section">',
       renderSelect(L.text("印相光源"), "printIlluminant", value("printIlluminant", "reference"), lights, false, printHelp),
+      '</div><div class="film-section">',
+      printRecipeControls.join(''),
+      '</div><div class="film-section">',
       renderRange(reversal ? L.text("觀看曝光") : L.text("印相曝光補償"), "printExposure", value("printExposure", 0), Math.min(state.exposureExpansionEnabled ? -16 : -8, value("printExposure", 0)), Math.max(state.exposureExpansionEnabled ? 16 : 8, value("printExposure", 0)), 0.05, " EV", L.text("曝光先分離亮度與色彩，只調整亮度後再套用底片效果；正值變亮、負值變暗。高光抑制開啟時保護亮部，降低曝光時保留暗部層次。0 EV 不改變原有外觀。")),
       renderRange(reversal ? L.text("觀看反差") : L.text("印相反差"), "printContrast", value("printContrast", 50), 0, 100, 1, "", L.text("50 為目前風格或底片的基準；提高數值增加明暗反差，降低數值讓階調更柔和。")),
       renderRange(L.text("暗角"), "vignetteBalance", vignetteBalance(adjustment), -100, 100),
@@ -1240,12 +1277,28 @@
     sections.push(renderRange(L.text("顆粒尺寸"), "grainSize", value("grainSize", 1), 0.5, 4, 0.05, " px"));
     sections.push(renderRange(L.text("聚集程度"), "grainClumping", value("grainClumping", 0)));
     sections.push(renderRange(L.text("彩色比例"), "grainChroma", value("grainChroma", 0), 0, 100, 1, "", null, monochrome));
+    sections.push(renderRange(L.text("片幅長邊"), "filmWidthMM", value("filmWidthMM", 36), 8, 120, 1, " mm", L.text("以毫米指定曝光片幅長邊；同樣輸出尺寸下，片幅越大，顆粒及光學散射尺度越小。"), false));
+    sections.push(renderRange(L.text("粒徑分布"), "grainDistribution", value("grainDistribution", 0), 0, 100, 1, "", L.text("增加大小晶體的分布寬度，並校正平均覆蓋面積；需啟用顆粒。"), false));
+    sections.push(renderRange(L.text("乳劑解析力衰減"), "emulsionMTF", value("emulsionMTF", 0), 0, 100, 1, "", L.text("模擬片種與色層的光學細節衰減；0 保留原始解析力，數值不是實測 MTF。"), false));
     var developmentHelp = L.text('模擬顯影液消耗與補充，調整局部反差。效果設為 0 時關閉，時間、擴散與攪拌不會生效；提高效果後，時間與擴散影響局部反差，提高攪拌補充會減弱顯影液耗竭效果。');
     sections.push('</div><div class="film-section">');
     sections.push(renderRange(L.text("顯影效果"), "developmentAmount", value("developmentAmount", 0), 0, 100, 1, "", developmentHelp));
     sections.push(renderRange(L.text("顯影時間"), "developmentTime", value("developmentTime", 50)));
     sections.push(renderRange(L.text("擴散範圍"), "developmentDiffusion", value("developmentDiffusion", 0.15), 0.02, 1, 0.01, "%"));
     sections.push(renderRange(L.text("攪拌補充"), "developmentAgitation", value("developmentAgitation", 50)));
+    sections.push(renderRange(L.text("顯影溫度"), "developerTemperature", value("developerTemperature", 20), 10, 40, 1, " °C", L.text("以 20°C 為參考的相對反應速率模型；需啟用顯影效果，不是特定藥水的時間表。"), false));
+    sections.push(renderRange(L.text("顯影劑活性"), "developerActivity", value("developerActivity", 100), 20, 200, 1, "", L.text("顯影劑相對活性；100 為參考，用於反應速率，不代表實測藥水配方。"), false));
+    sections.push('</div><div class="film-section">');
+    sections.push(renderRange(L.text("色層感光差異"), "layerResponse", value("layerResponse", 0), 0, 100, 1, "", L.text("各感色層使用獨立暗部、斜率與高光曲線；0 保留原曲線。片種數據為藝術近似。"), !filmStock || monochrome));
+    sections.push(renderRange(L.text("色層抑制"), "couplerAmount", value("couplerAmount", 0), 0, 100, 1, "", L.text("模擬色層間的密度依賴顯影抑制；0 關閉，並非一般彩度。"), !filmStock));
+    sections.push(renderRange(L.text("抑制擴散範圍"), "couplerRadius", value("couplerRadius", 0.1), 0, 1, 0.01, "%", L.text("抑制劑影響鄰近區域的近似範圍，以畫面長邊百分比表示；需啟用色層抑制。"), !filmStock));
+    sections.push(renderRange(L.text("互易律失效"), "reciprocityAmount", value("reciprocityAmount", 0), 0, 100, 1, "", L.text("依虛擬曝光時間模擬感度與色層響應下降；0 關閉，並非數位照片 EXIF 的自動還原。"), !filmStock));
+    sections.push(renderRange(L.text("虛擬曝光秒數"), "exposureSeconds", value("exposureSeconds", 1), 0.0001, 3600, 0.0001, " s", L.text("底片模擬的曝光時間；只用於互易律失效，不改動原圖 EXIF。"), !filmStock));
+    sections.push('</div><div class="film-section silver-density-section">');
+    var silverHelp = L.text("底片預設保留片種原有的銀密度；提高數值會額外加入中性銀密度，影響印相及掃描。回到預設只清除額外調整，不會移除底片本身的保留銀。");
+    sections.push(renderFilmHeading(L.text("銀鹽密度"), silverHelp));
+    sections.push(renderRange(L.text("額外銀密度"), "silverRetention", value("silverRetention", 0), 0, 100, 1, "", silverHelp, !filmStock));
+    sections.push('<button type="button" class="silver-density-reset" data-silver-default' + (!filmStock ? ' disabled' : '') + '>' + escapeHtml(L.text("底片預設")) + '</button>');
     var bloomHelp = L.text('讓明亮邊緣泛出中性的柔和光暈。強度設為 0 時關閉，提高強度即可啟用。範圍為原圖長邊的百分比，提高範圍會擴大光暈；降低亮部門檻可涵蓋更多亮部，提高門檻則集中於最亮區域。');
     sections.push('</div><div class="film-section">');
     sections.push(renderRange(L.text("柔光強度"), "bloomAmount", value("bloomAmount", 0), 0, 100, 1, "", bloomHelp));
@@ -1260,6 +1313,7 @@
       renderRange(L.text("紅暈範圍"), "halationRadius", value("halationRadius", 0.1), 0.01, 0.3, 0.01, "%"),
       renderRange(L.text("亮部門檻"), "halationThreshold", value("halationThreshold", 75))
     ].join('')));
+    sections.push(renderRange(L.text("基底抗暈"), "halationBase", value("halationBase", 50), 0, 100, 1, "", L.text("增加吸收並減弱基底返照；50 保留既有返照比例，需啟用紅暈。"), false));
     sections.push('</div>');
     var filterHelp = L.text('調整原圖各色轉為灰階的明暗關係，選用黑白風格或黑白底片時生效。先選擇濾鏡色彩，再調整濃度；無濾鏡或濃度 0 時不套用。');
     sections.push('<div class="film-section">');
@@ -1286,8 +1340,11 @@
         {id:"softPortrait",title:L.text("柔和人像")}, {id:"vivid",title:L.text("鮮明掃描")},
         {id:"coolClean",title:L.text("冷色清透")}, {id:"fadedVintage",title:L.text("復古褪色")}
       ], !film, film ? L.text("中性保留原色；暖調帶暖中調與冷亮部；柔和人像降低彩度與反差；鮮明增加色彩與反差；冷色清透偏冷；復古褪色提亮黑位。皆為藝術風格。") : L.text("數位模擬不使用底片掃描；此區已關閉並停用。選擇底片或原片後可使用。")),
+      renderSelect(L.text("掃描來源"), "scannerSource", value("scannerSource", "film"), [
+        {id:"film",title:L.text("底片")}, {id:"paper",title:L.text("印相後的相片")}
+      ], !film || reversal || !!(selected && selected.isOriginal), L.text("直接掃描底片，或先完成印相再掃描相片。選用印相配方會切換為相片，保留掃描風格。")),
       renderRange(L.text("色彩濃度"), "scanSaturation", value("scanSaturation", 50), 0, 100, 1, "", L.text("50 保留原色彩，0 轉為灰階。"), !enabled || monochrome),
-      renderRange(L.text("色層分離"), "scanDensityCorrection", value("scanDensityCorrection", 100), 0, 100, 1, "", L.text("校正負片染料在掃描時互相混入的色彩；降低可保留較多混色。"), !enabled || monochrome || reversal || !!(selected && selected.isOriginal)),
+      renderRange(L.text("色層分離"), "scanDensityCorrection", value("scanDensityCorrection", 100), 0, 100, 1, "", L.text("校正負片染料在掃描時互相混入的色彩；降低可保留較多混色。"), !enabled || monochrome || reversal || value("scannerSource", "film") === "paper" || !!(selected && selected.isOriginal)),
       renderRange(L.text("掃描雜散光"), "scanFlare", value("scanFlare", 0), 0, 100, 1, "", L.text("模擬掃描器內部漏入的光，改變高密度區的層次與反差；0 關閉。"), !enabled),
       renderRange(L.text("中調冷暖"), "scanMidtoneWarmth", value("scanMidtoneWarmth", 0), -100, 100, 1, "", L.text("正值偏暖黃，負值偏冷藍；在目前掃描風格上微調。"), !enabled || monochrome),
       renderRange(L.text("亮部冷暖"), "scanHighlightWarmth", value("scanHighlightWarmth", 0), -100, 100, 1, "", L.text("正值偏暖黃，負值偏冷藍；接近純白時逐漸減弱染色。"), !enabled || monochrome)
@@ -1303,7 +1360,8 @@
     ].join(""));
   }
 
-  function rangeValueText(value, low, high, step, unit) {
+  function rangeValueText(value, low, high, step, unit, key) {
+    if (key === "silverRetention" && Number(value) === 0) return L.text("底片預設");
     var decimals = step < 1 ? String(step).split(".")[1].length : 0;
     // Keep native/MCP decimals rather than rounding them to a slider step.
     var numeric = Number(clamp(value, low, high).toFixed(Math.max(decimals, 6)));
@@ -1366,7 +1424,7 @@
     var signed = low < 0 && high > 0;
     return [
       '<div class="control-row" data-reset-adjustment="' + key + '">',
-      '<div class="control-label"><label class="help-label" for="adjustment-' + key + '">' + renderHelp(help, label) + '</label><span data-value-label="' + key + '">' + rangeValueText(numeric, low, high, increment, unit) + "</span></div>",
+      '<div class="control-label"><label class="help-label" for="adjustment-' + key + '">' + renderHelp(help, label) + '</label><span data-value-label="' + key + '">' + rangeValueText(numeric, low, high, increment, unit, key) + "</span></div>",
       '<input class="range-slider ' + (signed ? "signed-range" : "positive-range") + '" type="range" id="adjustment-' + key + '" aria-label="' + label + '" min="' + low + '" max="' + high + '" step="any" value="' + numeric + '" data-range-step="' + increment + '" data-range-unit="' + (unit || '') + '" data-range-min="' + low + '" data-range-max="' + high + '" data-adjustment="' + key + '"' + (disabled ? ' disabled' : '') + '>',
       "</div>"
     ].join("");
@@ -1388,7 +1446,7 @@
       '<label class="help-label" for="' + key + '">' + renderHelp(help, label) + '</label>',
       '<select id="' + key + '" data-select="' + key + '" ' + (disabled ? "disabled" : "") + ">",
       options.map(function (option) {
-        return '<option value="' + option.id + '" ' + (option.id === value ? "selected" : "") + ">" + escapeHtml(L.text(option.title)) + "</option>";
+        return '<option value="' + option.id + '" ' + (option.id === value ? "selected" : "") + (option.disabled ? " disabled" : "") + ">" + escapeHtml(L.text(option.title)) + "</option>";
       }).join(""),
       "</select>",
       "</div>"
@@ -2172,6 +2230,17 @@
       });
     });
 
+    app.querySelectorAll("[data-silver-default]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        if (button.disabled || !button.isConnected || generation !== photoEditGeneration || photoIsBusy(state) || !state.hasImage) return;
+        flushLiveAdjustment();
+        endLiveAdjustment();
+        updateLocalAdjustment("silverRetention", 0);
+        post("updateAdjustment", { style: state.selectedStyle, key: "silverRetention", value: 0 });
+        render();
+      });
+    });
+
     app.querySelectorAll("[data-adjustment]").forEach(function (input) {
       updateRangeVisual(input);
       input.addEventListener("keydown", function (event) {
@@ -2229,6 +2298,17 @@
       select.addEventListener("change", function () {
         if (select.disabled || !select.isConnected || generation !== photoEditGeneration || photoIsBusy(state)) return;
         var key = select.dataset.select;
+        if (key === "printRecipe") {
+          var recipe = (state.printRecipes || []).find(function (item) { return item.id === select.value; });
+          if (!recipe) { render(); return; }
+          ["paperProfile", "paperScatter", "paperWhite", "paperDensityOffset"].forEach(function (field) {
+            updateLocalAdjustment(field, recipe[field]);
+          });
+          updateLocalAdjustment("scannerSource", "paper");
+          post("updateAdjustment", { style: state.selectedStyle, key: key, value: recipe.id });
+          render();
+          return;
+        }
         if (key === "cropAspectRatio" && select.value === "original") {
           cancelCropEditing();
           return;
@@ -3290,7 +3370,7 @@
   function formatRangeValue(input, value) {
     var low = Number(input.dataset.rangeMin || input.min || 0);
     var high = Number(input.dataset.rangeMax || input.max || 100);
-    return rangeValueText(value, low, high, Number(input.dataset.rangeStep || 1), input.dataset.rangeUnit || "");
+    return rangeValueText(value, low, high, Number(input.dataset.rangeStep || 1), input.dataset.rangeUnit || "", input.dataset.adjustment);
   }
 
   function updateRangeVisual(input) {

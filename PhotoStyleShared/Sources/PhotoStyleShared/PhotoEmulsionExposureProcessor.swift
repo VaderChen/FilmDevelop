@@ -26,10 +26,11 @@ public enum PhotoEmulsionExposureProcessor {
         let source = linear.transformed(by: .init(translationX: -extent.minX, y: -extent.minY))
             .transformed(by: .init(scaleX: 1 / scale, y: 1 / scale))
         let canonical = CGRect(x: 0, y: 0, width: extent.width / scale, height: extent.height / scale)
-        let radius = 12 * e.grainSize
+        let physicalSize = e.grainSize * 36 / e.filmWidthMM
+        let radius = 12 * physicalSize
         guard let captureGraph = field.apply(extent: canonical, roiCallback: { _, r in r.insetBy(dx: -radius, dy: -radius) },
-            arguments: [source.clampedToExtent(), e.grainSize, e.grainClumping / 100,
-                        monochrome ? 0 : e.grainChroma / 100, Double(seed & 0xffff), Double(seed >> 16)]) else { return image }
+            arguments: [source.clampedToExtent(), physicalSize, e.grainClumping / 100,
+                        monochrome ? 0 : e.grainChroma / 100, Double(seed & 0xffff), Double(seed >> 16), e.grainDistribution / 100]) else { return image }
         // 紅暈與成品共用同一個捕獲場，避免分支重算晶體取樣。
         let captured = renderContext.map { context in
             autoreleasepool { PhotoFilmFieldSnapshot.resolve(captureGraph, context: context) }
@@ -38,8 +39,8 @@ public enum PhotoEmulsionExposureProcessor {
         let bounced: CIImage
         if halo > 0 {
             guard let remaining = transmission.apply(extent: canonical, arguments: [source, captured]),
-                  let reflected = returned.apply(extent: canonical, arguments: [source, remaining, halo, PhotoFilmEffects.linearLightThreshold(e.halationThreshold)]) else { return image }
-            let sigma = 3000 * e.halationRadius / 100
+                  let reflected = returned.apply(extent: canonical, arguments: [source, remaining, halo, PhotoFilmEffects.linearLightThreshold(e.halationThreshold), e.halationBase / 100]) else { return image }
+            let sigma = 3000 * e.halationRadius / 100 * 36 / e.filmWidthMM
             bounced = reflected.clampedToExtent().applyingFilter("CIGaussianBlur", parameters: [kCIInputRadiusKey: sigma]).cropped(to: canonical)
         } else {
             // 關閉紅暈時不建立透射、反射與模糊分支；顆粒捕獲仍照常計算。
@@ -61,7 +62,7 @@ public enum PhotoEmulsionExposureProcessor {
     // Exposed internally to test the raw photon budget independently from gain.
     static func capturedField(_ image: CIImage, size: Double = 1, seed: UInt32 = 0) -> CIImage? {
         field?.apply(extent: image.extent, roiCallback: { _, r in r.insetBy(dx: -24, dy: -24) },
-            arguments: [image.clampedToExtent(), size, 0.0, 1.0, Double(seed & 0xffff), Double(seed >> 16)])
+            arguments: [image.clampedToExtent(), size, 0.0, 1.0, Double(seed & 0xffff), Double(seed >> 16), 0.0])
     }
     private static let kernels: [CIKernel] = {
         let source = """
@@ -83,7 +84,7 @@ public enum PhotoEmulsionExposureProcessor {
             return c.a>0.0 ? max(float3(0.0),c.rgb/c.a) : float3(0.0);
         }
         [[ stitchable ]] float4 emulsionCapture(coreimage::sampler src, float size, float clumping,
-            float chroma, float seedLo, float seedHi, destination dest) {
+            float chroma, float seedLo, float seedHi, float spread, destination dest) {
             float2 p=dest.coord(); float4 original=src.sample(src.transform(p));
             if (!(original.a>0.0)) return float4(0.0);
             float3 incident=max(original.rgb/original.a,float3(0.0));
@@ -107,6 +108,8 @@ public enum PhotoEmulsionExposureProcessor {
                             uint h=eh(key ^ uint(j+1)*0x63d83595u);
                             float2 center=(float2(candidate)+float2(eu(h),eu(h^0xa511e9b3u)))*spacing;
                             float radius=(0.25f+0.10f*eu(h^0x3c6ef372u))*spacing;
+                            // 有界 log-uniform 粒徑變異，以 E[r²] 校正平均覆蓋面積。
+                            if(spread>0.0001f) radius*=exp(spread*(2*eu(h^0x91e10da5u)-1))/sqrt(sinh(2*spread)/(2*spread));
                             float angle=6.2831853f*eu(h^0xbb67ae85u); float cs=cos(angle),sn=sin(angle);
                             float2 d=q-center; d=float2(cs*d.x+sn*d.y,-sn*d.x+cs*d.y);
                             float edge=max(abs(d.x),max(abs(0.5f*d.x+0.8660254f*d.y),abs(-0.5f*d.x+0.8660254f*d.y)));
@@ -135,11 +138,11 @@ public enum PhotoEmulsionExposureProcessor {
         [[ stitchable ]] float4 emulsionTransmission(sample_t source,sample_t captured) {
             return float4(max(source.rgb-captured.rgb,float3(0.0)),source.a);
         }
-        [[ stitchable ]] float4 emulsionReturn(sample_t source,sample_t transmitted,float amount,float threshold) {
+        [[ stitchable ]] float4 emulsionReturn(sample_t source,sample_t transmitted,float amount,float threshold,float base) {
             float y=source.a>0.0?dot(max(source.rgb/source.a,float3(0.0)),float3(0.2126,0.7152,0.0722)):0.0;
             float gate=smoothstep(threshold,threshold+0.25f,y);
             // Channel-wise substrate reflectance. The unreturned remainder escapes.
-            return float4(transmitted.rgb*float3(0.65f,0.16f,0.035f)*(amount*gate),source.a);
+            return float4(transmitted.rgb*min(float3(1.0f),float3(0.65f,0.16f,0.035f)*exp(-float3(1.0f,1.8f,2.5f)*(base-0.5f)))*(amount*gate),source.a);
         }
         [[ stitchable ]] float4 emulsionComposite(sample_t source,sample_t captured,sample_t bounced,
             sample_t shadows,sample_t midtones,sample_t highlights,float3 amounts,float chroma,float clumping) {

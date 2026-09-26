@@ -13,10 +13,11 @@ enum PhotoFilmScanner {
     }
 
     static func signal(_ density: SIMD3<Double>, profile p: PhotoFilmSpectralProfile,
-                       light: [Double]) -> SIMD3<Double> {
+                       light: [Double], additionalSilver: Double = 0) -> SIMD3<Double> {
         var value = SIMD3<Double>.zero
         for k in 0..<13 {
             let optical = p.baseDensity[k] + (p.monochrome ? density.x : simd_dot(p.negativeDyes[k], density))
+                + additionalSilver * simd_dot(density, .init(0.2126, 0.7152, 0.0722))
             value += PhotoFilmSpectralProfile.scanner[k] * light[k] * pow(10, -optical)
         }
         return value
@@ -50,20 +51,21 @@ enum PhotoFilmScanner {
         let cal = calibration(p, light:light)
         let flare = pow(e.scanFlare / 100, 2) * 0.005
         let contrast = pow(2, (e.printContrast - 50) / 50)
+        let silver = e.silverRetention / 100 * simd_dot(density, .init(0.2126, 0.7152, 0.0722))
         var rgb: SIMD3<Double>
         if p.reversal {
-            if p.monochrome { rgb = .init(repeating: pow(10, -density.x)) }
+            if p.monochrome { rgb = .init(repeating: pow(10, -(density.x + silver))) }
             else {
                 var scan = SIMD3<Double>.zero, white = SIMD3<Double>.zero
                 for k in 0..<13 {
                     let sensor = PhotoFilmSpectralProfile.scanner[k] * light[k]
-                    scan += sensor * pow(10, -simd_dot(p.negativeDyes[k], density)); white += sensor
+                    scan += sensor * pow(10, -(simd_dot(p.negativeDyes[k], density) + silver)); white += sensor
                 }
                 rgb = simd_max(.zero, PhotoFilmSpectralProfile.scannerToRGB * ((scan / white + flare) / (1 + flare)))
             }
             rgb = .init((0..<3).map { 0.18 * pow(max(rgb[$0], 1e-12) / 0.18 * pow(2,e.printExposure), contrast) })
         } else {
-            let t = (signal(density, profile:p, light:light) / cal.base + flare) / (1 + flare)
+            let t = (signal(density, profile:p, light:light, additionalSilver:e.silverRetention / 100) / cal.base + flare) / (1 + flare)
             let logD = SIMD3<Double>((0..<3).map { -log10(max(t[$0], 1e-12)) }) - cal.middle
             let mix = e.scanDensityCorrection / 100
             let separated = !p.monochrome && mix > 0

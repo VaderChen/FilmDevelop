@@ -1,5 +1,6 @@
 import AppKit
 import WebKit
+import PhotoStyleShared
 
 extension PhotoStyleWebCoordinator {
     func startMCPServer() {
@@ -87,6 +88,9 @@ extension PhotoStyleWebCoordinator {
             guard sourceImage != nil else { throw PhotoStyleMCPTools.failure("尚未開啟照片。") }
             // Validate the whole request before applying any of its values.
             let changes = (arguments["changes"] as! [String: Any]).sorted(by: { $0.key < $1.key })
+            if changes.contains(where: { $0.key == "printRecipe" }), !PhotoPrintRecipe.supports(selectedStyle.filmStock) {
+                throw PhotoStyleMCPTools.failure("印相配方僅適用於非反轉片底片。")
+            }
             updateAdjustments(changes.map { ["key": $0.key, "value": $0.value] })
         case "import_color_calibration":
             try importColorCalibration(from: Self.mcpFileURL(arguments["path"] as! String))

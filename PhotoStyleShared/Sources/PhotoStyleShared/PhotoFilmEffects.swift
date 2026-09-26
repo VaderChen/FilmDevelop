@@ -109,6 +109,8 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
     public var developmentDiffusion: Double
     public var developmentAgitation: Double
 
+    public enum ScannerSource: String, Codable, CaseIterable, Sendable { case film, paper }
+    public var scannerSource: ScannerSource
     public var scannerProfile: ScannerProfile
     public var scannerIlluminant: Illuminant
     public var scanExposure: Double
@@ -119,9 +121,44 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
     public var scanMidtoneWarmth: Double
     public var scanHighlightWarmth: Double
 
+    public enum PaperProfile: String, Codable, CaseIterable, Sendable { case reference, glossy, matte, warmFiber }
+    public var paperProfile: PaperProfile
+    public var layerResponse: Double
+    public var couplerAmount: Double
+    public var couplerRadius: Double
+    public var filmWidthMM: Double
+    public var grainDistribution: Double
+    public var emulsionMTF: Double
+    public var paperScatter: Double
+    public var paperWhite: Double
+    public var paperDensityOffset: Double
+    public var reciprocityAmount: Double
+    public var exposureSeconds: Double
+    public var halationBase: Double
+    public var silverRetention: Double
+    public var developerTemperature: Double
+    public var developerActivity: Double
+
     public static let neutral = PhotoFilmEffects()
 
     public init(
+        scannerSource: ScannerSource = .film,
+        paperProfile: PaperProfile = .reference,
+        layerResponse: Double = 0,
+        couplerAmount: Double = 0,
+        couplerRadius: Double = 0.1,
+        filmWidthMM: Double = 36,
+        grainDistribution: Double = 0,
+        emulsionMTF: Double = 0,
+        paperScatter: Double = 0,
+        paperWhite: Double = 100,
+        paperDensityOffset: Double = 0,
+        reciprocityAmount: Double = 0,
+        exposureSeconds: Double = 1,
+        halationBase: Double = 50,
+        silverRetention: Double = 0,
+        developerTemperature: Double = 20,
+        developerActivity: Double = 100,
         highlightProtectionEnabled: Bool = true,
         grainMode: GrainMode = .emulsion,
         grainSize: Double = 1,
@@ -154,6 +191,23 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
         scanMidtoneWarmth: Double = 0,
         scanHighlightWarmth: Double = 0
     ) {
+        self.scannerSource = scannerSource
+        self.paperProfile = paperProfile
+        self.layerResponse = layerResponse
+        self.couplerAmount = couplerAmount
+        self.couplerRadius = couplerRadius
+        self.filmWidthMM = filmWidthMM
+        self.grainDistribution = grainDistribution
+        self.emulsionMTF = emulsionMTF
+        self.paperScatter = paperScatter
+        self.paperWhite = paperWhite
+        self.paperDensityOffset = paperDensityOffset
+        self.reciprocityAmount = reciprocityAmount
+        self.exposureSeconds = exposureSeconds
+        self.halationBase = halationBase
+        self.silverRetention = silverRetention
+        self.developerTemperature = developerTemperature
+        self.developerActivity = developerActivity
         // Retired engine identifiers are accepted on input but canonicalized.
         self.highlightProtectionEnabled = highlightProtectionEnabled
         self.grainMode = .emulsion
@@ -193,6 +247,23 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
             value.isFinite ? min(range.upperBound, max(range.lowerBound, value)) : fallback
         }
         return PhotoFilmEffects(
+            scannerSource: scannerSource,
+            paperProfile: paperProfile,
+            layerResponse: bound(layerResponse, 0...100, 0),
+            couplerAmount: bound(couplerAmount, 0...100, 0),
+            couplerRadius: bound(couplerRadius, 0...1, 0.1),
+            filmWidthMM: bound(filmWidthMM, 8...120, 36),
+            grainDistribution: bound(grainDistribution, 0...100, 0),
+            emulsionMTF: bound(emulsionMTF, 0...100, 0),
+            paperScatter: bound(paperScatter, 0...100, 0),
+            paperWhite: bound(paperWhite, 80...100, 100),
+            paperDensityOffset: bound(paperDensityOffset, -1...1, 0),
+            reciprocityAmount: bound(reciprocityAmount, 0...100, 0),
+            exposureSeconds: bound(exposureSeconds, 0.0001...3600, 1),
+            halationBase: bound(halationBase, 0...100, 50),
+            silverRetention: bound(silverRetention, 0...100, 0),
+            developerTemperature: bound(developerTemperature, 10...40, 20),
+            developerActivity: bound(developerActivity, 20...200, 100),
             highlightProtectionEnabled: highlightProtectionEnabled,
             grainMode: grainMode,
             grainSize: bound(grainSize, 0.5...4, 1),
@@ -227,6 +298,24 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
     }
 
     enum CodingKeys: String, CodingKey {
+        case scannerSource = "scanner_source"
+        case paperProfile = "paper_profile"
+        case layerResponse = "layer_response"
+        case couplerAmount = "coupler_amount"
+        case couplerRadius = "coupler_radius"
+        case filmWidthMM = "film_width_mm"
+        case grainDistribution = "grain_distribution"
+        case emulsionMTF = "emulsion_mtf"
+        case paperScatter = "paper_scatter"
+        case paperWhite = "paper_white"
+        case paperDensityOffset = "paper_density_offset"
+        case reciprocityAmount = "reciprocity_amount"
+        case exposureSeconds = "exposure_seconds"
+        case halationBase = "halation_base"
+        case silverRetention = "silver_retention"
+        case developerTemperature = "developer_temperature"
+        case developerActivity = "developer_activity"
+
         case grainMode = "grain_mode"
         case grainSize = "grain_size"
         case grainClumping = "grain_clumping"
@@ -262,6 +351,23 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
+            scannerSource: try values.decodeIfPresent(ScannerSource.self, forKey: .scannerSource) ?? .film,
+            paperProfile: try values.decodeIfPresent(PaperProfile.self, forKey: .paperProfile) ?? .reference,
+            layerResponse: try values.decodeIfPresent(Double.self, forKey: .layerResponse) ?? 0,
+            couplerAmount: try values.decodeIfPresent(Double.self, forKey: .couplerAmount) ?? 0,
+            couplerRadius: try values.decodeIfPresent(Double.self, forKey: .couplerRadius) ?? 0.1,
+            filmWidthMM: try values.decodeIfPresent(Double.self, forKey: .filmWidthMM) ?? 36,
+            grainDistribution: try values.decodeIfPresent(Double.self, forKey: .grainDistribution) ?? 0,
+            emulsionMTF: try values.decodeIfPresent(Double.self, forKey: .emulsionMTF) ?? 0,
+            paperScatter: try values.decodeIfPresent(Double.self, forKey: .paperScatter) ?? 0,
+            paperWhite: try values.decodeIfPresent(Double.self, forKey: .paperWhite) ?? 100,
+            paperDensityOffset: try values.decodeIfPresent(Double.self, forKey: .paperDensityOffset) ?? 0,
+            reciprocityAmount: try values.decodeIfPresent(Double.self, forKey: .reciprocityAmount) ?? 0,
+            exposureSeconds: try values.decodeIfPresent(Double.self, forKey: .exposureSeconds) ?? 1,
+            halationBase: try values.decodeIfPresent(Double.self, forKey: .halationBase) ?? 50,
+            silverRetention: try values.decodeIfPresent(Double.self, forKey: .silverRetention) ?? 0,
+            developerTemperature: try values.decodeIfPresent(Double.self, forKey: .developerTemperature) ?? 20,
+            developerActivity: try values.decodeIfPresent(Double.self, forKey: .developerActivity) ?? 100,
             grainMode: try values.decodeIfPresent(GrainMode.self, forKey: .grainMode) ?? .legacy,
             grainSize: try values.decodeIfPresent(Double.self, forKey: .grainSize) ?? 1,
             grainClumping: try values.decodeIfPresent(Double.self, forKey: .grainClumping) ?? 0,
@@ -293,5 +399,51 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
             scanMidtoneWarmth: try values.decodeIfPresent(Double.self, forKey: .scanMidtoneWarmth) ?? 0,
             scanHighlightWarmth: try values.decodeIfPresent(Double.self, forKey: .scanHighlightWarmth) ?? 0
         )
+    }
+}
+
+/// 印相配方只改紙材並將掃描來源設為相片；保留底掃開關與風格；結果以既有欄位儲存，沒有額外配方版本依賴。
+public enum PhotoPrintRecipe: String, CaseIterable, Sendable {
+    case reference, glossy, matte, warmFiber
+
+    public var title: String {
+        switch self {
+        case .reference: return "底片預設"
+        case .glossy: return "亮面印相"
+        case .matte: return "霧面柔階"
+        case .warmFiber: return "暖調纖維"
+        }
+    }
+
+    public var paperProfile: PhotoFilmEffects.PaperProfile {
+        switch self {
+        case .reference: return .reference
+        case .glossy: return .glossy
+        case .matte: return .matte
+        case .warmFiber: return .warmFiber
+        }
+    }
+    public var scatter: Double {
+        switch self { case .reference: return 0; case .glossy: return 4; case .matte: return 22; case .warmFiber: return 14 }
+    }
+    public var white: Double {
+        switch self { case .reference, .glossy: return 100; case .matte: return 96; case .warmFiber: return 94 }
+    }
+    public var densityOffset: Double { 0 }
+
+    public static func supports(_ stock: PhotoFilmStock?) -> Bool {
+        guard let stock else { return false }
+        return stock.family != "reversal"
+    }
+
+    public func applying(to effects: PhotoFilmEffects, stock: PhotoFilmStock?) -> PhotoFilmEffects {
+        guard Self.supports(stock) else { return effects }
+        var result = effects
+        result.scannerSource = .paper
+        result.paperProfile = paperProfile
+        result.paperScatter = scatter
+        result.paperWhite = white
+        result.paperDensityOffset = densityOffset
+        return result
     }
 }

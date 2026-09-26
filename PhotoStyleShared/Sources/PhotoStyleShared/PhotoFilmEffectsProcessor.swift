@@ -18,6 +18,7 @@ public enum PhotoFilmEffectsProcessor {
         strength: Double = 1
     ) -> CIImage {
         let effects = effects.clamped()
+        let image = PhotoFilmMaterialProcessor.emulsion(to: image, effects: effects, strength: strength)
         let strength = unit(strength)
         let bloom = PhotoFilmEffects.effectAmount(effects.bloomAmount) * strength
         guard bloom > 0,

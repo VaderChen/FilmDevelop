@@ -219,20 +219,33 @@ struct PhotoFilmSpectralProfile: Sendable {
 
     /// Slow FP64 reference for tests and accuracy/benchmark tools. The renderer
     /// does NOT allocate per-pixel spectra or invoke this CPU path.
-    func referenceRGB(_ input: SIMD3<Double>, effects: PhotoFilmEffects = .neutral, strength: Double = 1) -> SIMD3<Double> {
+    func referenceRGB(_ input: SIMD3<Double>, effects: PhotoFilmEffects = .neutral, strength: Double = 1,
+                      neighboringExposure: SIMD3<Double>? = nil) -> SIMD3<Double> {
         let effects = effects.clamped()
+        if effects.scannerSource == .paper && effects.scannerProfile != .off && !reversal {
+            var printing = effects
+            printing.scannerProfile = .off
+            let paper = referenceRGB(input, effects: printing, strength: strength, neighboringExposure: neighboringExposure)
+            let flare = pow(effects.scanFlare / 100, 2) * 0.005
+            return PhotoFilmScanner.grade((paper + flare) / (1 + flare), effects: effects, monochrome: false)
+        }
         let exposed = PhotoExposureProtection.applyLuminance(input, gain: pow(2, effects.printExposure),
                                                             protectsHighlights: effects.highlightProtectionEnabled)
         var baseline = effects
         baseline.printExposure = 0
         baseline.printContrast = 50
-        let rgb = referenceBaselineRGB(exposed, effects: baseline, strength: strength)
+        let rgb = referenceBaselineRGB(exposed, effects: baseline, strength: strength, neighboringExposure: neighboringExposure)
         let contrast = pow(2, (effects.printContrast - 50) / 50)
         let contrasted = SIMD3<Double>((0..<3).map { 0.18 * pow(max(rgb[$0], 0) / 0.18, contrast) })
+        // 單像素參考涵蓋紙白；紙基散射與乳劑 PSF 需用影像測試驗證。
+        if effects.scannerProfile == .off && !reversal {
+            let warm = effects.paperProfile == .warmFiber
+            return contrasted * SIMD3<Double>(1, warm ? 0.975 : 1, warm ? 0.91 : 1) * (effects.paperWhite / 100)
+        }
         return contrasted
     }
 
-    private func referenceBaselineRGB(_ input: SIMD3<Double>, effects: PhotoFilmEffects, strength: Double) -> SIMD3<Double> {
+    private func referenceBaselineRGB(_ input: SIMD3<Double>, effects: PhotoFilmEffects, strength: Double, neighboringExposure: SIMD3<Double>?) -> SIMD3<Double> {
         let effects = effects.clamped()
         let printLight = PhotoFilmIllumination.spectrum(effects.printIlluminant, wavelengths: Self.wavelengths)
         let viewLight = PhotoFilmIllumination.spectrum(effects.viewIlluminant, wavelengths: Self.wavelengths)
@@ -256,9 +269,29 @@ struct PhotoFilmSpectralProfile: Sendable {
             let shifted = SIMD3<Double>(0.45 * h.x + 0.55 * h.y, h.z, h.y)
             h = shifted * (1 - preserve) + h * preserve
         }
+        let curves = PhotoFilmMaterialProcessor.layerCurves(self, amount: effects.layerResponse)
+        let loss = PhotoFilmMaterialProcessor.reciprocityLoss(self, effects: effects)
+        let paper = PhotoFilmMaterialProcessor.paper(self, effects: effects)
+        let weights = SIMD3<Double>(0.2126, 0.7152, 0.0722)
+        let extraSilver = effects.silverRetention / 100
+        func layerDensity(_ ev: Double, _ curve: SIMD4<Double>) -> Double {
+            func softplus(_ x: Double) -> Double { max(x, 0) + log1p(exp(-abs(x))) }
+            return curve.w * (softplus(curve.z * (ev - curve.x)) - softplus(curve.z * (ev - curve.y))) / (curve.z * (curve.y - curve.x))
+        }
         var d = SIMD3<Double>.zero
         for c in 0..<3 {
-            d[c] = density(log2(max(h[c], 1e-7) / 0.18) * layerGain[c] + layerEV[c] + reversalShift)
+            let ev = log2(max(h[c], 1e-7) / 0.18) * layerGain[c] + layerEV[c] - loss[c] + reversalShift
+            d[c] = min(maxDensity, max(0, layerDensity(ev, curves[c]) + density(reversalShift) - layerDensity(reversalShift, curves[c])))
+        }
+        if effects.couplerAmount > 0 {
+            // 傳入已曝光、模糊後的線性鄰域；省略時代表均勻色塊。
+            let neighbor = simd_max(.zero, neighboringExposure ?? rgb)
+            let activation = d * simd_clamp((neighbor + 0.02) / (rgb + 0.02), .init(repeating: 0.25), .init(repeating: 4))
+            let inhibitor = activation / (1 + activation)
+            let cross = SIMD3<Double>(simd_dot(inhibitor, .init(0.1, 0.55, 0.35)),
+                                      simd_dot(inhibitor, .init(0.4, 0.1, 0.5)),
+                                      simd_dot(inhibitor, .init(0.55, 0.35, 0.1)))
+            d *= 1 - 0.35 * effects.couplerAmount / 100 * cross
         }
         if effects.scannerProfile != .off {
             return PhotoFilmScanner.reference(reversal ? .init(repeating:maxDensity) - d : d, profile:self, effects:effects)
@@ -267,17 +300,18 @@ struct PhotoFilmSpectralProfile: Sendable {
         if reversal {
             let anchor = -log10(0.18)
             d = SIMD3<Double>((0..<3).map { max(0, anchor + (maxDensity - d[$0] - anchor) * contrast) })
+            d += extraSilver * simd_dot(d, weights)
         } else {
             var printH = SIMD3<Double>.zero
             for i in Self.wavelengths.indices {
-                let optical = baseDensity[i] + (monochrome ? d.x : simd_dot(negativeDyes[i], d))
+                let optical = baseDensity[i] + (monochrome ? d.x : simd_dot(negativeDyes[i], d)) + extraSilver * simd_dot(d, weights)
                 printH += printSensitivity[i] * printLight[i] * pow(10, -optical)
             }
             let reference = referencePrintExposure
             for c in 0..<3 {
                 // Output compensation has the opposite sign to physical paper exposure.
                 let ev = log2(max(printH[c] / reference[c], 1e-12)) - effects.printExposure
-                d[c] = printMaxDensity / (1 + exp(-(ev * printSlope * contrast + printBias)))
+                d[c] = paper.y / (1 + exp(-(ev * paper.x * contrast + paper.z)))
             }
             let silver = retainedSilver * simd_dot(d, .init(0.2126, 0.7152, 0.0722))
             d += silver
