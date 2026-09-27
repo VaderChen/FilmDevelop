@@ -278,3 +278,42 @@ dialog.update-complete-dialog::backdrop { background:rgba(0,0,0,.38); backdrop-f
 .update-complete-body { overflow:auto; min-height:0; padding:12px 24px; text-align:left; }
 .update-complete-body ul { display:flex; flex-direction:column; gap:8px; margin:0; padding-left:22px; }
 .update-complete-body li { margin:0; line-height:1.5; overflow-wrap:anywhere; }
+
+/* Output preferences use one control size and treatment for selects and numbers. */
+.settings-row select[data-export-setting], .export-number-control {
+  width:240px; max-width:100%; height:42px; min-height:42px; flex:0 1 240px;
+  border:1px solid var(--line-strong); border-radius:11px;
+  background-color:var(--surface-raised); color:var(--text);
+  box-shadow:0 2px 5px rgba(30,25,20,.04); font-size:13px; font-weight:600;
+}
+.export-number-control {
+  display:flex; align-items:center; overflow:hidden;
+  transition:border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
+}
+.export-number-control input {
+  flex:1; width:0; min-width:0; height:100%; min-height:0; margin:0; padding:0 14px;
+  border:0; border-radius:0; outline:none; box-shadow:none; background:transparent;
+  color:inherit; font:inherit; text-align:left; font-variant-numeric:tabular-nums;
+  -moz-appearance:textfield;
+}
+.export-number-control input::-webkit-inner-spin-button,
+.export-number-control input::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
+.export-number-control > span {
+  display:grid; place-items:center; flex:0 0 42px; height:16px;
+  border-left:1px solid var(--line); color:var(--muted); font-size:12px;
+}
+.export-number-control:hover:not(:has(input:disabled)) {
+  border-color:color-mix(in srgb,var(--accent) 50%,var(--line-strong));
+  background-color:var(--surface); box-shadow:0 3px 9px rgba(30,25,20,.07);
+}
+.export-number-control:focus-within {
+  outline:3px solid color-mix(in srgb,var(--accent) 38%,transparent); outline-offset:2px;
+  border-color:var(--accent); background-color:var(--surface-raised);
+  box-shadow:0 2px 8px var(--accent-soft);
+}
+.export-number-control:has(input:disabled) {
+  color:var(--muted); background-color:var(--surface-soft); border-color:var(--line);
+  box-shadow:none; opacity:.65; cursor:not-allowed;
+}
+.export-number-control input:disabled { cursor:not-allowed; }
+.export-format-heading { margin:24px 0 4px; font-size:15px; }

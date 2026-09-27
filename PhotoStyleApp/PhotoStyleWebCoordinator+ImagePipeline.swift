@@ -94,8 +94,10 @@ extension PhotoStyleWebCoordinator {
             customFilmBaseAdjustment = selectedCustomFilmID == nil ? nil : record.customFilmBaseAdjustment
             repairPatches = record.repairPatches ?? []
             selectedStyle = restoredStyle
+            manualAdjustments = record.manualAdjustments ?? PhotoManualAdjustments()
             adjustmentStore.restorePhotoAdjustments(record.adjustments)
         } else {
+            manualAdjustments = PhotoManualAdjustments(hasCompleteHistory: true)
             adjustmentStore.startNewPhoto()
             selectedCustomFilmID = nil
             customFilmBaseAdjustment = nil

@@ -72,14 +72,17 @@ public enum PhotoPlanToneProcessor {
             : .full
         var image = image
         if components.contains(.exposure) {
-            // Retain plan mapping as an opacity: mapping=0 must disable EV too.
-            // Every branch is a physical gain; mask blending preserves RGB ratios.
-            let original = image
-            image = PhotoToneZoneProcessor.composite(base: original,
-                shadows: PhotoToneProcessor.applyExposure(to: original, ev: PhotoExposureScale.ev(fromSlider: Double(toneZones.shadows.exposure)) * strength),
-                midtones: PhotoToneProcessor.applyExposure(to: original, ev: PhotoExposureScale.ev(fromSlider: Double(toneZones.midtones.exposure)) * strength),
-                highlights: PhotoToneProcessor.applyExposure(to: original, ev: PhotoExposureScale.ev(fromSlider: Double(toneZones.highlights.exposure)) * strength),
-                masks: masks, mappingAmounts: mappingAmounts)
+            // Preserve gain-opacity mapping and EV-scaled strength at each
+            // anchor, then fit one monotone curve instead of blending masks.
+            // This keeps equal +4 EV / mapping 50 at 8.5x, without a shoulder.
+            func mappedEV(_ adjustment: PhotoStylePlan.ToneAdjustment, mapping: Double) -> Double {
+                let ev = PhotoExposureScale.ev(fromSlider: Double(adjustment.exposure)) * strength
+                return log2(1 + mapping * (exp2(ev) - 1))
+            }
+            image = PhotoExposureProcessor.apply(to: image,
+                highlightsEV: mappedEV(toneZones.highlights, mapping: mappingAmounts.highlights),
+                midtonesEV: mappedEV(toneZones.midtones, mapping: mappingAmounts.midtones),
+                shadowsEV: mappedEV(toneZones.shadows, mapping: mappingAmounts.shadows))
         }
         let components = components.subtracting(.exposure)
         guard !components.subtracting(.mapping).isEmpty else { return image }

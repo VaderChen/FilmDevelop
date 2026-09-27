@@ -20,15 +20,18 @@ public enum PhotoHDRProcessor {
         return left > 0.0 && right > 0.0 ? 2.0 * left * right / (left + right) : 0.0;
     }
 
-    float hdrSegment(float x, float y0, float y1, float m0, float m1) {
+    vec2 hdrSegment(float x, float y0, float y1, float m0, float m1) {
         float t = clamp(x, 0.0, 1.0);
         float t2 = t * t;
         float t3 = t2 * t;
-        return (2.0*t3 - 3.0*t2 + 1.0)*y0 + (t3 - 2.0*t2 + t)*m0
-             + (-2.0*t3 + 3.0*t2)*y1 + (t3 - t2)*m1;
+        float value = (2.0*t3 - 3.0*t2 + 1.0)*y0 + (t3 - 2.0*t2 + t)*m0
+                    + (-2.0*t3 + 3.0*t2)*y1 + (t3 - t2)*m1;
+        float slope = (6.0*t2 - 6.0*t)*y0 + (3.0*t2 - 4.0*t + 1.0)*m0
+                    + (-6.0*t2 + 6.0*t)*y1 + (3.0*t2 - 2.0*t)*m1;
+        return vec2(value, max(4.0 * slope, 0.0));
     }
 
-    float mapLocalHDRTone(
+    vec2 mapLocalHDRTone(
         float value, float black, float shadows, float midtones, float highlights, float white
     ) {
         // 單調 Hermite 插值；相鄰控制點相等時不會反轉亮度。
@@ -43,7 +46,32 @@ public enum PhotoHDRProcessor {
         if (value <= 0.50) return hdrSegment((value-0.25)*4.0, shadows, midtones, m1, m2);
         if (value <= 0.75) return hdrSegment((value-0.50)*4.0, midtones, highlights, m2, m3);
         if (value <= 1.0) return hdrSegment((value-0.75)*4.0, highlights, white, m3, d3);
-        return white + value - 1.0;
+        return vec2(white + value - 1.0, 1.0);
+    }
+
+    vec2 hdrLogTonePoint(
+        float logValue, float black, float shadows, float midtones, float highlights, float white
+    ) {
+        float value = exp2(logValue);
+        vec2 mapped = mapLocalHDRTone(value, black, shadows, midtones, highlights, white);
+        float slope = mapped.x > 0.00001 ? value * mapped.y / mapped.x : 0.0;
+        // A non-finite derivative must not contaminate the spatial interpolant.
+        if (!(slope >= 0.0 && slope < 1.0e20)) slope = 0.0;
+        return vec2(log2(max(mapped.x, 0.00001)), max(slope, 0.0));
+    }
+
+    // Rational quadratic Hermite interpolation. Positive endpoint slopes and
+    // secant give a nonnegative derivative throughout the interval, unlike
+    // mixing two curves with an input-dependent smoothstep weight.
+    float hdrDetailSegment(float t, float y0, float y1, float m0, float m1, float width) {
+        float delta = max(y1 - y0, 0.0);
+        float secant = delta / width;
+        if (secant < 0.000001) return mix(y0, y1, t);
+        // With nonnegative slopes the denominator is at least secant / 2.
+        float cross = t * (1.0 - t);
+        float numerator = secant * t * t + m0 * cross;
+        float denominator = secant + (m0 + m1 - 2.0 * secant) * cross;
+        return y0 + delta * numerator / denominator;
     }
 
     kernel vec4 reconstructLocalHDR(
@@ -58,34 +86,28 @@ public enum PhotoHDRProcessor {
         float detailGain,
         float amount
     ) {
-        float baseValue = max(exp2(baseLogLuminance.r), 0.0);
-        float mappedBase = mapLocalHDRTone(
-            baseValue,
-            black,
-            shadows,
-            midtones,
-            highlights,
-            white
-        );
-        float detail = logLuminance.r - baseLogLuminance.r;
-        float textureWeight = 1.0 - smoothstep(0.08, 0.35, abs(detail));
-        float resolvedDetailGain = 1.0 + (detailGain - 1.0) * textureWeight;
-        float localLogLuminance = log2(max(mappedBase, 0.00001))
-            + detail * resolvedDetailGain;
-        float directLuminance = mapLocalHDRTone(
-            max(exp2(logLuminance.r), 0.0),
-            black,
-            shadows,
-            midtones,
-            highlights,
-            white
-        );
-        float directLogLuminance = log2(max(directLuminance, 0.00001));
-        float processedLogLuminance = mix(
-            directLogLuminance,
-            localLogLuminance,
-            textureWeight
-        );
+        float base = baseLogLuminance.r;
+        float detail = logLuminance.r - base;
+        float radius = 0.35;
+        float processedLogLuminance = hdrLogTonePoint(logLuminance.r,
+            black, shadows, midtones, highlights, white).x;
+        if (abs(detail) < radius) {
+            vec2 middle = hdrLogTonePoint(base, black, shadows, midtones, highlights, white);
+            // Nonflat intervals retain detailGain at weak textures. Strong edges meet
+            // the original direct tone curve in value and, where differentiable,
+            // derivative. Existing curve-knot behavior is unchanged.
+            if (detail < 0.0) {
+                vec2 left = hdrLogTonePoint(base - radius,
+                    black, shadows, midtones, highlights, white);
+                processedLogLuminance = hdrDetailSegment((detail + radius) / radius,
+                    left.x, middle.x, left.y, detailGain, radius);
+            } else {
+                vec2 right = hdrLogTonePoint(base + radius,
+                    black, shadows, midtones, highlights, white);
+                processedLogLuminance = hdrDetailSegment(detail / radius,
+                    middle.x, right.x, detailGain, right.y, radius);
+            }
+        }
         float outputLogLuminance = mix(logLuminance.r, processedLogLuminance, amount);
         float sourceLuminance = max(exp2(logLuminance.r), 0.0);
         float outputLuminance = max(exp2(outputLogLuminance), 0.0);

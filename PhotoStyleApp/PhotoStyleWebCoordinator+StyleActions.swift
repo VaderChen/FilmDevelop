@@ -260,6 +260,7 @@ extension PhotoStyleWebCoordinator {
         customFilmBaseAdjustment = nil
         selectedStyle = .original
         UserDefaults.standard.set(selectedStyle.rawValue, forKey: Self.selectedStyleDefaultsKey)
+        manualAdjustments = PhotoManualAdjustments(hasCompleteHistory: true)
         adjustmentStore.restorePhotoAdjustments([:])
         isRestoringPhotoEdits = false
         persistCurrentPhotoEdits()
@@ -339,7 +340,7 @@ extension PhotoStyleWebCoordinator {
     }
 
     // Apply a transaction before rendering so MCP batches never publish partial edits.
-    func updateAdjustments(_ payloads: [[String: Any]], detectSubjectMask: Bool = true, interactive: Bool = false) {
+    func updateAdjustments(_ payloads: [[String: Any]], detectSubjectMask: Bool = true, interactive: Bool = false, userInitiated: Bool = false) {
         guard !payloads.isEmpty else { return }
         let previousHistoryBatch = editHistoryBatchID
         editHistoryBatchID = previousHistoryBatch ?? UUID().uuidString
@@ -594,7 +595,24 @@ extension PhotoStyleWebCoordinator {
                 }
             }
         }
-        guard !updates.isEmpty else { return }
+        // Mark explicit UI edits, including a deliberate neutral value. Recipe,
+        // AI and MCP changes are not evidence of a manual slider edit.
+        let previousManualAdjustments = manualAdjustments
+        if userInitiated, sourceImage != nil {
+            for payload in orderedPayloads {
+                let style = (payload["style"] as? String).flatMap(PhotoStyle.init(rawValue:)) ?? selectedStyle
+                if style == selectedStyle, let key = payload["key"] as? String,
+                   PhotoManualAdjustments.trackedPrintControls.contains(key) {
+                    manualAdjustments.printControls.insert(key)
+                }
+            }
+        }
+        let markersChanged = manualAdjustments != previousManualAdjustments
+        guard !updates.isEmpty || markersChanged else { return }
+        if updates.isEmpty {
+            recordEditHistory()
+            persistCurrentPhotoEdits()
+        }
         for (style, adjustment) in updates {
             adjustmentStore.setAdjustment(adjustment, for: style)
         }

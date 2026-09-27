@@ -22,10 +22,9 @@ extension PhotoStyleWebCoordinator {
         hasAttemptedLastSourceImageRestore = true
         commitAdjustmentPreview()
         isLoadingImage = true
-        loadingPreviewImagePayload = photoDirectoryStore.items.first {
-            photoDirectoryStore.url(for: $0.id)?.standardizedFileURL == url.standardizedFileURL
-        }?.thumbnail
-        let hasLoadingPreview = loadingPreviewImagePayload != nil
+        // Directory thumbnails can be padded camera EXIF previews. Do not expand
+        // their baked-in black borders into the editing canvas while RAW loads.
+        loadingPreviewImagePayload = nil
         sendState(includeImages: true)
 
         let workGate = photoDirectoryStore.previewWorkGate
@@ -49,7 +48,7 @@ extension PhotoStyleWebCoordinator {
                 coordinator.coordinate(readingItemAt: url, options: [], error: &coordinatorError) { readableURL in
                     do {
                         let data = try Data(contentsOf: readableURL)
-                        if !hasLoadingPreview, let quickPreview = loadingPreviewDataURL(from: data) {
+                        if let quickPreview = loadingPreviewDataURL(from: data) {
                             DispatchQueue.main.async { [weak self] in
                                 guard let self, self.isLoadingImage, cancellation?.isCancelled != true else { return }
                                 self.loadingPreviewImagePayload = quickPreview

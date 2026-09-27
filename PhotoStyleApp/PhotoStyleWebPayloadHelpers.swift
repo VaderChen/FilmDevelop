@@ -4,9 +4,14 @@ import ImageIO
 
 // 僅供等待原檔解碼的畫面使用，不進入編輯或匯出管線。
 func loadingPreviewDataURL(from data: Data) -> String? {
+    // Request an editing-sized camera preview instead of its tiny, often
+    // letterboxed EXIF thumbnail. Non-RAW images use the actual image pixels.
+    if let preview = PhotoRAWThumbnail.make(from: data, maxPixel: Int(PhotoImage.previewMaxPixel)) {
+        return imageDataURL(PhotoImage(cgImage: preview))
+    }
     guard let source = CGImageSourceCreateWithData(data as CFData, nil),
           let thumbnail = CGImageSourceCreateThumbnailAtIndex(source, 0, [
-            kCGImageSourceCreateThumbnailFromImageIfAbsent: true,
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
             kCGImageSourceCreateThumbnailWithTransform: true,
             kCGImageSourceThumbnailMaxPixelSize: PhotoImage.previewMaxPixel,
             kCGImageSourceShouldCacheImmediately: true

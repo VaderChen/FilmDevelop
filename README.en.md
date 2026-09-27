@@ -11,24 +11,35 @@ A film-inspired photo editor for Apple Silicon Mac. Open a photo folder, choose 
 Requires macOS 14 or later. AI features require a compatible local model, downloaded separately.
 
 
+## Export settings
+
+In Settings → Export, choose the default folder, format and color space. sRGB is the default; Adobe RGB (1998) and Display P3 are also available. Pixels are converted and the corresponding ICC profile is embedded.
+
+- Longest edge in pixels: 0 means unlimited. Downscale only, measured after cropping and framing.
+- JPEG: quality 1–100%, 8 bit.
+- PNG: lossless, 8 or 16 bit.
+- WebP: quality 1–100% or lossless, 8 bit; quality is ignored in lossless mode.
+- TIFF: 8 or 16 bit, uncompressed or lossless LZW.
+
+Preferences apply to single and batch export, with one fixed snapshot per batch. Export dialogs can still select format and bit depth. Resizing and color conversion occur after rendering; original photos remain unchanged.
+
+Positive size entries have a minimum of 8 px and round to the nearest multiple of 8 (ties upward). Only the longest edge uses this limit; the other edge scales proportionally. Switching formats retains their options; help appears in bubbles.
+
 ## Film character and scanning
 
 Film recipes now combine layer response, tone curves, hue-selective saturation and shadow/highlight color. Portra emphasizes skin tones, Ektar vivid color, and VISION3 tonal latitude; E100, Velvia and Provia receive distinct rendering. Digital grading is part of each film look and follows style intensity. Black-and-white stocks retain distinct sensitivity, tone and grain.
 
 Cross Process, Kodak Gold 200, CineStill 800T and Polaroid SX-70 retain their current rendering. Digital simulations and the original receive no film-specific grading. Scanner device labels use simulation; legacy off becomes neutral. Paper controls are hidden for film scanning. UI help describes controls and their visual effects. Processing uses Metal point operations without CPU image readback.
 
-## Latest changes — 1.26.0927 build 1906
+## Latest changes — 1.26.0927 build 2302
 
-- Thumbnails support Command/Shift multi-selection for batch export, deletion, ratings and categories.
-- Added 0–5 star ratings and custom category tags; deleting a category requires confirmation and a check that no photos use it.
-- Added name, time and rating sorting, category filtering, and an extra-large thumbnail size.
-- Batch export shows a progress dialog, uses each photo’s settings, and reports successful and failed exports.
-- The update-complete notice now uses a custom dialog with tighter, symmetric vertical spacing.
-- Corrected exposure and tonal-zone processing to reduce washed-out tones after brightening and improve transitions at extreme settings.
-- Improved floating-point RAW decoding and highlight mapping, and fixed incorrect rejection of some Fujifilm RAF files.
-- Deep shadow exposure compensation is hidden and disabled, including values saved in older recipes.
-
-Exposure corrections can change the appearance of re-rendered older recipes; original photos are not modified. Deep shadow compensation is unavailable in the UI, AI and MCP and is not applied to previews or exports.
+- Added Settings → Export for the output folder, format, size and format-specific options.
+- Export defaults to sRGB, with Adobe RGB (1998) and Display P3 options, color conversion and embedded ICC profiles.
+- The maximum output size rounds to the nearest multiple of 8 when edited; 0 keeps the original size, with downscaling only.
+- Only the selected format’s options are shown, with consistent controls and help bubbles; single and batch exports share the settings.
+- Fixed letterboxing and size jumps in loading previews when switching photos.
+- Record manual exposure and print-contrast adjustments per photo; recipe application behavior remains unchanged in this release.
+- Corrected tonal transitions and alpha handling in contrast, HDR and local tone processing for more stable extreme adjustments.
 
 ## Download and languages
 

@@ -60,6 +60,7 @@ extension PhotoStyleWebCoordinator {
             "hdrFeatureEnabled": hdrFeatureEnabled,
             "originalResolutionEditing": originalResolutionEditing,
             "defaultExportDirectory": exportDirectoryPreference.path,
+            "exportSettings": PhotoExportSettings().payload,
             "styles": PhotoStyle.allCases.map(stylePayload(_:)) + customFilmStore.films.map(customFilmPayload(_:)),
             "adjustments": adjustmentPayloads(),
             "adjustmentDefaults": adjustmentPayload(currentFilmDefaults),

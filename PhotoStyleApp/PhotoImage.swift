@@ -5,6 +5,13 @@ import ImageIO
 import Metal
 import UniformTypeIdentifiers
 
+enum PhotoExportColorSpace: String, CaseIterable {
+    case sRGB, adobeRGB, displayP3
+    var cgColorSpace: CGColorSpace {
+        CGColorSpace(name: self == .adobeRGB ? CGColorSpace.adobeRGB1998 : (self == .displayP3 ? CGColorSpace.displayP3 : CGColorSpace.sRGB))!
+    }
+}
+
 enum PhotoExportFormat: String, CaseIterable {
     case jpeg, png, webp, tiff
 
@@ -105,7 +112,7 @@ struct PhotoImage {
 
     func pngData() -> Data? { encodedData(format: .png, bitDepth: PhotoExportFormat.png.defaultBitDepth) }
 
-    func encodedData(format: PhotoExportFormat, bitDepth: Int, quality: CGFloat = 0.95) -> Data? {
+    func encodedData(format: PhotoExportFormat, bitDepth: Int, quality: CGFloat = 0.95, webPLossless: Bool = false, tiffCompression: Int = 1, exportColorSpace: PhotoExportColorSpace? = nil) -> Data? {
         guard format.supportedBitDepths.contains(bitDepth), quality.isFinite, let cgImage else { return nil }
         // Quantize only at the output boundary; working images remain Float32.
         let bounds = CGRect(origin: .zero, size: size)
@@ -118,21 +125,39 @@ struct PhotoImage {
         let pixelFormat: CIFormat = opaquePNG ? .RGBX8 : (bitDepth == 16 ? .RGBA16 : .RGBA8)
         guard let bitmap = Self.context.createCGImage(
             image, from: bounds, format: pixelFormat,
-            colorSpace: format == .jpeg || format == .webp || opaquePNG
+            colorSpace: exportColorSpace?.cgColorSpace ?? (format == .jpeg || format == .webp || opaquePNG
                 ? CGColorSpace(name: CGColorSpace.sRGB)!
-                : (cgImage.colorSpace ?? CGColorSpace(name: CGColorSpace.sRGB)!),
+                : (cgImage.colorSpace ?? CGColorSpace(name: CGColorSpace.sRGB)!)),
             deferred: false
         ) else { return nil }
         if format == .webp {
-            return PhotoWebPEncoder.encode(bitmap, quality: Float(min(1, max(0, quality)) * 100))
+            return PhotoWebPEncoder.encode(bitmap, quality: Float(min(1, max(0, quality)) * 100), lossless: webPLossless, colorSpace: bitmap.colorSpace)
         }
         let data = NSMutableData()
         guard let destination = CGImageDestinationCreateWithData(data, format.contentType.identifier as CFString, 1, nil) else { return nil }
-        CGImageDestinationAddImage(destination, bitmap, [
-            kCGImageDestinationLossyCompressionQuality: min(1, max(0, quality)),
-            kCGImagePropertyOrientation: 1
-        ] as CFDictionary)
+        var properties: [CFString: Any] = [kCGImagePropertyOrientation: 1]
+        if format == .jpeg { properties[kCGImageDestinationLossyCompressionQuality] = min(1, max(0, quality)) }
+        if format == .tiff {
+            guard [1, 5].contains(tiffCompression) else { return nil }
+            properties[kCGImagePropertyTIFFDictionary] = [kCGImagePropertyTIFFCompression: tiffCompression]
+        }
+        CGImageDestinationAddImage(destination, bitmap, properties as CFDictionary)
         return CGImageDestinationFinalize(destination) ? data as Data : nil
+    }
+
+    /// Resize the finished composition without quantizing before 16-bit export.
+    func resizedForExport(maxPixel: Int) -> PhotoImage? {
+        guard maxPixel > 0, let cgImage else { return self }
+        let longest = max(cgImage.width, cgImage.height)
+        guard longest > maxPixel else { return self }
+        let scale = Double(maxPixel) / Double(longest)
+        let target = CGRect(x: 0, y: 0,
+            width: max(1, (Double(cgImage.width) * scale).rounded()),
+            height: max(1, (Double(cgImage.height) * scale).rounded()))
+        let resized = CIImage(cgImage: cgImage).applyingFilter("CILanczosScaleTransform",
+            parameters: [kCIInputScaleKey: scale, kCIInputAspectRatioKey: 1]).cropped(to: target)
+        return PhotoImageRenderPrecision.renderedImage(from: resized, context: Self.context,
+            highPrecision: true, colorSpace: cgImage.colorSpace, deferred: false)
     }
 
     /// Internal lossless cache, including scene-linear values above 1 and negative values.

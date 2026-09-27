@@ -3,8 +3,20 @@ import CoreImage
 import CryptoKit
 import PhotoStyleShared
 
+/// Photo-specific provenance, deliberately kept out of reusable film recipes.
+/// A missing legacy record cannot tell us whether earlier values were manual.
+struct PhotoManualAdjustments: Codable, Equatable {
+    static let trackedPrintControls: Set<String> = [
+        "printExposure", "printExposureHighlights", "printExposureMidtones",
+        "printExposureShadows", "printContrast"
+    ]
+    var printControls: Set<String> = []
+    var hasCompleteHistory = false
+}
+
 /// Photo recipes are documents, not a discardable thumbnail cache.
 struct PhotoEditRecord: Codable, Equatable {
+    var manualAdjustments: PhotoManualAdjustments?
     var version = 1
     let selectedStyle: String
     var customFilmID: String?
@@ -12,7 +24,8 @@ struct PhotoEditRecord: Codable, Equatable {
     let adjustments: [String: StyleAdjustment]
     var repairPatches: [PhotoRepairPatch]?
 
-    init(style: PhotoStyle, adjustments: [PhotoStyle: StyleAdjustment], customFilmID: String? = nil, customFilmBaseAdjustment: StyleAdjustment? = nil, repairPatches: [PhotoRepairPatch] = []) {
+    init(style: PhotoStyle, adjustments: [PhotoStyle: StyleAdjustment], customFilmID: String? = nil, customFilmBaseAdjustment: StyleAdjustment? = nil, repairPatches: [PhotoRepairPatch] = [], manualAdjustments: PhotoManualAdjustments? = nil) {
+        self.manualAdjustments = manualAdjustments
         self.repairPatches = repairPatches.isEmpty ? nil : repairPatches
         selectedStyle = style.rawValue
         self.customFilmID = customFilmID
@@ -68,7 +81,8 @@ final class PhotoEditStore {
         var legacyDefaults = defaults
         legacyDefaults.filmEffects.scannerProfile = .off
         let adjustment = record.adjustments[record.selectedStyle] ?? defaults
-        return record.customFilmID != nil || !(record.repairPatches ?? []).isEmpty
+        return record.manualAdjustments?.printControls.isEmpty == false
+            || record.customFilmID != nil || !(record.repairPatches ?? []).isEmpty
             || (adjustment != defaults && adjustment != legacyDefaults)
     }
 

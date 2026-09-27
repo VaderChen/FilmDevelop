@@ -42,7 +42,7 @@ extension PhotoStyleWebCoordinator {
         // export waits for this preview, while a new photo discards stale results.
         if [.saveCustomFilm, .deleteCustomFilm, .undoEdit, .redoEdit, .importColorCalibration, .clearColorCalibration, .applyStyle, .saveImage, .browseFiles, .browsePhotoDirectory, .selectDirectoryPhoto, .showPreviewMenu, .setStyle].contains(bridgeMessage.action),
            let adjustments = bridgeMessage.payload["adjustments"] as? [[String: Any]] {
-            updateAdjustments(adjustments, detectSubjectMask: bridgeMessage.action != .applyStyle)
+            updateAdjustments(adjustments, detectSubjectMask: bridgeMessage.action != .applyStyle, userInitiated: true)
         }
         if [.saveImage, .applyStyle].contains(bridgeMessage.action) {
             commitAdjustmentPreview()
@@ -101,6 +101,8 @@ extension PhotoStyleWebCoordinator {
             requestPhotoThumbnails(bridgeMessage.payload)
         case .openCustomModel:
             openCustomModelPicker()
+        case .setExportSettings:
+            setExportSettings(bridgeMessage.payload)
         case .chooseExportDirectory:
             chooseExportDirectory()
         case .openModelDirectory:
@@ -149,11 +151,11 @@ extension PhotoStyleWebCoordinator {
         case .updateAdjustment:
             if bridgeMessage.payload["interactionID"] != nil {
                 guard acceptsAdjustmentPreview(bridgeMessage.payload) else { return }
-                updateAdjustments([bridgeMessage.payload], interactive: true)
+                updateAdjustments([bridgeMessage.payload], interactive: true, userInitiated: true)
             } else if let adjustments = bridgeMessage.payload["adjustments"] as? [[String: Any]] {
-                updateAdjustments(adjustments)
+                updateAdjustments(adjustments, userInitiated: true)
             } else {
-                updateAdjustment(bridgeMessage.payload)
+                updateAdjustments([bridgeMessage.payload], userInitiated: true)
             }
         case .updateStylePrompt:
             updateStylePrompt(bridgeMessage.payload)

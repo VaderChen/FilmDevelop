@@ -44,7 +44,8 @@ fi
 
 mkdir -p "$PROJECT_ROOT/build"
 printf '正在建置照片沖洗，完成後會自動開啟…\n'
-/usr/bin/xcodebuild -quiet \
+# Xcode 27's -quiet output can label successful compiler warnings as errors.
+/usr/bin/xcodebuild \
   -project "$PROJECT_ROOT/PhotoStyleApp.xcodeproj" \
   -scheme PhotoStyleApp \
   -configuration Debug \

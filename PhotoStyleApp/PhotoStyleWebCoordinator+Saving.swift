@@ -63,6 +63,7 @@ extension PhotoStyleWebCoordinator {
         panel.accessoryView = format.view
         panel.isAccessoryViewDisclosed = true
         panel.beginSheetModal(for: window) { [weak self, format] response in
+            self?.sendState(includeImages: false)
             guard response == .OK, let directory = panel.url, let self, self.canImport else {
                 if scoped { initialURL?.stopAccessingSecurityScopedResource() }
                 return
@@ -82,6 +83,7 @@ extension PhotoStyleWebCoordinator {
         persistCurrentPhotoEdits()
         isSavingImage = true
         batchExportProgress = PhotoBatchExportProgress(total: urls.count)
+        let settings = PhotoExportSettings()
         let batchID = batchExportProgress!.id
         let access = directory.startAccessingSecurityScopedResource()
         defer {
@@ -164,13 +166,16 @@ extension PhotoStyleWebCoordinator {
                     }
                     try Task.checkCancellation()
                     report("正在編碼照片", 0.8)
-                    guard let data = autoreleasepool(invoking: { output.encodedData(format: format, bitDepth: bitDepth, quality: 0.95) }) else {
+                    guard let prepared = output.resizedForExport(maxPixel: settings.maxPixel),
+                      let data = autoreleasepool(invoking: { prepared.encodedData(format: format, bitDepth: bitDepth,
+                        quality: settings.quality(for: format), webPLossless: settings.webpLossless,
+                        tiffCompression: settings.tiffCompression, exportColorSpace: settings.colorSpace) }) else {
                         throw PhotoStyleWebSaveError.imageEncodingFailed
                     }
                     try Task.checkCancellation()
                     report("正在儲存照片", 0.95)
                     try data.write(to: outputURL, options: .withoutOverwriting)
-                    return output.size
+                    return prepared.size
                 }
                 exportWorker = worker
                 _ = try await withTaskCancellationHandler { try await worker.value } onCancel: { worker.cancel() }
@@ -241,6 +246,7 @@ extension PhotoStyleWebCoordinator {
         let format = PhotoExportFormatAccessory(panel: panel)
         panel.accessoryView = format.view
         panel.beginSheetModal(for: window) { [weak self, format] response in
+            self?.sendState(includeImages: false)
             guard response == .OK, let url = panel.url, let self else {
                 if scoped { initialURL?.stopAccessingSecurityScopedResource() }
                 return
@@ -283,6 +289,7 @@ extension PhotoStyleWebCoordinator {
         let adjustment = renderingAdjustment(adjustmentStore.adjustment(for: style))
         let fallbackSubjectMask = sourceSubjectMask
         let shouldUseSubjectMask = sourceSubjectMask != nil || adjustment.requiresSubjectMask
+        let settings = PhotoExportSettings()
         let animationID = UUID().uuidString
         // The committed editor preview is already capped at 2048 px. Reuse it
         // throughout the animation; never decode/re-render the full export for it.
@@ -335,7 +342,10 @@ extension PhotoStyleWebCoordinator {
                 try Task.checkCancellation()
                 recordTiming("render")
                 reportStage("encode", 0)
-                guard let data = autoreleasepool(invoking: { output.encodedData(format: format, bitDepth: bitDepth, quality: 0.95) }) else {
+                guard let prepared = output.resizedForExport(maxPixel: settings.maxPixel),
+                      let data = autoreleasepool(invoking: { prepared.encodedData(format: format, bitDepth: bitDepth,
+                        quality: settings.quality(for: format), webPLossless: settings.webpLossless,
+                        tiffCompression: settings.tiffCompression, exportColorSpace: settings.colorSpace) }) else {
                     throw PhotoStyleWebSaveError.imageEncodingFailed
                 }
                 try Task.checkCancellation()
@@ -343,7 +353,7 @@ extension PhotoStyleWebCoordinator {
                 reportStage("write", 0)
                 try data.write(to: url, options: overwrite ? .atomic : .withoutOverwriting)
                 recordTiming("write")
-                return output.size
+                return prepared.size
             }
             exportWorker = worker
             defer { exportWorker = nil }
@@ -516,5 +526,83 @@ final class PhotoExportFormatAccessory: NSObject {
             panel.nameFieldStringValue = (panel.nameFieldStringValue as NSString).deletingPathExtension
                 + "." + selectedFormat.fileExtensions[0]
         }
+    }
+}
+
+/// Global output preferences. Read once per export, so a batch uses one snapshot.
+struct PhotoExportSettings {
+    let colorSpace: PhotoExportColorSpace
+    let maxPixel: Int
+    let jpegQuality: Int
+    let webpQuality: Int
+    let webpLossless: Bool
+    let tiffCompression: Int
+    let format: String
+    let pngDepth: Int
+    let tiffDepth: Int
+    init(defaults: UserDefaults = .standard) {
+        func integer(_ key: String, fallback: Int, range: ClosedRange<Int>) -> Int {
+            guard let value = defaults.object(forKey: "photoExport." + key) as? NSNumber,
+                  range.contains(value.intValue) else { return fallback }
+            return value.intValue
+        }
+        colorSpace = defaults.string(forKey: "photoExport.colorSpace").flatMap(PhotoExportColorSpace.init(rawValue:)) ?? .sRGB
+        maxPixel = integer("maxPixel", fallback: 0, range: 0...100000)
+        jpegQuality = integer("jpegQuality", fallback: 95, range: 1...100)
+        webpQuality = integer("webpQuality", fallback: 95, range: 1...100)
+        webpLossless = defaults.bool(forKey: "photoExport.webpLossless")
+        tiffCompression = defaults.integer(forKey: "photoExport.tiffCompression") == 5 ? 5 : 1
+        format = defaults.string(forKey: "photoExportFormat.v1").flatMap(PhotoExportFormat.init(rawValue:))?.rawValue ?? "png"
+        let depths = defaults.dictionary(forKey: "photoExportBitDepths.v1") as? [String: Int] ?? [:]
+        pngDepth = defaults.bool(forKey: "photoExportPNG8Default.v1") && depths["png"] == 16 ? 16 : 8
+        tiffDepth = depths["tiff"] == 8 ? 8 : 16
+    }
+    func quality(for format: PhotoExportFormat) -> CGFloat {
+        CGFloat(format == .webp ? webpQuality : jpegQuality) / 100
+    }
+    var payload: [String: Any] {
+        ["colorSpace": colorSpace.rawValue, "maxPixel": maxPixel, "jpegQuality": jpegQuality, "webpQuality": webpQuality,
+         "webpLossless": webpLossless, "tiffCompression": tiffCompression,
+         "format": format, "pngDepth": pngDepth, "tiffDepth": tiffDepth]
+    }
+    @discardableResult
+    static func update(key: String, value: Any, defaults: UserDefaults = .standard) -> Bool {
+        if key == "colorSpace", let name = value as? String, PhotoExportColorSpace(rawValue: name) != nil {
+            defaults.set(name, forKey: "photoExport.colorSpace"); return true
+        }
+        if key == "format", let name = value as? String, PhotoExportFormat(rawValue: name) != nil {
+            defaults.set(name, forKey: "photoExportFormat.v1"); return true
+        }
+        if key == "webpLossless", let n = value as? NSNumber, CFGetTypeID(n) == CFBooleanGetTypeID() {
+            defaults.set(n.boolValue, forKey: "photoExport.webpLossless"); return true
+        }
+        guard let n = value as? NSNumber, CFGetTypeID(n) != CFBooleanGetTypeID(), n.doubleValue.isFinite,
+              n.doubleValue.rounded() == n.doubleValue, (0...100000).contains(n.doubleValue) else { return false }
+        let number = n.intValue
+        switch key {
+        case "maxPixel":
+            let aligned = number == 0 ? 0 : max(8, ((number + 4) / 8) * 8)
+            defaults.set(aligned, forKey: "photoExport.maxPixel")
+            return true
+        case "jpegQuality", "webpQuality": guard (1...100).contains(number) else { return false }
+        case "tiffCompression": guard [1, 5].contains(number) else { return false }
+        case "pngDepth", "tiffDepth":
+            guard [8, 16].contains(number) else { return false }
+            var depths = defaults.dictionary(forKey: "photoExportBitDepths.v1") as? [String: Int] ?? [:]
+            depths[String(key.dropLast(5))] = number
+            defaults.set(depths, forKey: "photoExportBitDepths.v1")
+            if key == "pngDepth" { defaults.set(true, forKey: "photoExportPNG8Default.v1") }
+            return true
+        default: return false
+        }
+        defaults.set(number, forKey: "photoExport." + key); return true
+    }
+}
+
+extension PhotoStyleWebCoordinator {
+    func setExportSettings(_ payload: [String: Any]) {
+        guard let key = payload["key"] as? String, let value = payload["value"],
+              PhotoExportSettings.update(key: key, value: value) else { return }
+        sendState(includeImages: false)
     }
 }

@@ -29,8 +29,13 @@ public struct PhotoToneMasks: Sendable {
         float negativeSigma,
         float positiveSigma
     ) {
-        vec3 nonnegativeColor = max(source.rgb, vec3(0.0));
-        float luminance = dot(nonnegativeColor, vec3(0.2126, 0.7152, 0.0722));
+        // Coverage must not move the same scene color into a darker tone zone.
+        // Fully transparent samples have no tone contribution; avoid 0/0.
+        if (source.a <= 0.0) { return vec4(0.0, 0.0, 0.0, 1.0); }
+        vec3 color = source.rgb / source.a;
+        // Extended linear RGB can contain negative channels. Bound luminance
+        // after weighting, rather than changing it by clipping channels first.
+        float luminance = max(dot(color, vec3(0.2126, 0.7152, 0.0722)), 0.0);
         float stops = log2(max(luminance, 0.000001) / max(middleGray, 0.0001));
         float shadowWeight = 1.0 - smoothstep(shadowStart, shadowEnd, stops);
         float midtoneWeight = toneGaussian(stops, negativeSigma, positiveSigma);

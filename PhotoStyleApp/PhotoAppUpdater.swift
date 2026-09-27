@@ -128,16 +128,15 @@ final class PhotoAppUpdater {
 
     // Bundled for offline use. Replace this list for each release with user-facing changes
     // since the immediately preceding published release; never append historical highlights.
-    // Current comparison baseline: v1.26.0927-build-1657.
+    // Current comparison baseline: v1.26.0927-build-1906.
     static let releaseHighlights = [
-        "縮圖支援 Command／Shift 複選，可批次輸出、刪除、分級與分類。",
-        "新增 0～5 星評分與自訂分類標籤；移除分類前會確認並檢查沒有照片使用。",
-        "新增名稱、時間、分級排序與分類篩選；縮圖尺寸增加「超大」。",
-        "批次輸出顯示進度視窗，依每張照片的設定輸出並統計成功與失敗。",
-        "更新完成改用自建對話框，縮小並統一內容上下間距。",
-        "修正曝光與分區明暗運算，改善提亮後灰平及極端調整的階調銜接。",
-        "改善 RAW 浮點解碼與高光映射，修正部分 Fujifilm RAF 被誤判為不支援的問題。",
-        "極暗曝光補償已隱藏並停用；舊配方中的設定也不會套用。"
+        "新增「設定 → 輸出」，集中設定輸出目錄、格式、尺寸與各格式參數。",
+        "輸出預設使用 sRGB，支援 Adobe RGB (1998) 與 Display P3，並轉換色彩及嵌入 ICC 描述檔。",
+        "最大輸出尺寸修改後自動取最接近的 8 倍數；0 表示原始尺寸，只縮小、不放大。",
+        "只顯示所選格式的參數，統一選項外觀並以說明泡泡呈現提示；單張與批次輸出共用設定。",
+        "修正切換照片時載入預覽的黑邊與尺寸跳動，減少載入完成後突然放大的感覺。",
+        "記錄照片的手動曝光與印相反差調整來源；本版維持原有配方套用流程。",
+        "修正反差、HDR 與局部明暗處理的階調銜接及透明度計算，改善極端調整的穩定性。"
     ]
 
     private func presentUpdateNoticeIfNeeded() async throws {

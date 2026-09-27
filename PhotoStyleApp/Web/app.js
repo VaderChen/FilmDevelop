@@ -1413,7 +1413,7 @@
   }
 
   function renderToneAdjustmentCard(title, prefix, exposure, intensity, warmth, grain, planTone) {
-    var selected = state.styles.find(function (style) { return style.id === currentLookID(); });
+    var selected = enabledStyles().find(function (style) { return style.id === currentLookID(); });
     var monochrome = !!(selected && selected.isMonochrome);
     var controls = [
       renderRange(L.text("曝光"), prefix + "Exposure", exposure || 0, -100, 100),
@@ -1443,7 +1443,7 @@
   }
 
   function renderChemistryAdjustmentCard(adjustment) {
-    var selected = state.styles.find(function (style) { return style.id === currentLookID(); });
+    var selected = enabledStyles().find(function (style) { return style.id === currentLookID(); });
     var monochrome = !!(selected && selected.isMonochrome);
     var disabled = !!(selected && selected.filmFamily === "camera");
     var value = function (key, fallback) { return adjustment[key] == null ? fallback : adjustment[key]; };
@@ -1471,7 +1471,7 @@
   }
 
   function renderFilmAdjustmentCard(adjustment) {
-    var selected = state.styles.find(function (style) { return style.id === currentLookID(); });
+    var selected = enabledStyles().find(function (style) { return style.id === currentLookID(); });
     var monochrome = !!(selected && selected.isMonochrome);
     var value = function (key, fallback) { return adjustment[key] == null ? fallback : adjustment[key]; };
     var grainHelp = L.text("以多層晶體捕光呈現顆粒、細節遮蔽與底片返照。") + text("grainBaselineHint") + L.text("尺寸以長邊 3000 像素為基準，預覽與匯出依原圖比例調整；聚集程度控制晶體聚集，彩色比例控制各色層差異。黑白風格維持中性顆粒。");
@@ -1566,7 +1566,7 @@
   }
 
   function renderScannerAdjustmentCard(adjustment) {
-    var selected = state.styles.find(function (style) { return style.id === currentLookID(); });
+    var selected = enabledStyles().find(function (style) { return style.id === currentLookID(); });
     var film = !!(selected && selected.supportsScanner);
     var monochrome = !!(selected && selected.isMonochrome);
     var reversal = selected && selected.filmFamily === "reversal";
@@ -1912,6 +1912,33 @@
 
   var settingsSection = "general";
 
+  function renderExportSettings() {
+    var prefs = Object.assign({maxPixel:0, format:'png', colorSpace:'sRGB', jpegQuality:95, webpQuality:95, webpLossless:false, pngDepth:8, tiffDepth:16, tiffCompression:1}, state.exportSettings || {});
+    var explanations = {
+      "colorSpace": "轉換至所選色彩空間並嵌入 ICC 色彩描述檔。",
+      "maxPixel": "0 表示原始尺寸；只縮小、不放大，包含裁切與外框，套用於單張及批次輸出。",
+      "jpegQuality": "品質越高，檔案通常越大。JPEG 與 WebP 為 8 bit。",
+      "pngDepth": "PNG 使用無損壓縮，不提供有損品質設定。",
+      "webpQuality": "品質越高，檔案通常越大。JPEG 與 WebP 為 8 bit。"
+    };
+    function select(key, title, choices) {
+      return '<div class="settings-row"><span id="export-label-' + key + '">' + renderHelp(explanations[key] ? L.text(explanations[key]) : '', L.text(title)) + '</span><select id="export-' + key + '" aria-labelledby="export-label-' + key + '" data-export-setting="' + key + '">' + choices.map(function(c) { return option(c[0], L.text(c[1]), String(prefs[key])); }).join('') + '</select></div>';
+    }
+    function number(key, title, min, max, suffix, disabled) {
+      return '<div class="settings-row"><span id="export-label-' + key + '">' + renderHelp(explanations[key] ? L.text(explanations[key]) : '', L.text(title)) + '</span><div class="export-number-control"><input id="export-' + key + '" aria-labelledby="export-label-' + key + '" data-export-setting="' + key + '" type="number" min="' + min + '" max="' + max + '" step="1" value="' + prefs[key] + '"' + (disabled ? ' disabled' : '') + '><span>' + suffix + '</span></div></div>';
+    }
+    var formatSettings = {
+      jpeg: '<h3 class="export-format-heading">JPEG</h3>' + number('jpegQuality', '影像品質', 1, 100, '%'),
+      png: '<h3 class="export-format-heading">PNG</h3>' + select('pngDepth', '位元深度', [['8','8 bit／色彩通道'],['16','16 bit／色彩通道']]),
+      webp: '<h3 class="export-format-heading">WebP</h3>' + select('webpLossless', '壓縮模式', [['false','有損壓縮'],['true','無損壓縮']]) + number('webpQuality', '影像品質', 1, 100, '%', prefs.webpLossless),
+      tiff: '<h3 class="export-format-heading">TIFF</h3>' + select('tiffDepth', '位元深度', [['8','8 bit／色彩通道'],['16','16 bit／色彩通道']]) + select('tiffCompression', '壓縮模式', [['1','無壓縮'],['5','LZW（無損）']])
+    };
+    return select('colorSpace', '輸出色彩空間', [['sRGB','sRGB'],['adobeRGB','Adobe RGB (1998)'],['displayP3','Display P3']]) +
+      number('maxPixel', '最大輸出尺寸（最長邊）', 0, 100000, 'px') +
+      select('format', '預設輸出格式', [['jpeg','JPEG'],['png','PNG'],['webp','WebP'],['tiff','TIFF']]) +
+      (formatSettings[prefs.format] || '');
+  }
+
   function renderSettings() {
     var exposureExpansionHelp = L.text("預設關閉，印相／觀看曝光範圍為 ±8 EV；開啟後擴大至 ±16 EV。關閉時仍保留已設定的超範圍數值。");
     var modernFilmExposureHelp = L.text("使用更強的高光抑制並保留色彩；EV 值過高時，容易使畫面扁平、缺乏層次。");
@@ -1919,7 +1946,7 @@
     var hdrFeatureHelp = L.text("預設開啟，可在全域調整中設定 HDR 模擬強度。關閉後隱藏該滑桿，預覽與匯出皆不套用 HDR 模擬；原有強度設定會保留。");
     var originalResolutionHelp = L.text("預設關閉，使用最長邊 2048 px 的處理縮圖；開啟後使用原檔。若設備效能不足，建議關閉以加快操作。");
     var version = window.__appInfo ? window.__appInfo.version + " build " + window.__appInfo.build : "—";
-    var categories = [["general", "一般"], ["develop", "顯影"], ["mcp", "MCP"], ["about", "關於"]];
+    var categories = [["general", "一般"], ["develop", "顯影"], ["export", "輸出"], ["mcp", "MCP"], ["about", "關於"]];
     var panels = {
       general: [
       '<div class="settings-row"><span>' + renderHelp(adjustmentHelp("language"), L.text("語言")) + '</span><select id="languageSelect">',
@@ -1934,10 +1961,13 @@
       option("bright", L.text("明亮"), state.appearance),
       option("dark", L.text("暗色"), state.appearance),
       "</select></div>",
+      '<div class="settings-row"><span>' + renderHelp(adjustmentHelp("showHelp"), L.text("自動顯示功能說明")) + '</span><button id="showHelpToggle" class="switch ' + (state.showHelp ? 'on' : '') + L.html('" type="button" role="switch" aria-label="自動顯示功能說明" aria-checked="') + state.showHelp + '"></button></div>',
+      ].join(""),
+      export: [
       '<div class="settings-row export-directory-row"><span>' + L.text("預設輸出目錄") + '</span><div class="export-directory-control">',
       '<span class="export-directory-path selectable" title="' + escapeHtml(state.defaultExportDirectory || "") + '">' + escapeHtml(state.defaultExportDirectory || L.text("未設定")) + '</span>',
       '<button class="button" type="button" data-action="chooseExportDirectory">' + L.text("選擇目錄") + '</button></div></div>',
-      '<div class="settings-row"><span>' + renderHelp(adjustmentHelp("showHelp"), L.text("自動顯示功能說明")) + '</span><button id="showHelpToggle" class="switch ' + (state.showHelp ? 'on' : '') + L.html('" type="button" role="switch" aria-label="自動顯示功能說明" aria-checked="') + state.showHelp + '"></button></div>',
+      renderExportSettings()
       ].join(""),
       develop: [
       '<div class="settings-row"><span>' + renderHelp(originalResolutionHelp, L.text("使用原檔編輯")) + '</span><span id="originalResolutionHelp" hidden>' + escapeHtml(originalResolutionHelp) + '</span>',
@@ -2734,6 +2764,20 @@
       });
     });
 
+    app.querySelectorAll('[data-export-setting]').forEach(function (input) {
+      input.addEventListener('change', function () {
+        if (input.type === 'number' && !input.reportValidity()) return;
+        var key = input.dataset.exportSetting;
+        var value = key === 'webpLossless' ? input.value === 'true' :
+          (key === 'format' || key === 'colorSpace' ? input.value : Number(input.value));
+        if (key === 'maxPixel') {
+          value = value === 0 ? 0 : Math.max(8, Math.round(value / 8) * 8);
+          input.value = String(value);
+        }
+        post('setExportSettings', {key:key, value:value});
+      });
+    });
+
     var originalResolutionToggle = document.getElementById("originalResolutionToggle");
     if (originalResolutionToggle) {
       originalResolutionToggle.addEventListener("click", function () {
@@ -3475,7 +3519,11 @@
     }
 
     function applyFit() {
-      if (!image.isConnected) return;
+      // Native progress updates rebuild the frame while retaining this image.
+      // A queued load callback must measure its current frame, not the detached
+      // frame captured before decoding (whose client size is zero).
+      var currentFrame = app.querySelector(".preview-frame");
+      if (!image.isConnected || image.parentElement !== currentFrame) return;
       // Crop geometry is known before the newly inserted source image decodes.
       // Do not retain the previous (possibly cropped) preview's coordinate space.
       var cropMode = isCropEditorVisible(currentAdjustment());
@@ -3484,8 +3532,9 @@
       var naturalHeight = image.naturalHeight || Number(cropSize.height) || 0;
       if (!naturalWidth || !naturalHeight) return;
 
-      var frameWidth = frame.clientWidth;
-      var frameHeight = frame.clientHeight;
+      var frameWidth = currentFrame.clientWidth;
+      var frameHeight = currentFrame.clientHeight;
+      if (frameWidth <= 0 || frameHeight <= 0) return;
       var padding = 0;
       var comparingOriginal = image._requestedPreviewSource === state.sourceImage && state.sourceImage !== state.outputImage;
       var outputSize = (cropMode || state.repairEditing) ? (state.cropSourceImageSize || {}) : ((comparingOriginal ? state.sourceImageSize : state.previewOutputSize) || {});
@@ -4028,7 +4077,7 @@
     }
     // Native and MCP selection is authoritative, including styles hidden in the library.
     var enabled = readEnabledStyleIDs();
-    if (!changedFilmVisibility && enabled.indexOf(catalogStyleID(currentLookID())) < 0 && state.styles.some(function (style) { return style.id === currentLookID(); })) {
+    if (!changedFilmVisibility && enabled.indexOf(catalogStyleID(currentLookID())) < 0 && state.styles.some(function (style) { return style.id === currentLookID() && !style.isHiddenFromCatalog; })) {
       persistEnabledStyleIDs(enabled.concat([currentLookID()]));
     }
     if ((currentAdjustment().cropAspectRatio || "original") === "original") {

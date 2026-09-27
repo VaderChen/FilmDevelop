@@ -55,7 +55,9 @@ final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMe
     var isCancellingRepair = false
     var repairOperationID = UUID()
     var repairTask: Task<Void, Never>?
+    var manualAdjustments = PhotoManualAdjustments()
     struct EditSnapshot: Equatable {
+        var manualAdjustments = PhotoManualAdjustments()
         var style: PhotoStyle
         var adjustments: [PhotoStyle: StyleAdjustment]
         var customFilmID: String? = nil

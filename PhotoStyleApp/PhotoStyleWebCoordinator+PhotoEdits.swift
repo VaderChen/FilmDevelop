@@ -20,7 +20,7 @@ extension PhotoStyleWebCoordinator {
     func persistCurrentPhotoEdits() {
         guard !isRestoringPhotoEdits, sourceImage != nil, let key = currentPhotoEditKey else { return }
         photoEditStore.save(.init(style: selectedStyle, adjustments: adjustmentStore.adjustments, customFilmID: selectedCustomFilmID,
-                                  customFilmBaseAdjustment: customFilmBaseAdjustment, repairPatches: repairPatches),
+                                  customFilmBaseAdjustment: customFilmBaseAdjustment, repairPatches: repairPatches, manualAdjustments: manualAdjustments),
                             mask: sourceSubjectMask, for: key)
     }
 
@@ -37,7 +37,7 @@ extension PhotoStyleWebCoordinator {
 
 extension PhotoStyleWebCoordinator {
     var currentEditSnapshot: EditSnapshot {
-        EditSnapshot(style: selectedStyle, adjustments: adjustmentStore.adjustments, customFilmID: selectedCustomFilmID,
+        EditSnapshot(manualAdjustments: manualAdjustments, style: selectedStyle, adjustments: adjustmentStore.adjustments, customFilmID: selectedCustomFilmID,
                      customFilmBaseAdjustment: customFilmBaseAdjustment, repairPatches: repairPatches)
     }
 
@@ -84,6 +84,7 @@ extension PhotoStyleWebCoordinator {
             sourceSubjectMask = nil; subjectMaskAttemptedGeneration = nil
             photoPreviewCache.removeAllObjects()
         }
+        manualAdjustments = target.manualAdjustments
         repairPatches = target.repairPatches
         selectedStyle = target.style
         selectedCustomFilmID = target.customFilmID
