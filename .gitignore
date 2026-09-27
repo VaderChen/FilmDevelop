@@ -35,7 +35,8 @@ Vendor/libwebp/macos/lib/
 /pack.command
 /dist/
 
-# Private documentation and local tests (keep on disk, never stage)
+# Private documentation, research and local tests (keep on disk, never stage)
+/research/
 /doc/
 /docs/
 [Tt]est/

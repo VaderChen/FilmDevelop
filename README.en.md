@@ -17,6 +17,12 @@ Film recipes now combine layer response, tone curves, hue-selective saturation a
 
 Cross Process, Kodak Gold 200, CineStill 800T and Polaroid SX-70 retain their current rendering. Digital simulations and the original receive no film-specific grading. Scanner device labels use simulation; legacy off becomes neutral. Paper controls are hidden for film scanning. UI help describes controls and their visual effects. Processing uses Metal point operations without CPU image readback.
 
+## In development (not yet released)
+
+- Export names now default to the source folder name, a space, and the original filename, for example `2026-02-22 Italy Trip DSC_2381.jpg`. The extension follows the selected export format.
+- Added Use new film exposure above Enable highlight protection, off by default. It applies stronger highlight protection while preserving color. Excessively high EV values can make the image look flat and reduce tonal depth. Turn it off to use the original film exposure method.
+- The switch remembers your choice and applies to both preview and export. Switching does not rewrite photo adjustments or become part of a film recipe. Digital exposure keeps its existing behavior.
+
 ## Latest changes — 1.26.0926 build 2115
 
 - Choose Show EXIF from a thumbnail or preview context menu to view camera and lens, shooting settings, dates, image information, and GPS in an in-app dialog. Numbers use up to two decimal places, and text can be selected and copied.

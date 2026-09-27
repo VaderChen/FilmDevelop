@@ -3386,6 +3386,8 @@ window.PhotoLocalizationData = {
   "關於": ["About", "このアプリについて", "정보"],
   "使用曝光拓展": ["Extended exposure", "露出範囲を拡張", "노출 범위 확장"],
   "顯示所有底片": ["Show all films", "すべてのフィルムを表示", "모든 필름 표시"],
+  "使用更強的高光抑制並保留色彩；EV 值過高時，容易使畫面扁平、缺乏層次。": ["Applies stronger highlight protection while preserving color. Excessively high EV values can make the image look flat and reduce tonal depth.", "より強いハイライト抑制で色を保ちます。EV 値が高すぎると、画像が平坦になり、階調感が失われやすくなります。", "더 강한 하이라이트 억제로 색을 유지합니다. EV 값이 너무 높으면 이미지가 평평해 보이고 명암의 깊이가 줄어들 수 있습니다."],
+  "使用新式底片曝光": ["Use new film exposure", "新しいフィルム露出を使用", "새 필름 노출 사용"],
   "使用高光抑制": ["Enable highlight protection", "ハイライト保護を使用", "하이라이트 보호 사용"],
   "啟用 HDR 模擬": [
     "Enable HDR simulation",

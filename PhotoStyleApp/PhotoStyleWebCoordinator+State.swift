@@ -56,6 +56,7 @@ extension PhotoStyleWebCoordinator {
             "showAllFilms": showAllFilms,
             "exposureExpansionEnabled": exposureExpansionEnabled,
             "highlightProtectionEnabled": highlightProtectionEnabled,
+            "modernFilmExposureEnabled": modernFilmExposureEnabled,
             "hdrFeatureEnabled": hdrFeatureEnabled,
             "originalResolutionEditing": originalResolutionEditing,
             "defaultExportDirectory": exportDirectoryPreference.path,

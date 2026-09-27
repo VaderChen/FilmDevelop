@@ -61,7 +61,9 @@ extension PhotoStyleWebCoordinator {
         panel.canCreateDirectories = true
         panel.isExtensionHidden = false
         let baseName = sourceFileName.isEmpty ? "PhotoStyle" : (sourceFileName as NSString).deletingPathExtension
-        panel.nameFieldStringValue = "\(baseName)-\(selectedStyle.rawValue).png"
+        let directoryName = sourceFileURL?.deletingLastPathComponent().lastPathComponent ?? ""
+        let exportName = directoryName.isEmpty ? baseName : "\(directoryName) \(baseName)"
+        panel.nameFieldStringValue = "\(exportName).png"
         let format = PhotoExportFormatAccessory(panel: panel)
         panel.accessoryView = format.view
         panel.beginSheetModal(for: window) { [weak self, format] response in

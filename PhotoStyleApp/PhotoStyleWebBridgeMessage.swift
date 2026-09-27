@@ -37,6 +37,7 @@ enum PhotoStyleWebBridgeAction: String {
     case setOriginalResolutionEditing
     case setShowAllFilms
     case setExposureExpansionEnabled
+    case setModernFilmExposureEnabled
     case setHighlightProtectionEnabled
     case setHDRFeatureEnabled
     case beginAdjustmentPreview

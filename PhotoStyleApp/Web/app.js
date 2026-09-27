@@ -33,6 +33,7 @@
     showAllFilms: false,
     exposureExpansionEnabled: false,
     highlightProtectionEnabled: true,
+    modernFilmExposureEnabled: false,
     hdrFeatureEnabled: true,
     originalResolutionEditing: false,
     mcp: { enabled: true, running: false, status: "啟動中", endpoint: "http://127.0.0.1:8765/mcp", connectionFile: "" },
@@ -1738,6 +1739,7 @@
 
   function renderSettings() {
     var exposureExpansionHelp = L.text("預設關閉，印相／觀看曝光範圍為 ±8 EV；開啟後擴大至 ±16 EV。關閉時仍保留已設定的超範圍數值。");
+    var modernFilmExposureHelp = L.text("使用更強的高光抑制並保留色彩；EV 值過高時，容易使畫面扁平、缺乏層次。");
     var highlightProtectionHelp = L.text("預設開啟，提高曝光時柔和壓縮高光。關閉後不再壓縮高光；降低曝光皆依 2^EV 計算，不自動補亮暗部。");
     var hdrFeatureHelp = L.text("預設開啟，可在全域調整中設定 HDR 模擬強度。關閉後隱藏該滑桿，預覽與匯出皆不套用 HDR 模擬；原有強度設定會保留。");
     var originalResolutionHelp = L.text("預設關閉，使用最長邊 2048 px 的處理縮圖；開啟後使用原檔。若設備效能不足，建議關閉以加快操作。");
@@ -1769,6 +1771,8 @@
       '<button id="exposureExpansionToggle" class="switch ' + (state.exposureExpansionEnabled ? "on" : "") + L.html('" type="button" role="switch" aria-label="使用曝光拓展" aria-describedby="exposureExpansionHelp" aria-checked="') + Boolean(state.exposureExpansionEnabled) + '" ' + (photoIsBusy(state) ? "disabled" : "") + '></button></div>',
       '<div class="settings-row"><span>' + L.text("顯示所有底片") + '</span>',
       '<button id="showAllFilmsToggle" class="switch ' + (state.showAllFilms ? "on" : "") + L.html('" type="button" role="switch" aria-label="顯示所有底片" aria-checked="') + Boolean(state.showAllFilms) + '"></button></div>',
+      '<div class="settings-row"><span>' + renderHelp(modernFilmExposureHelp, L.text("使用新式底片曝光")) + '</span><span id="modernFilmExposureHelp" hidden>' + escapeHtml(modernFilmExposureHelp) + '</span>',
+      '<button id="modernFilmExposureToggle" class="switch ' + (state.modernFilmExposureEnabled === true ? "on" : "") + L.html('" type="button" role="switch" aria-label="使用新式底片曝光" aria-describedby="modernFilmExposureHelp" aria-checked="') + (state.modernFilmExposureEnabled === true ? "true" : "false") + '" ' + (photoIsBusy(state) ? "disabled" : "") + '></button></div>',
       '<div class="settings-row"><span>' + renderHelp(highlightProtectionHelp, L.text("使用高光抑制")) + '</span><span id="highlightProtectionHelp" hidden>' + escapeHtml(highlightProtectionHelp) + '</span>',
       '<button id="highlightProtectionToggle" class="switch ' + (state.highlightProtectionEnabled !== false ? "on" : "") + L.html('" type="button" role="switch" aria-label="使用高光抑制" aria-describedby="highlightProtectionHelp" aria-checked="') + (state.highlightProtectionEnabled !== false ? "true" : "false") + '" ' + (photoIsBusy(state) ? "disabled" : "") + '></button></div>',
       '<div class="settings-row"><span>' + renderHelp(hdrFeatureHelp, L.text("啟用 HDR 模擬")) + '</span><span id="hdrFeatureHelp" hidden>' + escapeHtml(hdrFeatureHelp) + '</span>',
@@ -2561,6 +2565,15 @@
       showAllFilmsToggle.addEventListener("click", function () {
         state.showAllFilms = !state.showAllFilms;
         post("setShowAllFilms", { enabled: state.showAllFilms });
+        render();
+      });
+    }
+    var modernFilmExposureToggle = document.getElementById("modernFilmExposureToggle");
+    if (modernFilmExposureToggle) {
+      modernFilmExposureToggle.addEventListener("click", function () {
+        if (photoIsBusy(state)) return;
+        state.modernFilmExposureEnabled = !state.modernFilmExposureEnabled;
+        post("setModernFilmExposureEnabled", { enabled: state.modernFilmExposureEnabled });
         render();
       });
     }

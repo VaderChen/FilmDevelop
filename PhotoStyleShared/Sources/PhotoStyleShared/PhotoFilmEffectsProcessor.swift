@@ -99,8 +99,11 @@ public enum PhotoFilmEffectsProcessor {
     /// 曝光補償先於乳劑、顯影與底片色彩。線性 sRGB → XYZ → Lab (D65)，
     /// 依曝光／保護曲線更新 L，保留 a/b 後重建 RGB，避免同步放大暗部色度。
     public static func applyExposure(to image: CIImage, effects: PhotoFilmEffects,
-                                     strength: Double = 1) -> CIImage {
+                                     strength: Double = 1, renderContext: CIContext? = nil) -> CIImage {
         let e = effects.clamped()
+        if e.modernFilmExposureEnabled {
+            return PhotoAdaptiveExposureProcessor.applyFilmExposure(to: image, effects: e, strength: strength, renderContext: renderContext)
+        }
         let amount = unit(strength)
         let ev = e.resolvedPrintExposure
         guard ev != .zero, amount > 0,

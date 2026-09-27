@@ -105,7 +105,7 @@ enum PhotoStyleProcessor {
                                             tint: adjustment.whiteBalanceTint * strength)
             }
             try pipeline.process("luminance-exposure") {
-                PhotoFilmEffectsProcessor.applyExposure(to: $0, effects: effects)
+                PhotoFilmEffectsProcessor.applyExposure(to: $0, effects: effects, renderContext: pipeline.context)
             }
             try pipeline.process("light-scatter") {
                 PhotoFilmEffectsProcessor.applyLightScatter(to: $0, effects: effects, strength: strength)

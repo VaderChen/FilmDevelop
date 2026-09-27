@@ -303,6 +303,16 @@ extension PhotoStyleWebCoordinator {
         sendState(includeImages: false)
     }
 
+    func setModernFilmExposureEnabled(_ payload: [String: Any]) {
+        guard !isSavingImage, let enabled = boolValue(from: payload["enabled"]),
+              enabled != modernFilmExposureEnabled else { return }
+        modernFilmExposureEnabled = enabled
+        UserDefaults.standard.set(enabled, forKey: "modernFilmExposureEnabled.v1")
+        photoPreviewCache.removeAllObjects()
+        applySelectedStyle()
+        sendState(includeImages: true)
+    }
+
     func setHighlightProtectionEnabled(_ payload: [String: Any]) {
         guard !isSavingImage, let enabled = boolValue(from: payload["enabled"]),
               enabled != highlightProtectionEnabled else { return }

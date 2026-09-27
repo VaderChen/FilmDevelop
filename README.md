@@ -22,6 +22,12 @@
 
 片種資料：[Portra / Ektar](https://www.kodak.com/global/plugins/acrobat/en/professional/products/films/2012Brochure.pdf)、[VISION3 50D](https://www.kodak.com/en/motion/product/camera-films/50d-5203-7203/resources/)、[E100](https://www.kodakprofessional.com/sites/default/files/wysiwyg/E100%20FAQs%20PDF%202024.pdf)、[Provia 100F](https://www.fujifilm.com/us/en/business/professional-photography/film/provia-100f)、[Velvia](https://www.fujifilm.com/jp/ja/consumer/films/negative-and-reversal/velvia)。
 
+## 開發中更新（尚未發布）
+
+- 匯出檔名預設為「來源目錄名稱＋空格＋原檔名」，例如 `2026-02-22 義大利自由行 DSC_2381.jpg`；副檔名依選擇的輸出格式設定。
+- 在「使用高光抑制」上方新增「使用新式底片曝光」，預設關閉。開啟後使用更強的高光抑制並保留色彩；EV 值過高時，容易使畫面扁平、缺乏層次。關閉可回到原本的底片曝光作法。
+- 此開關會記住使用者選擇，預覽與匯出同步套用；切換不改寫照片調整值，也不存入底片配方。數位曝光維持原有作法。
+
 ## 本版更新 — 1.26.0926 build 2115
 
 - 可從照片縮圖或預覽的右鍵選單開啟「顯示 EXIF」，在程式內依相機與鏡頭、拍攝設定、日期與時間、影像資訊及 GPS 分類閱讀；數值最多顯示兩位小數，支援選取與複製。

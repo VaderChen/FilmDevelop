@@ -130,6 +130,8 @@ extension PhotoStyleWebCoordinator {
             setShowAllFilms(bridgeMessage.payload)
         case .setExposureExpansionEnabled:
             setExposureExpansionEnabled(bridgeMessage.payload)
+        case .setModernFilmExposureEnabled:
+            setModernFilmExposureEnabled(bridgeMessage.payload)
         case .setHighlightProtectionEnabled:
             setHighlightProtectionEnabled(bridgeMessage.payload)
         case .setHDRFeatureEnabled:

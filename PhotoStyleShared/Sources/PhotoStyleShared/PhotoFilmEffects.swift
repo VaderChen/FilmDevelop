@@ -109,6 +109,7 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
     /// Negative-film printing internally uses the opposite paper-exposure sign.
     // Runtime preference; excluded from saved film recipes.
     public var highlightProtectionEnabled = true
+    public var modernFilmExposureEnabled = false
     public var printExposure: Double
     public var printExposureHighlights: Double?
     public var printExposureMidtones: Double?
@@ -198,6 +199,7 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
         developerTemperature: Double = 20,
         developerActivity: Double = 100,
         highlightProtectionEnabled: Bool = true,
+        modernFilmExposureEnabled: Bool = false,
         grainMode: GrainMode = .emulsion,
         grainSize: Double = 1,
         grainClumping: Double = 0,
@@ -252,6 +254,7 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
         self.developerActivity = developerActivity
         // Retired engine identifiers are accepted on input but canonicalized.
         self.highlightProtectionEnabled = highlightProtectionEnabled
+        self.modernFilmExposureEnabled = modernFilmExposureEnabled
         self.grainMode = .emulsion
         self.grainSize = grainSize
         self.grainClumping = grainClumping
@@ -311,6 +314,7 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
             developerTemperature: bound(developerTemperature, 10...40, 20),
             developerActivity: bound(developerActivity, 20...200, 100),
             highlightProtectionEnabled: highlightProtectionEnabled,
+            modernFilmExposureEnabled: modernFilmExposureEnabled,
             grainMode: grainMode,
             grainSize: bound(grainSize, 0.5...4, 1),
             grainClumping: bound(grainClumping, 0...100),

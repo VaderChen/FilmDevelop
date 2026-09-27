@@ -86,3 +86,11 @@ HDR、局部明暗與膚色判定先解除預乘 alpha，輸出仍保留原透�
 Codable、嚴格 AI 解碼、生成文法、Web bridge 與 MCP 均包含 scanner_source／scannerSource。舊配方缺少該欄位時使用 film；MCP printRecipe 先套用，再執行同批個別欄位。非底片／反轉片拒絕印相配方，數位相機模擬維持關閉掃描。
 
 CPU FP64 參考已補齊新密度曲線、抑制、互易律、額外保留銀、紙材及相片掃描；空間 PSF／紙基散射另由影像流程驗證。此次本機 28 項核心測試通過，涵蓋全片種材料、CPU/GPU 色塊一致性、兩種掃描、曝光不重複及配方往返。UI 邏輯檢查驗證配方位置、預設／自訂顯示及銀密度重設入口；這不等同真實照片或原廠片種校準。
+
+## 可切換的底片曝光處理（未發布）
+
+`PhotoFilmEffects.modernFilmExposureEnabled` 預設為 `false`，屬於執行階段偏好，不寫入配方 Codable。App 在渲染時注入此偏好，快取識別也包含它；原本曝光核心保留不變。
+
+開啟時，`PhotoFilmEffectsProcessor.applyExposure` 呼叫 `PhotoAdaptiveExposureProcessor.applyFilmExposure`，沿用數位曝光的局部照明估計與 BIMEF 反應，再以 Lab 重建亮度與色彩。底片的平滑分區 EV 計算保留；正 EV 且啟用高光抑制才建立局部照明場，負 EV 或關閉保護時略過此步。極高正 EV 可能壓縮階調、降低畫面層次。
+
+`renderContext` 由呼叫端傳入，以沿用既有 Core Image context。此選項不統一或改寫數位曝光，也不包含本機藥水研究中的參數模型。
