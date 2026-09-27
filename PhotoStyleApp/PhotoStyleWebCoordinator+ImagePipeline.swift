@@ -60,6 +60,9 @@ extension PhotoStyleWebCoordinator {
         let hadSourceImage = sourceImage != nil
         let previousPreviewSize = previewImage?.size
         sourceImage = image
+        if image.usesEmbeddedRAWPreview {
+            sendToast("RAW 解碼異常，已改用相機內嵌 JPEG 編輯與匯出；曝光調整空間較小，原始檔案未變更。")
+        }
         processingImage = preparedProcessingImage
         sourceFileURL = sourceURL
         previewImage = preparedPreview
@@ -149,38 +152,41 @@ extension PhotoStyleWebCoordinator {
 
         isLoadingImage = true
         sendState(includeImages: false)
+        let workGate = photoDirectoryStore.previewWorkGate
         Self.lastSourceImagePersistenceQueue.async { [weak self] in
             guard let self else { return }
-            let restoredImage = self.restorePrivateSourceImage(from: privateImageURL)
-                ?? importedImageURL.flatMap { self.restoreImportedSourceImage(from: $0) }
+            workGate.withEditorWork {
+                let restoredImage = self.restorePrivateSourceImage(from: privateImageURL)
+                    ?? importedImageURL.flatMap { self.restoreImportedSourceImage(from: $0) }
 
-            let preparedProcessingImage = restoredImage?.image.resizedForWebPreview(maxPixel: Self.processingPreviewMaxPixel)
-            let preparedPreview = restoredImage?.image.resizedForWebPreview(maxPixel: PhotoImage.previewMaxPixel)
-            let preparedPreviewPayload = preparedPreview.flatMap { imageDataURL($0) }
-            Task { @MainActor in
-                self.isLoadingImage = false
-                if let restoredImage {
-                    await self.setSourceImage(
-                        restoredImage.image,
-                        preparedPreview: preparedPreview,
-                        preparedProcessingImage: preparedProcessingImage,
-                        preparedPreviewPayload: preparedPreviewPayload,
-                        persistenceData: restoredImage.needsPersistence ? restoredImage.data : nil,
-                        persistenceFileExtension: restoredImage.fileExtension,
-                        sourceIdentifier: restoredImage.sourceIdentifier,
-                        sourceURL: importedImageURL,
-                        persistsForNextLaunch: restoredImage.needsPersistence,
-                        filename: importedImageURL?.lastPathComponent ?? ""
-                    )
-                } else {
-                    if let privateImageURL, self.isManagedSourceImageURL(privateImageURL) {
-                        try? FileManager.default.removeItem(at: privateImageURL)
+                let preparedProcessingImage = restoredImage?.image.resizedForWebPreview(maxPixel: Self.processingPreviewMaxPixel)
+                let preparedPreview = restoredImage?.image.resizedForWebPreview(maxPixel: PhotoImage.previewMaxPixel)
+                let preparedPreviewPayload = preparedPreview.flatMap { imageDataURL($0) }
+                Task { @MainActor in
+                    self.isLoadingImage = false
+                    if let restoredImage {
+                        await self.setSourceImage(
+                            restoredImage.image,
+                            preparedPreview: preparedPreview,
+                            preparedProcessingImage: preparedProcessingImage,
+                            preparedPreviewPayload: preparedPreviewPayload,
+                            persistenceData: restoredImage.needsPersistence ? restoredImage.data : nil,
+                            persistenceFileExtension: restoredImage.fileExtension,
+                            sourceIdentifier: restoredImage.sourceIdentifier,
+                            sourceURL: importedImageURL,
+                            persistsForNextLaunch: restoredImage.needsPersistence,
+                            filename: importedImageURL?.lastPathComponent ?? ""
+                        )
+                    } else {
+                        if let privateImageURL, self.isManagedSourceImageURL(privateImageURL) {
+                            try? FileManager.default.removeItem(at: privateImageURL)
+                        }
+                        UserDefaults.standard.removeObject(forKey: Self.lastSourceImagePathDefaultsKey)
+                        UserDefaults.standard.removeObject(forKey: Self.lastSourceImageIdentifierDefaultsKey)
+                        UserDefaults.standard.removeObject(forKey: Self.sourceAdjustmentIdentifierDefaultsKey)
+                        self.adjustmentStore.resetImageScopedCorrections()
+                        self.sendState(includeImages: false)
                     }
-                    UserDefaults.standard.removeObject(forKey: Self.lastSourceImagePathDefaultsKey)
-                    UserDefaults.standard.removeObject(forKey: Self.lastSourceImageIdentifierDefaultsKey)
-                    UserDefaults.standard.removeObject(forKey: Self.sourceAdjustmentIdentifierDefaultsKey)
-                    self.adjustmentStore.resetImageScopedCorrections()
-                    self.sendState(includeImages: false)
                 }
             }
         }
@@ -205,7 +211,8 @@ extension PhotoStyleWebCoordinator {
             // Older caches recorded false when ImageIO returned a RAW thumbnail.
             // A freshly decoded sensor image must keep its required display mapping.
             image = PhotoImage(cgImage: cgImage,
-                               requiresRAWDisplayMapping: image.requiresRAWDisplayMapping || requiresMapping)
+                               requiresRAWDisplayMapping: !image.usesEmbeddedRAWPreview && (image.requiresRAWDisplayMapping || requiresMapping),
+                               usesEmbeddedRAWPreview: image.usesEmbeddedRAWPreview)
         }
         return RestoredSourceImage(
             image: image,

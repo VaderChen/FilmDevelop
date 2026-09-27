@@ -47,7 +47,7 @@ enum PhotoStyleProcessor {
                         PhotoCropCalculator.rotationTransform(in: source.extent, clockwiseDegrees: adjustment.cropRotation))
         let stages = ["physical-input", "input-calibration", "subject-mask", "skin-mask",
                       "skin-white-balance", "white-balance", "luminance-exposure", "light-scatter", "emulsion",
-                      "development", "raw-display-mapping", "film-look", "skin-enhancement", "tone",
+                      "development", "developer-chemistry", "raw-display-mapping", "film-look", "skin-enhancement", "tone",
                       "tone-zones", "hdr", "crop-vignette", "depth-blur", "monochrome", "scanner"]
         let pipeline = PhotoProcessingPipeline(source: source,
             colorSpace: image.cgImage?.colorSpace ?? CGColorSpace(name: CGColorSpace.extendedLinearSRGB)!,
@@ -117,6 +117,11 @@ enum PhotoStyleProcessor {
             }
             try pipeline.process("development") {
                 PhotoFilmDevelopmentProcessor.apply(to: $0, effects: effects, strength: strength)
+            }
+            try pipeline.process("developer-chemistry") {
+                style.filmStock != nil || style == .original
+                    ? PhotoDeveloperChemistryProcessor.apply(to: $0, settings: effects.developerChemistry,
+                                                            strength: strength, monochrome: style.isMonochrome) : $0
             }
             try pipeline.process("raw-display-mapping") {
                 image.requiresRAWDisplayMapping && style.filmStock == nil && style != .original

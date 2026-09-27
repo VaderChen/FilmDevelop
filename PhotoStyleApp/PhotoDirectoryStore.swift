@@ -22,8 +22,13 @@ private final class PhotoDirectoryAccess: @unchecked Sendable {
 private final class PhotoDirectoryOperation: @unchecked Sendable {
     private let lock = NSLock()
     private var cancelled = false
+    private let reservation: PhotoPreviewWorkGate.ThumbnailReservation?
+    init(reservation: PhotoPreviewWorkGate.ThumbnailReservation? = nil) { self.reservation = reservation }
     var isCancelled: Bool { lock.withLock { cancelled } }
-    func cancel() { lock.withLock { cancelled = true } }
+    func cancel() {
+        lock.withLock { cancelled = true }
+        reservation?.cancel()
+    }
 }
 
 struct PhotoDirectoryDiagnostics {
@@ -32,6 +37,7 @@ struct PhotoDirectoryDiagnostics {
     var diskHits = 0
     var thumbnailDecodes = 0
     var embeddedThumbnails = 0
+    var directRAWThumbnails = 0
     var generatedThumbnails = 0
     var activeDecodes = 0
     var peakConcurrentDecodes = 0
@@ -46,7 +52,7 @@ private final class PhotoThumbnailCache: @unchecked Sendable {
     private let directory: URL
     private let maintenance = DispatchQueue(label: "person.vader.PhotoStyleApp.thumbnail-cache", qos: .utility)
     private var maintenancePending = false
-    private static let version = "thumbnail-256-embedded-v2"
+    private static let version = "thumbnail-256-embedded-v3"
     private static let maxDiskBytes = 256 * 1024 * 1024
 
     init(directory: URL) {
@@ -137,6 +143,7 @@ final class PhotoDirectoryStore {
         let cacheKey: String
         var name: String { url.lastPathComponent }
     }
+    let previewWorkGate = PhotoPreviewWorkGate()
     var onChange: (() -> Void)?
     private(set) var directoryURL: URL?
     private(set) var isScanning = false
@@ -276,21 +283,24 @@ final class PhotoDirectoryStore {
                 pendingThumbnails[entry.id] = Self.dataURL(data)
                 continue
             }
-            let work = PhotoDirectoryOperation()
+            let reservation = previewWorkGate.reserveThumbnail()
+            let work = PhotoDirectoryOperation(reservation: reservation)
             thumbnailWork[entry.id] = work
-            workers.addOperation { [weak self, access] in
+            let worker = BlockOperation { [weak self, access, reservation] in
                 guard !operation.isCancelled, !work.isCancelled else { return }
-                let thumbnail: String? = withExtendedLifetime(access) {
-                    autoreleasepool {
-                        if let data = cache.inMemory(entry.cacheKey) ?? cache.onDisk(entry.cacheKey) {
+                let thumbnail: String? = reservation.perform {
+                    withExtendedLifetime(access) {
+                        autoreleasepool {
+                            if let data = cache.inMemory(entry.cacheKey) ?? cache.onDisk(entry.cacheKey) {
+                                return Self.dataURL(data)
+                            }
+                            guard !operation.isCancelled, !work.isCancelled,
+                                  let data = Self.thumbnail(for: entry.url, cache: cache) else { return nil }
+                            cache.insert(data, key: entry.cacheKey)
                             return Self.dataURL(data)
                         }
-                        guard !operation.isCancelled, !work.isCancelled,
-                              let data = Self.thumbnail(for: entry.url, cache: cache) else { return nil }
-                        cache.insert(data, key: entry.cacheKey)
-                        return Self.dataURL(data)
                     }
-                }
+                } ?? nil
                 guard !operation.isCancelled, !work.isCancelled else { return }
                 DispatchQueue.main.async { [weak self] in
                     guard let self, self.thumbnailOperation === operation,
@@ -308,6 +318,8 @@ final class PhotoDirectoryStore {
                     }
                 }
             }
+            worker.completionBlock = { reservation.cancel() }
+            workers.addOperation(worker)
         }
         applyPendingThumbnails()
         onChange?()
@@ -396,6 +408,10 @@ final class PhotoDirectoryStore {
             $0.peakConcurrentDecodes = max($0.peakConcurrentDecodes, $0.activeDecodes)
         }
         defer { cache.record { $0.activeDecodes -= 1 } }
+        if let image = PhotoRAWThumbnail.make(from: url) {
+            cache.record { $0.directRAWThumbnails += 1; $0.embeddedThumbnails += 1 }
+            return jpegData(image)
+        }
         guard let source = CGImageSourceCreateWithURL(url as CFURL,
             [kCGImageSourceShouldCache: false] as CFDictionary) else { return nil }
         var options: [CFString: Any] = [
@@ -415,6 +431,10 @@ final class PhotoDirectoryStore {
             if image != nil { cache.record { $0.generatedThumbnails += 1 } }
         }
         guard let image else { return nil }
+        return jpegData(image)
+    }
+
+    private static func jpegData(_ image: CGImage) -> Data? {
         let data = NSMutableData()
         guard let destination = CGImageDestinationCreateWithData(data, UTType.jpeg.identifier as CFString, 1, nil) else { return nil }
         CGImageDestinationAddImage(destination, image, [kCGImageDestinationLossyCompressionQuality: 0.72] as CFDictionary)

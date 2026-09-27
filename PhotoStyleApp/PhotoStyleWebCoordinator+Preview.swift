@@ -114,82 +114,85 @@ extension PhotoStyleWebCoordinator {
         if !previewRenderRunning { finishPreviewWaiters() }
     }
 
-    private func startNextPreviewRender() {
-        guard !previewRenderRunning, let job = pendingPreviewRender else { return }
+    func startNextPreviewRender() {
+        guard !photoDirectoryStore.isScanning, !photoDirectoryStore.isLoadingThumbnails, !previewRenderRunning, let job = pendingPreviewRender else { return }
         pendingPreviewRender = nil
         previewRenderRunning = true
         let renderer = renderer
         let sourceCache = previewSourcePayloadCache
         let needsLoadingPreview = outputImage == nil && loadingPreviewImagePayload == nil
+        let workGate = photoDirectoryStore.previewWorkGate
         previewRenderQueue.async { [weak self] in
-            sourceCache.begin(photoGeneration: job.photoGeneration)
-            if needsLoadingPreview, let placeholder = imageDataURL(job.maskDetectionImage) {
-                DispatchQueue.main.async { [weak self] in
-                    guard let self, !self.isLoadingImage, job.revision == self.previewRevision else { return }
-                    self.loadingPreviewImagePayload = placeholder
-                    self.sendState(includeImages: true)
-                }
-            }
-            let (output, images, subjectMask) = autoreleasepool {
-                let subjectMask = job.request.subjectMask ?? (job.request.shouldDetectSubjectMask
-                    ? renderer.detectSubjectMask(for: PhotoStyleProcessor.repairedSource(job.maskDetectionImage, patches: job.request.repairPatches)) : nil)
-                let output = renderer.render(.init(
-                    style: job.request.style, adjustment: job.request.adjustment,
-                    image: job.request.image, subjectMask: subjectMask, shouldDetectSubjectMask: false, repairPatches: job.request.repairPatches, isPreview: true
-                )).resizedForWebPreview(maxPixel: Self.processingPreviewMaxPixel)
-                var images: [String: String] = [:]
-                images["cropSourceImage"] = sourceCache.value(for: job.request.image, variant: "crop-source") {
-                    imageDataURL(job.request.image, maxPixel: PhotoImage.previewMaxPixel)
-                }
-                let repairs = job.request.repairPatches.map { $0.id.uuidString }.joined(separator: ",")
-                images["repairSourceImage"] = sourceCache.value(for: job.maskDetectionImage, variant: "repair:" + repairs) {
-                    imageDataURL(PhotoStyleProcessor.repairedSource(job.maskDetectionImage, patches: job.request.repairPatches), maxPixel: PhotoImage.previewMaxPixel)
-                }
-                let a = job.request.adjustment
-                let crop = "\(a.cropAspectRatio):\(a.cropRotation):\(a.cropScale):\(a.cropWidth):\(a.cropHeight):\(a.cropHorizontalPosition):\(a.cropVerticalPosition)"
-                images["sourceImage"] = sourceCache.value(for: job.request.image, variant: "comparison:" + crop) {
-                    imageDataURL(croppedImage(job.request.image, adjustment: a), maxPixel: Self.processingPreviewMaxPixel)
-                }
-                images["outputImage"] = imageDataURL(output, maxPixel: Self.processingPreviewMaxPixel)
-                return (output, images, subjectMask)
-            }
-            DispatchQueue.main.async { [weak self] in
-                guard let self else { return }
-                self.previewRenderRunning = false
-                if let cacheKey = job.cacheKey, images["outputImage"] != nil {
-                    let cached = PhotoEditPreview(output: output, payload: images, mask: subjectMask)
-                    self.photoPreviewCache.setObject(cached, forKey: cacheKey as NSString, cost: cached.cost)
-                }
-                if job.request.shouldDetectSubjectMask,
-                   job.photoGeneration == self.photoGeneration,
-                   job.request.repairPatches.map(\.id) == self.repairPatches.map(\.id),
-                   self.isCurrentPhotoImage(job.request.image) {
-                    self.sourceSubjectMask = subjectMask
-                    self.subjectMaskAttemptedGeneration = self.photoGeneration
-                    if let pending = self.pendingPreviewRender,
-                       pending.photoGeneration == job.photoGeneration,
-                       pending.request.repairPatches.map(\.id) == job.request.repairPatches.map(\.id),
-                       self.isCurrentPhotoImage(pending.request.image) {
-                        self.pendingPreviewRender = PhotoStylePreviewJob(
-                            revision: pending.revision,
-                            request: .init(style: pending.request.style, adjustment: pending.request.adjustment,
-                                           image: pending.request.image, subjectMask: subjectMask,
-                                           shouldDetectSubjectMask: false, repairPatches: pending.request.repairPatches),
-                            cacheKey: pending.cacheKey,
-                            maskDetectionImage: pending.maskDetectionImage, photoGeneration: pending.photoGeneration
-                        )
+            workGate.withEditorWork {
+                sourceCache.begin(photoGeneration: job.photoGeneration)
+                if needsLoadingPreview, let placeholder = imageDataURL(job.maskDetectionImage) {
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self, !self.isLoadingImage, job.revision == self.previewRevision else { return }
+                        self.loadingPreviewImagePayload = placeholder
+                        self.sendState(includeImages: true)
                     }
                 }
-                if job.revision == self.previewRevision {
-                    self.outputImage = output
-                    self.previewImagePayload = images
-                    self.persistCurrentPhotoEdits()
+                let (output, images, subjectMask) = autoreleasepool {
+                    let subjectMask = job.request.subjectMask ?? (job.request.shouldDetectSubjectMask
+                        ? renderer.detectSubjectMask(for: PhotoStyleProcessor.repairedSource(job.maskDetectionImage, patches: job.request.repairPatches)) : nil)
+                    let output = renderer.render(.init(
+                        style: job.request.style, adjustment: job.request.adjustment,
+                        image: job.request.image, subjectMask: subjectMask, shouldDetectSubjectMask: false, repairPatches: job.request.repairPatches, isPreview: true
+                    )).resizedForWebPreview(maxPixel: Self.processingPreviewMaxPixel)
+                    var images: [String: String] = [:]
+                    images["cropSourceImage"] = sourceCache.value(for: job.request.image, variant: "crop-source") {
+                        imageDataURL(job.request.image, maxPixel: PhotoImage.previewMaxPixel)
+                    }
+                    let repairs = job.request.repairPatches.map { $0.id.uuidString }.joined(separator: ",")
+                    images["repairSourceImage"] = sourceCache.value(for: job.maskDetectionImage, variant: "repair:" + repairs) {
+                        imageDataURL(PhotoStyleProcessor.repairedSource(job.maskDetectionImage, patches: job.request.repairPatches), maxPixel: PhotoImage.previewMaxPixel)
+                    }
+                    let a = job.request.adjustment
+                    let crop = "\(a.cropAspectRatio):\(a.cropRotation):\(a.cropScale):\(a.cropWidth):\(a.cropHeight):\(a.cropHorizontalPosition):\(a.cropVerticalPosition)"
+                    images["sourceImage"] = sourceCache.value(for: job.request.image, variant: "comparison:" + crop) {
+                        imageDataURL(croppedImage(job.request.image, adjustment: a), maxPixel: Self.processingPreviewMaxPixel)
+                    }
+                    images["outputImage"] = imageDataURL(output, maxPixel: Self.processingPreviewMaxPixel)
+                    return (output, images, subjectMask)
                 }
-                if self.pendingPreviewRender != nil {
-                    self.startNextPreviewRender()
-                } else {
-                    self.sendState(includeImages: true)
-                    self.finishPreviewWaiters()
+                DispatchQueue.main.async { [weak self] in
+                    guard let self else { return }
+                    self.previewRenderRunning = false
+                    if let cacheKey = job.cacheKey, images["outputImage"] != nil {
+                        let cached = PhotoEditPreview(output: output, payload: images, mask: subjectMask)
+                        self.photoPreviewCache.setObject(cached, forKey: cacheKey as NSString, cost: cached.cost)
+                    }
+                    if job.request.shouldDetectSubjectMask,
+                       job.photoGeneration == self.photoGeneration,
+                       job.request.repairPatches.map(\.id) == self.repairPatches.map(\.id),
+                       self.isCurrentPhotoImage(job.request.image) {
+                        self.sourceSubjectMask = subjectMask
+                        self.subjectMaskAttemptedGeneration = self.photoGeneration
+                        if let pending = self.pendingPreviewRender,
+                           pending.photoGeneration == job.photoGeneration,
+                           pending.request.repairPatches.map(\.id) == job.request.repairPatches.map(\.id),
+                           self.isCurrentPhotoImage(pending.request.image) {
+                            self.pendingPreviewRender = PhotoStylePreviewJob(
+                                revision: pending.revision,
+                                request: .init(style: pending.request.style, adjustment: pending.request.adjustment,
+                                               image: pending.request.image, subjectMask: subjectMask,
+                                               shouldDetectSubjectMask: false, repairPatches: pending.request.repairPatches),
+                                cacheKey: pending.cacheKey,
+                                maskDetectionImage: pending.maskDetectionImage, photoGeneration: pending.photoGeneration
+                            )
+                        }
+                    }
+                    if job.revision == self.previewRevision {
+                        self.outputImage = output
+                        self.previewImagePayload = images
+                        self.persistCurrentPhotoEdits()
+                    }
+                    if self.pendingPreviewRender != nil {
+                        self.startNextPreviewRender()
+                    } else {
+                        self.sendState(includeImages: true)
+                        self.finishPreviewWaiters()
+                    }
                 }
             }
         }

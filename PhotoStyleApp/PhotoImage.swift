@@ -36,6 +36,8 @@ struct PhotoImage {
     let cgImage: CGImage?
     /// Scene-referred RAW needs display mapping once. Storage depth is independent.
     let requiresRAWDisplayMapping: Bool
+    /// The sensor decoder failed; editing/export uses the camera JPEG instead.
+    let usesEmbeddedRAWPreview: Bool
     var scale: CGFloat { 1 }
     var imageOrientation: CGImagePropertyOrientation { .up }
     var size: CGSize {
@@ -45,8 +47,9 @@ struct PhotoImage {
     private static let context = PhotoImageRenderPrecision.makeContext()
 
     init(cgImage: CGImage, scale: CGFloat = 1, orientation: CGImagePropertyOrientation = .up,
-         requiresRAWDisplayMapping: Bool = false) {
+         requiresRAWDisplayMapping: Bool = false, usesEmbeddedRAWPreview: Bool = false) {
         self.requiresRAWDisplayMapping = requiresRAWDisplayMapping
+        self.usesEmbeddedRAWPreview = usesEmbeddedRAWPreview
         // Materialize integer/decoder-backed images into a stable FP32 bitmap.
         // This also avoids Core Image's direct JPEG-provider → RGBAf conversion,
         // which can produce invalid samples on macOS for some decoded layouts.
@@ -152,7 +155,7 @@ struct PhotoImage {
 
     func cropped(to rect: CGRect) -> PhotoImage {
         guard let image = cgImage?.cropping(to: rect.integral) else { return self }
-        return PhotoImage(cgImage: image, requiresRAWDisplayMapping: requiresRAWDisplayMapping)
+        return PhotoImage(cgImage: image, requiresRAWDisplayMapping: requiresRAWDisplayMapping, usesEmbeddedRAWPreview: usesEmbeddedRAWPreview)
     }
 
     func resized(to target: CGSize) -> PhotoImage {
@@ -165,7 +168,7 @@ struct PhotoImage {
         // retains the complete source bitmap/graph, defeating preview cache costs.
         return PhotoImageRenderPrecision.renderedImage(
             from: image, context: Self.context, highPrecision: requiresRAWDisplayMapping,
-            colorSpace: cgImage.colorSpace, deferred: false
+            colorSpace: cgImage.colorSpace, deferred: false, usesEmbeddedRAWPreview: usesEmbeddedRAWPreview
         ) ?? self
     }
 
@@ -193,7 +196,7 @@ struct PhotoImage {
         draw(context)
         NSGraphicsContext.restoreGraphicsState()
         guard let output = context.makeImage() else { return self }
-        return PhotoImage(cgImage: output, requiresRAWDisplayMapping: requiresRAWDisplayMapping)
+        return PhotoImage(cgImage: output, requiresRAWDisplayMapping: requiresRAWDisplayMapping, usesEmbeddedRAWPreview: usesEmbeddedRAWPreview)
     }
 
     func draw(in rect: CGRect) {
@@ -235,7 +238,7 @@ enum PhotoImageRenderPrecision {
 
     static func renderedImage(
         from image: CIImage, context: CIContext, highPrecision: Bool,
-        colorSpace: CGColorSpace? = nil, scale: CGFloat = 1, deferred: Bool = true
+        colorSpace: CGColorSpace? = nil, scale: CGFloat = 1, deferred: Bool = true, usesEmbeddedRAWPreview: Bool = false
     ) -> PhotoImage? {
         // The legacy highPrecision argument marks scene-referred RAW only.
         // Every working image is FP32, including those originating in 8-bit files.
@@ -246,12 +249,12 @@ enum PhotoImageRenderPrecision {
             image, from: image.extent, format: .RGBAf,
             colorSpace: resolvedColorSpace, deferred: deferred
         ) else { return nil }
-        return PhotoImage(cgImage: cgImage, requiresRAWDisplayMapping: highPrecision)
+        return PhotoImage(cgImage: cgImage, requiresRAWDisplayMapping: highPrecision, usesEmbeddedRAWPreview: usesEmbeddedRAWPreview)
     }
 
     static func renderedImage(
         from image: CIImage, context: CIContext, preserving source: PhotoImage, scale: CGFloat? = nil
     ) -> PhotoImage? {
-        renderedImage(from: image, context: context, highPrecision: source.requiresRAWDisplayMapping, colorSpace: source.cgImage?.colorSpace)
+        renderedImage(from: image, context: context, highPrecision: source.requiresRAWDisplayMapping, colorSpace: source.cgImage?.colorSpace, usesEmbeddedRAWPreview: source.usesEmbeddedRAWPreview)
     }
 }

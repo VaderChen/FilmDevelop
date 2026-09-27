@@ -17,38 +17,18 @@ Film recipes now combine layer response, tone curves, hue-selective saturation a
 
 Cross Process, Kodak Gold 200, CineStill 800T and Polaroid SX-70 retain their current rendering. Digital simulations and the original receive no film-specific grading. Scanner device labels use simulation; legacy off becomes neutral. Paper controls are hidden for film scanning. UI help describes controls and their visual effects. Processing uses Metal point operations without CPU image readback.
 
-## In development (not yet released)
+## Latest changes — 1.26.0927 build 1657
 
-- Export names now default to the source folder name, a space, and the original filename, for example `2026-02-22 Italy Trip DSC_2381.jpg`. The extension follows the selected export format.
-- Added Use new film exposure above Enable highlight protection, off by default. It applies stronger highlight protection while preserving color. Excessively high EV values can make the image look flat and reduce tonal depth. Turn it off to use the original film exposure method.
-- The switch remembers your choice and applies to both preview and export. Switching does not rewrite photo adjustments or become part of a film recipe. Digital exposure keeps its existing behavior.
+- Added Deep shadow exposure compensation (Experimental) to brighten dark areas while preserving color; defaults to 0%.
+- Added a Chemicals tab to adjust development contrast, sensitivity, grain and color-layer contrast.
+- Each film has its own presets for processing chemicals; older recipes automatically receive the new settings.
+- Added an optional film exposure mode with stronger highlight protection and color preservation, off by default.
+- Faster RAW thumbnails, with editing preview processing deferred while thumbnails load.
+- Fixed black editing previews for some RAW files by using the embedded camera JPEG when needed, with an on-screen notice.
+- Fixed brightness anomalies and image display issues caused by some adjustments.
+- Export filenames now use the source folder name, a space and the original filename.
 
-## Latest changes — 1.26.0926 build 2115
-
-- Choose Show EXIF from a thumbnail or preview context menu to view camera and lens, shooting settings, dates, image information, and GPS in an in-app dialog. Numbers use up to two decimal places, and text can be selected and copied.
-- Removed the persistent note below virtual exposure time for a cleaner panel.
-
-- Added Vibrance and Saturation below digital Exposure, from −100 to 100 with a neutral default of 0. Vibrance prioritizes muted colors; Saturation adjusts overall color intensity. Both are saved with photos and recipes and used for export.
-- Digital exposure, brightness, contrast and HDR retain their tone algorithms and reconstruct color through Lab. Vibrance and Saturation share one GPU color pass, preserving lightness and fitting out-of-gamut colors. White balance, denoising and blur retain their existing algorithms.
-
-- After updating, a dialog shows the version and a short list of changes in your interface language, even offline. Once dismissed, it stays hidden until the next update.
-
-- Fixed the first crop drag after choosing an aspect ratio from the native macOS menu. Moving and resizing now work on the first drag, even when the menu suppresses the initial pointer event.
-- Crop, rotation and repairs belong to each photo and survive film or custom-recipe changes. Saved and exported film recipes exclude these settings; crop settings in older recipes are ignored.
-- Unmodified photos open as Original instead of inheriting the previous photo’s recipe. Edited photos restore their own settings; stale asynchronous results cannot overwrite the current photo.
-- Added Show All Films, off by default. Enabling it reveals merged film-family variants without selecting them automatically. Custom and built-in film sections can collapse and remember their state.
-
-Includes all changes from 1.26.0926 build 2017.
-
-- Repair patches are composited in original-image coordinates before the complete image is cropped and rotated; patch positions are not remapped separately. White balance, film, digital adjustments, scanner grading, and the frame follow. Negative-to-positive reconstruction remains in the film stage.
-- Replaced the highlight slider with Global Exposure Compensation: shift all three zones by the same EV while preserving their differences. Midtones and shadows remain independently adjustable. The group stops when any zone reaches its limit.
-- Fixed midtone adjustments moving highlights. Smooth local exposure replaces the global midtone baseline, preserving outer highlights and deep shadows. Extreme local adjustments ease toward zone boundaries to prevent tone reversal; equal values across all zones retain global 2^EV exposure.
-
-- Fixed independent highlight, midtone and shadow exposure with smooth transitions. Equal EV values scale linear luminance by 2^EV. Exposure separates Lab lightness/chroma while preserving existing RGB and spectral models.
-- Photo recipes and materials can be mixed independently. Controls sit below Scan Source and are enabled for Photo. Silver Density supports −100 to 100, below Print Illuminant.
-- Added a default export folder in General settings. Dependent sliders are disabled when their parent effect is off, preserving saved values.
-- Improved asynchronous edit restoration during photo switching and emulsion preview sampling; export retains reference sampling. Global digital exposure, local contrast and HDR reuse small per-stage filter coefficients. Equal tone-zone recipes share branches, and unchanged stages skip full-image readback.
-- Added material defaults for 23 core films, four photo recipes and repair-model preparation when opening the repair brush.
+[Deep shadow processing](PhotoStyleShared/DEEP_SHADOW_EXPOSURE.md) · [Processing chemicals](PhotoStyleShared/DEVELOPER_CHEMISTRY.md)
 
 ## Download and languages
 

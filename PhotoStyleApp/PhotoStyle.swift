@@ -528,7 +528,14 @@ struct StyleAdjustment: Codable, Equatable {
         imageScoped = try container.decodeIfPresent(Bool.self, forKey: .imageScoped) ?? false
         sourceToneZones = try container.decodeIfPresent(PhotoStylePlan.ToneZones.self, forKey: .sourceToneZones)
         colorCalibration = try container.decodeIfPresent(PhotoColorCalibration.self, forKey: .colorCalibration)
-        filmEffects = try container.decodeIfPresent(PhotoFilmEffects.self, forKey: .filmEffects) ?? .neutral
+        // Dictionaries in the working store and photo records are keyed by stock ID.
+        // Named recipes resolve their baseStyle in CustomFilm's decoder instead.
+        let stock = decoder.codingPath.last.flatMap { PhotoStyle(rawValue: $0.stringValue)?.filmStock }
+        let chemistryDefaults = stock?.developerDefaults ?? .neutral
+        if container.contains(.filmEffects), !(try container.decodeNil(forKey: .filmEffects)) {
+            filmEffects = try PhotoFilmEffects(from: container.superDecoder(forKey: .filmEffects),
+                                              developerDefaults: chemistryDefaults)
+        } else { filmEffects = PhotoFilmEffects(developerChemistry: chemistryDefaults) }
         // Both preference and per-photo archives key recipes by PhotoStyle. Use
         // that stock context: reversal already used positive = brighter in v9.
         if schemaVersion < 10,

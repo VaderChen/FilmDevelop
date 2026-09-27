@@ -16,6 +16,8 @@ public enum PhotoFilmExposureProcessor {
         // 避免 Core Image 在兩條分支重算整個乳劑模型。由 Core Image 管理中間結果的快取。
         let developmentInput = effects.developmentAmount > 0 && strength > 0
             ? exposed.insertingIntermediate(cache: true) : exposed
-        return PhotoFilmDevelopmentProcessor.apply(to: developmentInput, effects: effects, strength: strength)
+        let developed = PhotoFilmDevelopmentProcessor.apply(to: developmentInput, effects: effects, strength: strength)
+        return PhotoDeveloperChemistryProcessor.apply(to: developed, settings: effects.developerChemistry,
+                                                      strength: strength, monochrome: monochrome)
     }
 }

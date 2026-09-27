@@ -38,6 +38,7 @@ extension PhotoStyleWebCoordinator {
         // Existing installs already remember the last imported photo's directory.
         directory = directory ?? lastImageImportDirectoryURL() ?? lastImageImportFileURL()?.deletingLastPathComponent()
         guard let directory else { return false }
+        prioritizeInitialThumbnailViewport()
         photoDirectoryStore.selectDirectory(directory,
             preferredPhotoURL: sourceFileURL ?? lastImageImportFileURL())
         return true
@@ -66,6 +67,20 @@ extension PhotoStyleWebCoordinator {
     func requestPhotoThumbnails(_ payload: [String: Any]) {
         guard let ids = payload["ids"] as? [String], ids.count <= 48 else { return }
         photoDirectoryStore.requestThumbnails(ids: ids)
+        if !photoDirectoryStore.isScanning { thumbnailViewportReservation = nil }
+    }
+
+    /// Give WebKit a chance to report the visible strip before decoding the editor RAW.
+    /// Hidden/unavailable views cannot leave editor work waiting forever.
+    func prioritizeInitialThumbnailViewport() {
+        guard isWebReady else { return }
+        thumbnailViewportReservation = photoDirectoryStore.previewWorkGate.reserveThumbnail()
+        let generation = UUID()
+        thumbnailViewportGeneration = generation
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+            guard let self, self.thumbnailViewportGeneration == generation else { return }
+            self.thumbnailViewportReservation = nil
+        }
     }
 
     func openPhotoDirectoryPicker() {
@@ -93,6 +108,7 @@ extension PhotoStyleWebCoordinator {
     /// Explicit folder selection opens its first photo; launch restoration keeps the remembered photo.
     func selectNewPhotoDirectory(_ url: URL) {
         let generation = photoGeneration
+        prioritizeInitialThumbnailViewport()
         photoDirectoryStore.selectDirectory(url) { [weak self] firstPhoto in
             guard let self, let firstPhoto, self.canImport,
                   self.photoGeneration == generation else { return }

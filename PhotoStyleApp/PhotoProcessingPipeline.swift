@@ -40,6 +40,10 @@ final class PhotoProcessingPipeline {
             let graph = transform(input)
             guard graph !== input else { return nil }
             let bounds = graph.extent.integral
+            // A returned CGImage retains its provider's Buffer. Reuse storage
+            // only when the pipeline is its sole owner, or a later stage could
+            // mutate pixels of an image that has already been handed out.
+            if !isKnownUniquelyReferenced(&spare) { spare = nil }
             let destination = try spare?.resized(to: bounds) ?? Buffer(bounds: bounds)
             try destination.render(graph, context: context, colorSpace: colorSpace,
                 progress: { self.progress?(name, $0) })

@@ -346,10 +346,10 @@ extension PhotoStyleWebCoordinator {
         defer { editHistoryBatchID = previousHistoryBatch }
         // Film edits have a strict shared contract. Reject a malformed batch before
         // changing any style so a bad enum/value cannot partially apply other edits.
-        let filmKeys = Set(["scannerSource", "printRecipe", "paperProfile", "layerResponse", "couplerAmount", "couplerRadius", "filmWidthMM", "grainDistribution", "emulsionMTF", "paperScatter", "paperWhite", "paperDensityOffset", "reciprocityAmount", "exposureSeconds", "halationBase", "silverRetention", "developerTemperature", "developerActivity", "scannerProfile", "scannerIlluminant", "scanExposure", "scanContrast", "scanSaturation", "scanDensityCorrection", "scanFlare", "scanMidtoneWarmth", "scanHighlightWarmth", "printIlluminant", "viewIlluminant", "filmColorModel", "printExposure", "printExposureHighlights", "printExposureMidtones", "printExposureShadows", "printContrast", "developmentAmount", "developmentTime", "developmentDiffusion", "developmentAgitation", "grainMode", "grainSize", "grainClumping", "grainChroma",
+        let filmKeys = Set(["scannerSource", "printRecipe", "paperProfile", "layerResponse", "couplerAmount", "couplerRadius", "filmWidthMM", "grainDistribution", "emulsionMTF", "paperScatter", "paperWhite", "paperDensityOffset", "reciprocityAmount", "exposureSeconds", "halationBase", "silverRetention", "developerTemperature", "developerActivity", "scannerProfile", "scannerIlluminant", "scanExposure", "scanContrast", "scanSaturation", "scanDensityCorrection", "scanFlare", "scanMidtoneWarmth", "scanHighlightWarmth", "printIlluminant", "viewIlluminant", "filmColorModel", "printExposure", "printExposureHighlights", "printExposureMidtones", "printExposureShadows", "deepShadowAmount", "printContrast", "developmentAmount", "developmentTime", "developmentDiffusion", "developmentAgitation", "grainMode", "grainSize", "grainClumping", "grainChroma",
                             "bloomAmount", "bloomRadius", "bloomThreshold",
                             "halationAmount", "halationRadius", "halationThreshold",
-                            "monochromeFilter", "monochromeFilterStrength"])
+                            "monochromeFilter", "monochromeFilterStrength"]).union(PhotoDeveloperSettings.Control.allCases.map(\.rawValue))
         for payload in payloads {
             if payload["key"] as? String == "printRecipe" {
                 let style = (payload["style"] as? String).flatMap(PhotoStyle.init(rawValue:)) ?? selectedStyle
@@ -403,7 +403,10 @@ extension PhotoStyleWebCoordinator {
                 if hasValidCropValue { adjustment.imageScoped = true }
             } else if let key = payload["key"] as? String {
                 let value = payload["value"]
-                if updateSourceToneAdjustment(&adjustment, key: key, value: value) {
+                if let control = PhotoDeveloperSettings.Control(rawValue: key), let number = doubleValue(from: value) {
+                    guard style.filmStock != nil || style == .original else { continue }
+                    adjustment.filmEffects.developerChemistry[control] = number
+                } else if updateSourceToneAdjustment(&adjustment, key: key, value: value) {
                     adjustment.imageScoped = true
                 } else {
                     switch key {
@@ -446,6 +449,7 @@ extension PhotoStyleWebCoordinator {
                 case "printExposureHighlights": adjustment.filmEffects.printExposureHighlights = doubleValue(from: value)!
                 case "printExposureMidtones": adjustment.filmEffects.printExposureMidtones = doubleValue(from: value)!
                 case "printExposureShadows": adjustment.filmEffects.printExposureShadows = doubleValue(from: value)!
+                case "deepShadowAmount": adjustment.filmEffects.deepShadowAmount = doubleValue(from: value)!
 
                 case "printContrast": adjustment.filmEffects.printContrast = doubleValue(from: value)!
                 case "developmentAmount": adjustment.filmEffects.developmentAmount = doubleValue(from: value)!

@@ -70,7 +70,8 @@ final class PhotoStyleFilmHoverPreview {
     private func isAvailable(_ coordinator: PhotoStyleWebCoordinator) -> Bool {
         !coordinator.isTerminating && !coordinator.isLoadingImage && !coordinator.isComputing
             && !coordinator.isSavingImage && !coordinator.isRepairingImage && !coordinator.isMCPMutating && !coordinator.isRenderingPreview
-            && !coordinator.isDetectingSubjectMask && coordinator.sourceImage != nil
+            && !coordinator.isDetectingSubjectMask && !coordinator.photoDirectoryStore.isScanning
+            && !coordinator.photoDirectoryStore.isLoadingThumbnails && coordinator.sourceImage != nil
     }
 
     private func isCurrent(_ job: Job) -> Bool {
@@ -87,10 +88,13 @@ final class PhotoStyleFilmHoverPreview {
         running = true
         let renderer = coordinator.renderer
         // Share the preview worker so hovering never starts several GPU renders at once.
+        let workGate = coordinator.photoDirectoryStore.previewWorkGate
         coordinator.previewRenderQueue.async { [weak self] in
-            let result: (String?, CGSize) = autoreleasepool {
-                let output = renderer.render(job.request)
-                return (imageDataURL(output, maxPixel: PhotoImage.previewMaxPixel), output.size)
+            let result: (String?, CGSize) = workGate.withEditorWork {
+                autoreleasepool {
+                    let output = renderer.render(job.request)
+                    return (imageDataURL(output, maxPixel: PhotoImage.previewMaxPixel), output.size)
+                }
             }
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }

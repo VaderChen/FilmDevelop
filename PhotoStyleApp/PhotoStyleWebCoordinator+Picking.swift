@@ -27,87 +27,90 @@ extension PhotoStyleWebCoordinator {
         let hasLoadingPreview = loadingPreviewImagePayload != nil
         sendState(includeImages: true)
 
+        let workGate = photoDirectoryStore.previewWorkGate
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            let startedAccessing = url.startAccessingSecurityScopedResource()
-            defer {
-                if startedAccessing {
-                    url.stopAccessingSecurityScopedResource()
+            workGate.withEditorWork {
+                let startedAccessing = url.startAccessingSecurityScopedResource()
+                defer {
+                    if startedAccessing {
+                        url.stopAccessingSecurityScopedResource()
+                    }
                 }
-            }
 
-            var loadedImage: PhotoImage?
-            var loadedImageData: Data?
-            var loadedImageBookmark: Data?
-            var loadedImageIdentifier: String?
-            var loadingError: Error?
-            var coordinatorError: NSError?
-            let coordinator = NSFileCoordinator(filePresenter: nil)
+                var loadedImage: PhotoImage?
+                var loadedImageData: Data?
+                var loadedImageBookmark: Data?
+                var loadedImageIdentifier: String?
+                var loadingError: Error?
+                var coordinatorError: NSError?
+                let coordinator = NSFileCoordinator(filePresenter: nil)
 
-            coordinator.coordinate(readingItemAt: url, options: [], error: &coordinatorError) { readableURL in
-                do {
-                    let data = try Data(contentsOf: readableURL)
-                    if !hasLoadingPreview, let quickPreview = loadingPreviewDataURL(from: data) {
-                        DispatchQueue.main.async { [weak self] in
-                            guard let self, self.isLoadingImage, cancellation?.isCancelled != true else { return }
-                            self.loadingPreviewImagePayload = quickPreview
-                            self.sendState(includeImages: true)
+                coordinator.coordinate(readingItemAt: url, options: [], error: &coordinatorError) { readableURL in
+                    do {
+                        let data = try Data(contentsOf: readableURL)
+                        if !hasLoadingPreview, let quickPreview = loadingPreviewDataURL(from: data) {
+                            DispatchQueue.main.async { [weak self] in
+                                guard let self, self.isLoadingImage, cancellation?.isCancelled != true else { return }
+                                self.loadingPreviewImagePayload = quickPreview
+                                self.sendState(includeImages: true)
+                            }
                         }
+                        loadedImage = self?.decodePickedImage(data: data, url: readableURL)
+                        if loadedImage != nil {
+                            loadedImageData = data
+                            loadedImageIdentifier = Self.sourceImageIdentifier(for: data)
+                            loadedImageBookmark = try? url.bookmarkData(
+                                options: [.withSecurityScope],
+                                includingResourceValuesForKeys: nil,
+                                relativeTo: nil
+                            )
+                        }
+                    } catch {
+                        loadingError = error
                     }
-                    loadedImage = self?.decodePickedImage(data: data, url: readableURL)
-                    if loadedImage != nil {
-                        loadedImageData = data
-                        loadedImageIdentifier = Self.sourceImageIdentifier(for: data)
-                        loadedImageBookmark = try? url.bookmarkData(
-                            options: [.withSecurityScope],
-                            includingResourceValuesForKeys: nil,
-                            relativeTo: nil
-                        )
-                    }
-                } catch {
-                    loadingError = error
                 }
-            }
 
-            let preparedProcessingImage = cancellation?.isCancelled == true ? nil : loadedImage?.resizedForWebPreview(maxPixel: Self.processingPreviewMaxPixel)
-            let preparedPreview = cancellation?.isCancelled == true ? nil : loadedImage?.resizedForWebPreview(maxPixel: PhotoImage.previewMaxPixel)
-            let preparedPreviewPayload = preparedPreview.flatMap { imageDataURL($0) }
-            Task { @MainActor in
-                guard let self else { return }
-                self.isLoadingImage = false
-                self.loadingPreviewImagePayload = nil
-                if cancellation?.isCancelled == true {
-                    self.sendState(includeImages: true)
-                    completion?(.failure(CancellationError()))
-                    return
-                }
-                if let image = loadedImage {
-                    let accepted = await self.setSourceImage(
-                        image,
-                        preparedPreview: preparedPreview,
-                        preparedProcessingImage: preparedProcessingImage,
-                        preparedPreviewPayload: preparedPreviewPayload,
-                        persistenceData: loadedImageData,
-                        persistenceFileExtension: url.pathExtension,
-                        sourceIdentifier: loadedImageIdentifier,
-                        sourceURL: url,
-                        persistsForNextLaunch: self.persistsImportedImages,
-                        filename: url.lastPathComponent, cancellation: cancellation
-                    )
-                    guard accepted else { completion?(.failure(CancellationError())); return }
-                    self.rememberImageImportFile(url, bookmarkData: loadedImageBookmark)
-                    completion?(.success(()))
-                } else if let loadingError {
-                    self.sendState(includeImages: true)
-                    self.sendToast("無法讀取圖片：\(loadingError.localizedDescription)")
-                    completion?(.failure(loadingError))
-                } else if let coordinatorError {
-                    self.sendState(includeImages: true)
-                    self.sendToast("無法讀取圖片：\(coordinatorError.localizedDescription)")
-                    completion?(.failure(coordinatorError))
-                } else {
-                    self.sendState(includeImages: true)
-                    self.sendToast("選取的檔案不是可支援的圖片格式。")
-                    completion?(.failure(PhotoStyleMCPTools.failure("選取的檔案不是可支援的圖片格式。")))
+                let preparedProcessingImage = cancellation?.isCancelled == true ? nil : loadedImage?.resizedForWebPreview(maxPixel: Self.processingPreviewMaxPixel)
+                let preparedPreview = cancellation?.isCancelled == true ? nil : loadedImage?.resizedForWebPreview(maxPixel: PhotoImage.previewMaxPixel)
+                let preparedPreviewPayload = preparedPreview.flatMap { imageDataURL($0) }
+                Task { @MainActor in
+                    guard let self else { return }
+                    self.isLoadingImage = false
+                    self.loadingPreviewImagePayload = nil
+                    if cancellation?.isCancelled == true {
+                        self.sendState(includeImages: true)
+                        completion?(.failure(CancellationError()))
+                        return
+                    }
+                    if let image = loadedImage {
+                        let accepted = await self.setSourceImage(
+                            image,
+                            preparedPreview: preparedPreview,
+                            preparedProcessingImage: preparedProcessingImage,
+                            preparedPreviewPayload: preparedPreviewPayload,
+                            persistenceData: loadedImageData,
+                            persistenceFileExtension: url.pathExtension,
+                            sourceIdentifier: loadedImageIdentifier,
+                            sourceURL: url,
+                            persistsForNextLaunch: self.persistsImportedImages,
+                            filename: url.lastPathComponent, cancellation: cancellation
+                        )
+                        guard accepted else { completion?(.failure(CancellationError())); return }
+                        self.rememberImageImportFile(url, bookmarkData: loadedImageBookmark)
+                        completion?(.success(()))
+                    } else if let loadingError {
+                        self.sendState(includeImages: true)
+                        self.sendToast("無法讀取圖片：\(loadingError.localizedDescription)")
+                        completion?(.failure(loadingError))
+                    } else if let coordinatorError {
+                        self.sendState(includeImages: true)
+                        self.sendToast("無法讀取圖片：\(coordinatorError.localizedDescription)")
+                        completion?(.failure(coordinatorError))
+                    } else {
+                        self.sendState(includeImages: true)
+                        self.sendToast("選取的檔案不是可支援的圖片格式。")
+                        completion?(.failure(PhotoStyleMCPTools.failure("選取的檔案不是可支援的圖片格式。")))
+                    }
                 }
             }
         }
@@ -209,7 +212,7 @@ extension PhotoStyleWebCoordinator {
         let colorSpaceName = profileName?.localizedCaseInsensitiveContains("P3") == true
             ? CGColorSpace.extendedLinearDisplayP3
             : CGColorSpace.extendedLinearSRGB
-        return PhotoImageRenderPrecision.renderedImage(
+        guard let decoded = PhotoImageRenderPrecision.renderedImage(
             from: output,
             context: Self.imageDecodeContext,
             highPrecision: true,
@@ -219,7 +222,48 @@ extension PhotoStyleWebCoordinator {
             // and return corrupt tiles when those branches request different scales.
             scale: 1,
             deferred: false
-        )
+        ) else { return nil }
+        // CIRAWFilter can succeed yet return only near-zero pixels for a NEF.
+        // Require contradictory, visible camera-JPEG content before replacing
+        // a dark RAW: real black frames and ordinary underexposure stay RAW.
+        if Self.rawBitmapIsCollapsed(decoded),
+           let bitmap = PhotoRAWThumbnail.make(from: data, maxPixel: Int(max(output.extent.width, output.extent.height))),
+           bitmap.width >= 1024, bitmap.height >= 1024 {
+            let fallback = PhotoImage(cgImage: bitmap, usesEmbeddedRAWPreview: true)
+            if Self.rawPreviewHasVisibleContent(fallback) { return fallback }
+        }
+        return decoded
+    }
+
+    /// Inspect stable FP32 storage directly: no second RAW decode, resampling or GPU allocation.
+    private static func rawBitmapSampleRange(_ image: PhotoImage) -> (Float, Float)? {
+        guard let bitmap = image.cgImage, bitmap.bitsPerComponent == 32,
+              bitmap.bitsPerPixel == 128, bitmap.bitmapInfo.contains(.floatComponents),
+              let data = bitmap.dataProvider?.data, let bytes = CFDataGetBytePtr(data),
+              bitmap.bytesPerRow >= bitmap.width * 16,
+              CFDataGetLength(data) / bitmap.bytesPerRow >= bitmap.height else { return nil }
+        var minimum = Float.infinity, maximum = -Float.infinity
+        for y in stride(from: 0, to: bitmap.height, by: max(1, bitmap.height / 64)) {
+            let row = UnsafeRawPointer(bytes.advanced(by: y * bitmap.bytesPerRow)).assumingMemoryBound(to: Float.self)
+            for x in stride(from: 0, to: bitmap.width, by: max(1, bitmap.width / 64)) {
+                for channel in 0..<3 {
+                    let value = row[x * 4 + channel]
+                    guard value.isFinite else { return nil }
+                    minimum = min(minimum, value); maximum = max(maximum, value)
+                }
+            }
+        }
+        return (minimum, maximum)
+    }
+
+    static func rawBitmapIsCollapsed(_ image: PhotoImage) -> Bool {
+        guard let (minimum, maximum) = rawBitmapSampleRange(image) else { return false }
+        return abs(minimum) < 1e-7 && abs(maximum) < 1e-7
+    }
+
+    static func rawPreviewHasVisibleContent(_ image: PhotoImage) -> Bool {
+        guard let (minimum, maximum) = rawBitmapSampleRange(image) else { return false }
+        return maximum > 0.05 && maximum - minimum > 0.02
     }
 
     private func rawFilterContainsHighDepthSensorData(_ properties: NSDictionary) -> Bool {

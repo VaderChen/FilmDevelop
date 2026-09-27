@@ -17,6 +17,7 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
         return level <= 0.04045 ? level / 12.92 : pow((level + 0.055) / 1.055, 2.4)
     }
 
+    public static let deepShadowAmountRange: ClosedRange<Double> = 0...100
     public static let printExposureRange: ClosedRange<Double> = -16...16
 
     public enum ScannerProfile: String, Codable, CaseIterable, Sendable {
@@ -113,6 +114,8 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
     public var printExposure: Double
     public var printExposureHighlights: Double?
     public var printExposureMidtones: Double?
+    /// Deep-shadow neural luminance blend, 0...100 percent. Missing recipes use zero.
+    public var deepShadowAmount: Double
     public var printExposureShadows: Double?
     public var resolvedPrintExposure: SIMD3<Double> {
         .init(printExposureHighlights ?? printExposure, printExposureMidtones ?? printExposure, printExposureShadows ?? printExposure)
@@ -138,6 +141,7 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
         printExposureHighlights = nil
         printExposureMidtones = nil
         printExposureShadows = nil
+        deepShadowAmount = 0
     }
 
     public var printContrast: Double
@@ -177,6 +181,7 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
     public var silverRetention: Double
     public var developerTemperature: Double
     public var developerActivity: Double
+    public var developerChemistry: PhotoDeveloperSettings
 
     public static let neutral = PhotoFilmEffects()
 
@@ -198,6 +203,7 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
         silverRetention: Double = 0,
         developerTemperature: Double = 20,
         developerActivity: Double = 100,
+        developerChemistry: PhotoDeveloperSettings = .neutral,
         highlightProtectionEnabled: Bool = true,
         modernFilmExposureEnabled: Bool = false,
         grainMode: GrainMode = .emulsion,
@@ -217,6 +223,7 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
         printExposureHighlights: Double? = nil,
         printExposureMidtones: Double? = nil,
         printExposureShadows: Double? = nil,
+        deepShadowAmount: Double = 0,
 
         printContrast: Double = 50,
         printIlluminant: Illuminant = .reference,
@@ -252,6 +259,7 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
         self.silverRetention = silverRetention
         self.developerTemperature = developerTemperature
         self.developerActivity = developerActivity
+        self.developerChemistry = developerChemistry
         // Retired engine identifiers are accepted on input but canonicalized.
         self.highlightProtectionEnabled = highlightProtectionEnabled
         self.modernFilmExposureEnabled = modernFilmExposureEnabled
@@ -272,6 +280,7 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
         self.printExposureHighlights = printExposureHighlights
         self.printExposureMidtones = printExposureMidtones
         self.printExposureShadows = printExposureShadows
+        self.deepShadowAmount = deepShadowAmount
 
         self.printContrast = printContrast
         self.printIlluminant = printIlluminant
@@ -313,6 +322,7 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
             silverRetention: bound(silverRetention, -100...100, 0),
             developerTemperature: bound(developerTemperature, 10...40, 20),
             developerActivity: bound(developerActivity, 20...200, 100),
+            developerChemistry: developerChemistry.clamped(),
             highlightProtectionEnabled: highlightProtectionEnabled,
             modernFilmExposureEnabled: modernFilmExposureEnabled,
             grainMode: grainMode,
@@ -332,6 +342,7 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
             printExposureHighlights: printExposureHighlights.map { bound($0, Self.printExposureRange) },
             printExposureMidtones: printExposureMidtones.map { bound($0, Self.printExposureRange) },
             printExposureShadows: printExposureShadows.map { bound($0, Self.printExposureRange) },
+            deepShadowAmount: bound(deepShadowAmount, Self.deepShadowAmountRange),
 
             printContrast: bound(printContrast, 0...100, 50),
             printIlluminant: printIlluminant, viewIlluminant: viewIlluminant,
@@ -369,6 +380,7 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
         case silverRetention = "silver_retention"
         case developerTemperature = "developer_temperature"
         case developerActivity = "developer_activity"
+        case developerChemistry = "developer_chemistry"
 
         case grainMode = "grain_mode"
         case grainSize = "grain_size"
@@ -387,6 +399,7 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
         case printExposureHighlights = "print_exposure_highlights"
         case printExposureMidtones = "print_exposure_midtones"
         case printExposureShadows = "print_exposure_shadows"
+        case deepShadowAmount = "deep_shadow_amount"
 
         case printContrast = "print_contrast"
         case printIlluminant = "print_illuminant"
@@ -407,7 +420,16 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
     }
 
     public init(from decoder: Decoder) throws {
+        try self.init(from: decoder, developerDefaults: .neutral)
+    }
+
+    /// A recipe/store with a known stock can fill only the missing chemistry fields.
+    public init(from decoder: Decoder, developerDefaults: PhotoDeveloperSettings) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
+        let chemistry: PhotoDeveloperSettings
+        if values.contains(.developerChemistry), !(try values.decodeNil(forKey: .developerChemistry)) {
+            chemistry = try PhotoDeveloperSettings(from: values.superDecoder(forKey: .developerChemistry), defaults: developerDefaults)
+        } else { chemistry = developerDefaults }
         self.init(
             scannerSource: try values.decodeIfPresent(ScannerSource.self, forKey: .scannerSource) ?? .film,
             paperProfile: try values.decodeIfPresent(PaperProfile.self, forKey: .paperProfile) ?? .reference,
@@ -426,6 +448,7 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
             silverRetention: try values.decodeIfPresent(Double.self, forKey: .silverRetention) ?? 0,
             developerTemperature: try values.decodeIfPresent(Double.self, forKey: .developerTemperature) ?? 20,
             developerActivity: try values.decodeIfPresent(Double.self, forKey: .developerActivity) ?? 100,
+            developerChemistry: chemistry,
             grainMode: try values.decodeIfPresent(GrainMode.self, forKey: .grainMode) ?? .legacy,
             grainSize: try values.decodeIfPresent(Double.self, forKey: .grainSize) ?? 1,
             grainClumping: try values.decodeIfPresent(Double.self, forKey: .grainClumping) ?? 0,
@@ -443,6 +466,7 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
             printExposureHighlights: try values.decodeIfPresent(Double.self, forKey: .printExposureHighlights),
             printExposureMidtones: try values.decodeIfPresent(Double.self, forKey: .printExposureMidtones),
             printExposureShadows: try values.decodeIfPresent(Double.self, forKey: .printExposureShadows),
+            deepShadowAmount: try values.decodeIfPresent(Double.self, forKey: .deepShadowAmount) ?? 0,
 
             printContrast: try values.decodeIfPresent(Double.self, forKey: .printContrast) ?? 50,
             printIlluminant: try values.decodeIfPresent(Illuminant.self, forKey: .printIlluminant) ?? .reference,

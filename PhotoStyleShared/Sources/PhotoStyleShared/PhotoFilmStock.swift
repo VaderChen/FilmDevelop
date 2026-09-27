@@ -64,6 +64,7 @@ public enum PhotoFilmStock: String, CaseIterable, Codable, Sendable {
         // 保留銀 0 表示不額外疊加，Bleach Bypass 自帶的印片銀密度仍保留。
         // 紙材 reference 保留 SX-70 的低密度；拍攝／沖洗條件沿用中性基準。
         effects.scannerProfile = .neutral
+        effects.developerChemistry = developerDefaults
         return effects
     }
     /// 保守的藝術起點，非原廠量測。順序：粒徑分布、解析衰減、色層差異、色層抑制。

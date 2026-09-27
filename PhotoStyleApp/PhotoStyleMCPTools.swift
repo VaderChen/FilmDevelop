@@ -17,6 +17,7 @@ enum PhotoStyleMCPTools {
         ranges["printExposureHighlights"] = PhotoFilmEffects.printExposureRange
         ranges["printExposureMidtones"] = PhotoFilmEffects.printExposureRange
         ranges["printExposureShadows"] = PhotoFilmEffects.printExposureRange
+        ranges["deepShadowAmount"] = PhotoFilmEffects.deepShadowAmountRange
 
         ranges["developmentDiffusion"] = 0.02...1
         ranges["grainSize"] = 0.5...4
@@ -42,6 +43,7 @@ enum PhotoStyleMCPTools {
         ranges["silverRetention"] = -100...100
         ranges["developerTemperature"] = 10...40
         ranges["developerActivity"] = 20...200
+        for control in PhotoDeveloperSettings.Control.allCases { ranges[control.rawValue] = control.range }
         return ranges
     }()
     static let stringValues: [String: [String]] = [
@@ -78,6 +80,7 @@ enum PhotoStyleMCPTools {
             "filmColorModel": "固定 spectral：LHTSS 光譜重建、多波段染料透射與獨立印片流程；只對底片款式生效。",
             "printExposureHighlights": "亮部曝光補償 EV，-16 至 +16；與相鄰明暗區域平滑混合，缺值時沿用原曝光補償。",
             "printExposureMidtones": "中調曝光補償 EV，-16 至 +16；與相鄰明暗區域平滑混合，缺值時沿用原曝光補償。",
+            "deepShadowAmount": "極暗曝光補償（實驗功能）的增強融合比例，0 至 100%，預設 0；LYT-Net 預測亮度，依提亮幅度重建色彩並抑制色噪。",
             "printExposureShadows": "暗部曝光補償 EV，-16 至 +16；與相鄰明暗區域平滑混合，缺值時沿用原曝光補償。",
             "printExposure": "全區連動曝光補償 EV，-16 至 +16，預設 0；以 EV 差值同時移動三區，保留三區差距，任一區到達範圍界限時整組停止；先分離亮度與色度，只調整亮度並重建原色，再套用乳劑、顯影與底片色彩。正值變亮、負值變暗。",
             "printIlluminant": "印相光源：\(illuminants)。一般風格與負片皆可使用，正片略過此光源。",
@@ -100,6 +103,14 @@ enum PhotoStyleMCPTools {
             "halationBase": "增加吸收並減弱基底返照；50 保留既有返照比例，需啟用紅暈。",
             "silverRetention": "在已顯影負片加入中性銀密度，影響掃描與印相；0 不額外保留銀。",
             "developerTemperature": "以 20°C 為參考的相對反應速率模型；需啟用顯影效果，不是特定藥水的時間表。",
+            "developerContrast": "顯影反差倍率；1 保留原本反差。",
+            "developerSpeed": "感度補償，以 EV 表示；正值提亮、負值壓暗。",
+            "developerCompensation": "高光補償；越高越柔和壓縮亮部，0 關閉。",
+            "developerGrain": "顯影密度的細微起伏，與乳劑顆粒量分開控制。",
+            "developerAcutance": "加強明暗交界，0 關閉。",
+            "developerRed": "紅色層的反差偏移，0 保留原色；黑白不套用。",
+            "developerGreen": "綠色層的反差偏移，0 保留原色；黑白不套用。",
+            "developerBlue": "藍色層的反差偏移，0 保留原色；黑白不套用。",
             "developerActivity": "顯影劑相對活性；100 為參考，用於反應速率，不代表實測藥水配方。",
             "developmentAgitation": "顯影液攪拌／補充程度；越高越能補充局部耗竭。",
             "grainMode": "統一使用 emulsion：顯影前 Poisson 晶體捕光與分層返照。顆粒量沿用 grain 與各分區 Grain。",

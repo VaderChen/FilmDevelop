@@ -139,6 +139,8 @@ final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMe
     var outputImage: PhotoImage?
     var sourceSubjectMask: CIImage?
     var subjectMaskAttemptedGeneration: UUID?
+    var thumbnailViewportReservation: PhotoPreviewWorkGate.ThumbnailReservation?
+    var thumbnailViewportGeneration = UUID()
     let previewRenderQueue = DispatchQueue(label: "person.vader.PhotoStyleApp.preview", qos: .userInitiated)
     var adjustmentPreviewInteractionID: String?
     var adjustmentPreviewNeedsMask = false
@@ -211,6 +213,7 @@ final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMe
         self.photoDirectoryStore.onChange = { [weak self] in
             self?.rememberPhotoDirectory()
             self?.sendPhotoDirectoryState()
+            self?.startNextPreviewRender()
         }
     }
 

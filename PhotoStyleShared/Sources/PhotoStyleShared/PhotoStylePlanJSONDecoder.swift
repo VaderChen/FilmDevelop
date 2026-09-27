@@ -178,6 +178,7 @@ public enum PhotoStylePlanJSONDecoder {
                 "print_exposure_highlights": PhotoFilmEffects.printExposureRange,
                 "print_exposure_midtones": PhotoFilmEffects.printExposureRange,
                 "print_exposure_shadows": PhotoFilmEffects.printExposureRange,
+                "deep_shadow_amount": PhotoFilmEffects.deepShadowAmountRange,
                 "layer_response": 0...100,
                 "coupler_amount": 0...100,
                 "coupler_radius": 0...1,
@@ -201,7 +202,23 @@ public enum PhotoStylePlanJSONDecoder {
             if let raw = film["paper_profile"] {
                 guard let raw = raw as? String, PhotoFilmEffects.PaperProfile(rawValue: raw) != nil else { throw generatedPlanError("Invalid paper_profile.") }
             }
-            let allowedKeys = oldKeys.union(scannerKeys).union(materialRanges.keys).union(["paper_profile", "scanner_source"])
+            let allowedKeys = oldKeys.union(scannerKeys).union(materialRanges.keys).union(["paper_profile", "scanner_source", "developer_chemistry"])
+            if let raw = film["developer_chemistry"] {
+                let chemistry = try dictionary(raw, path: "film_effects.developer_chemistry")
+                let ranges: [String: ClosedRange<Double>] = [
+                    "contrast": 0.6...1.5, "speedEV": -1...1, "compensation": 0...100,
+                    "grain": 0...100, "acutance": 0...100, "red": -20...20, "green": -20...20, "blue": -20...20
+                ]
+                guard Set(chemistry.keys).isSubset(of: Set(ranges.keys)) else {
+                    throw generatedPlanError("Unknown developer_chemistry control.")
+                }
+                for (key, raw) in chemistry {
+                    guard let value = raw as? NSNumber, CFGetTypeID(value) != CFBooleanGetTypeID(),
+                          value.doubleValue.isFinite, ranges[key]!.contains(value.doubleValue) else {
+                        throw generatedPlanError("film_effects.developer_chemistry.\(key) is outside its numeric range.")
+                    }
+                }
+            }
             let mandatoryKeys = schemaVersion >= 6 ? oldKeys.union(scannerKeys) : (schemaVersion >= 5 ? oldKeys : (schemaVersion >= 3 ? previousKeys : requiredKeys))
             for key in lightingKeys.union(["scanner_illuminant"]) where film[key] != nil {
                 guard let raw = film[key] as? String, PhotoFilmEffects.Illuminant(rawValue: raw) != nil else {

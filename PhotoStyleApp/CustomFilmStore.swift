@@ -1,4 +1,5 @@
 import Foundation
+import PhotoStyleShared
 
 struct CustomFilm: Codable, Equatable, Identifiable {
     let id: String
@@ -15,10 +16,21 @@ struct CustomFilm: Codable, Equatable, Identifiable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
+        let base = try c.decode(String.self, forKey: .baseStyle)
+        var adjustment = try c.decode(StyleAdjustment.self, forKey: .adjustment)
+        if let stock = PhotoStyle(rawValue: base)?.filmStock {
+            let fields = try c.nestedContainer(keyedBy: RecipeFields.self, forKey: .adjustment)
+            if fields.contains(.filmEffects), !(try fields.decodeNil(forKey: .filmEffects)) {
+                adjustment.filmEffects.developerChemistry = try PhotoFilmEffects(
+                    from: fields.superDecoder(forKey: .filmEffects), developerDefaults: stock.developerDefaults).developerChemistry
+            } else { adjustment.filmEffects.developerChemistry = stock.developerDefaults }
+        }
         self.init(id: try c.decode(String.self, forKey: .id),
-                  name: try c.decode(String.self, forKey: .name),
-                  baseStyle: try c.decode(String.self, forKey: .baseStyle),
-                  adjustment: try c.decode(StyleAdjustment.self, forKey: .adjustment))
+                  name: try c.decode(String.self, forKey: .name), baseStyle: base, adjustment: adjustment)
+    }
+
+    private enum RecipeFields: String, CodingKey {
+        case filmEffects
     }
 
     func encode(to encoder: Encoder) throws {
@@ -81,7 +93,7 @@ final class CustomFilmStore {
         return film
     }
 
-    private struct Transfer: Codable {
+    fileprivate struct Transfer: Codable {
         let id: String
         let format: String
         let version: Int
@@ -156,5 +168,16 @@ final class CustomFilmStore {
 
     private static func failure(_ message: String) -> Error {
         NSError(domain: "CustomFilms", code: 1, userInfo: [NSLocalizedDescriptionKey: message])
+    }
+}
+
+// Imported recipes use the same missing-field defaults as the local library.
+extension CustomFilmStore.Transfer {
+    init(from decoder: Decoder) throws {
+        let film = try CustomFilm(from: decoder)
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(id: film.id, format: try c.decode(String.self, forKey: .format),
+                  version: try c.decode(Int.self, forKey: .version), name: film.name,
+                  baseStyle: film.baseStyle, adjustment: film.adjustment)
     }
 }

@@ -4,7 +4,7 @@ import PackageDescription
 import Foundation
 
 // Tests remain local and are absent from the public checkout.
-var sharedTargets: [Target] = [.target(name: "PhotoStyleShared")]
+var sharedTargets: [Target] = [.target(name: "PhotoStyleShared", resources: [.copy("Resources")])]
 let localTests = URL(fileURLWithPath: #filePath)
     .deletingLastPathComponent()
     .appendingPathComponent("Tests/PhotoStyleSharedTests")

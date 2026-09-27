@@ -101,6 +101,13 @@ public enum PhotoFilmEffectsProcessor {
     public static func applyExposure(to image: CIImage, effects: PhotoFilmEffects,
                                      strength: Double = 1, renderContext: CIContext? = nil) -> CIImage {
         let e = effects.clamped()
+        let exposed = applyBaseExposure(to: image, effects: e, strength: strength, renderContext: renderContext)
+        return PhotoDeepShadowExposureProcessor.apply(to: exposed, amount: e.deepShadowAmount,
+                                                      strength: strength, renderContext: renderContext)
+    }
+
+    private static func applyBaseExposure(to image: CIImage, effects e: PhotoFilmEffects,
+                                           strength: Double, renderContext: CIContext?) -> CIImage {
         if e.modernFilmExposureEnabled {
             return PhotoAdaptiveExposureProcessor.applyFilmExposure(to: image, effects: e, strength: strength, renderContext: renderContext)
         }

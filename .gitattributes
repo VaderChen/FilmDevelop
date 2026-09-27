@@ -1,0 +1,4 @@
+
+# Core ML protobuf models and weights must retain their exact bytes.
+*.mlmodel binary
+*.bin binary

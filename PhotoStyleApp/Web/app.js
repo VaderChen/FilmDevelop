@@ -177,7 +177,7 @@
   var selectedStyleKey = "photoStyle.selectedStyle";
   var enabledStylesKey = "photoStyle.enabledFilms.v2";
   var adjustmentPanelsByMode = {
-    film: [["film", "沖洗"], ["scanner", "掃描"], ["frameWatermark", "外框"]],
+    film: [["chemistry", "藥水"], ["film", "沖洗"], ["scanner", "掃描"], ["frameWatermark", "外框"]],
     digital: [["global", "整體"], ["highlight", "亮部"], ["midtone", "中調"], ["shadow", "暗部"], ["frameWatermark", "外框"]]
   };
   var filmDisclosureState = {};
@@ -444,6 +444,14 @@
       silverRetention: 0,
       developerTemperature: 20,
       developerActivity: 100,
+      developerContrast: 1,
+      developerSpeed: 0,
+      developerCompensation: 0,
+      developerGrain: 0,
+      developerAcutance: 0,
+      developerRed: 0,
+      developerGreen: 0,
+      developerBlue: 0,
       developmentAgitation: 50,
       grainMode: "emulsion",
       grainSize: 1,
@@ -1033,6 +1041,8 @@
       activeContent = renderToneAdjustmentCard(L.text("中調調整"), "midtone", adjustment.midtoneExposure, adjustment.midtoneIntensity, adjustment.midtoneWarmth, adjustment.midtoneGrain, sourceToneZones.midtones);
     } else if (activePanel === "shadow") {
       activeContent = renderToneAdjustmentCard(L.text("暗部調整"), "shadow", adjustment.shadowExposure, adjustment.shadowIntensity, adjustment.shadowWarmth, adjustment.shadowGrain, sourceToneZones.shadows);
+    } else if (activePanel === "chemistry") {
+      activeContent = renderChemistryAdjustmentCard(adjustment);
     } else if (activePanel === "film") {
       activeContent = renderFilmAdjustmentCard(adjustment);
     } else if (activePanel === "scanner") {
@@ -1287,6 +1297,34 @@
     return '<div class="help-label"><h3>' + renderHelp(help, title) + '</h3></div>';
   }
 
+  function renderChemistryAdjustmentCard(adjustment) {
+    var selected = state.styles.find(function (style) { return style.id === currentLookID(); });
+    var monochrome = !!(selected && selected.isMonochrome);
+    var disabled = !!(selected && selected.filmFamily === "camera");
+    var value = function (key, fallback) { return adjustment[key] == null ? fallback : adjustment[key]; };
+    var sections = ['<div class="film-section">'];
+    sections.push(renderRange(L.text("顯影反差"), "developerContrast", value("developerContrast", 1), 0.6, 1.5, 0.01, "\u00d7", L.text("調整顯影後的整體階調；1 保留原本反差。"), disabled));
+    sections.push(renderRange(L.text("感度補償"), "developerSpeed", value("developerSpeed", 0), -1, 1, 0.05, " EV", L.text("微調感度位置；正值提亮，負值壓暗，與全區曝光分開保存。"), disabled));
+    sections.push(renderRange(L.text("高光補償"), "developerCompensation", value("developerCompensation", 0), 0, 100, 1, "", L.text("逐漸壓縮高光，保留較亮區域的層次；0 關閉。"), disabled));
+    sections.push('</div><div class="film-section">');
+    sections.push(renderRange(L.text("顯影顆粒"), "developerGrain", value("developerGrain", 0), 0, 100, 1, "", L.text("調整顯影造成的細微密度起伏，與底片顆粒量分開控制。"), disabled));
+    sections.push(renderRange(L.text("邊緣清晰度"), "developerAcutance", value("developerAcutance", 0), 0, 100, 1, "", L.text("強化明暗交界；過高可能產生邊緣光暈。"), disabled));
+    sections.push('</div><div class="film-section">');
+    sections.push(renderRange(L.text("紅色層反差"), "developerRed", value("developerRed", 0), -20, 20, 0.5, "", L.text("調整此色層在亮部與暗部的反應差異；0 保留原有色彩。"), disabled || monochrome));
+    sections.push(renderRange(L.text("綠色層反差"), "developerGreen", value("developerGreen", 0), -20, 20, 0.5, "", L.text("調整此色層在亮部與暗部的反應差異；0 保留原有色彩。"), disabled || monochrome));
+    sections.push(renderRange(L.text("藍色層反差"), "developerBlue", value("developerBlue", 0), -20, 20, 0.5, "", L.text("調整此色層在亮部與暗部的反應差異；0 保留原有色彩。"), disabled || monochrome));
+    var developmentHelp = L.text('模擬顯影液消耗與補充，調整局部反差。效果設為 0 時關閉，時間、擴散與攪拌不會生效；提高效果後，時間與擴散影響局部反差，提高攪拌補充會減弱顯影液耗竭效果。');
+    sections.push('</div><div class="film-section">');
+    sections.push(renderRange(L.text("顯影效果"), "developmentAmount", value("developmentAmount", 0), 0, 100, 1, "", developmentHelp));
+    sections.push(renderRange(L.text("顯影時間"), "developmentTime", value("developmentTime", 50)));
+    sections.push(renderRange(L.text("擴散範圍"), "developmentDiffusion", value("developmentDiffusion", 0.15), 0.02, 1, 0.01, "%"));
+    sections.push(renderRange(L.text("攪拌補充"), "developmentAgitation", value("developmentAgitation", 50)));
+    sections.push(renderRange(L.text("顯影溫度"), "developerTemperature", value("developerTemperature", 20), 10, 40, 1, " °C", L.text("以 20°C 為參考的相對反應速率模型；需啟用顯影效果，不是特定藥水的時間表。"), false));
+    sections.push(renderRange(L.text("顯影劑活性"), "developerActivity", value("developerActivity", 100), 20, 200, 1, "", L.text("顯影劑相對活性；100 為參考，用於反應速率。"), false));
+    sections.push('</div>');
+    return renderAdjustmentCard("chemistry", null, sections.join(''));
+  }
+
   function renderFilmAdjustmentCard(adjustment) {
     var selected = state.styles.find(function (style) { return style.id === currentLookID(); });
     var monochrome = !!(selected && selected.isMonochrome);
@@ -1314,6 +1352,7 @@
       renderRange(L.text("全區曝光補償"), "printExposure", value("printExposure", 0), Math.min(state.exposureExpansionEnabled ? -16 : -8, value("printExposure", 0)), Math.max(state.exposureExpansionEnabled ? 16 : 8, value("printExposure", 0)), 0.05, " EV", L.text("同時增加或減少三區相同的 EV，保留亮部、中調與暗部的曝光差距；+1 EV 對應兩倍曝光倍率。任一區達到上限或下限時，整組停止。")),
       renderRange(L.text("中調曝光補償"), "printExposureMidtones", value("printExposureMidtones", value("printExposure", 0)), Math.min(state.exposureExpansionEnabled ? -16 : -8, value("printExposureMidtones", value("printExposure", 0))), Math.max(state.exposureExpansionEnabled ? 16 : 8, value("printExposureMidtones", value("printExposure", 0))), 0.05, " EV", L.text("依原始亮度分區，平滑調整曝光並保留色度，避免亮暗反轉及暗部提亮時色彩過度放大。提高 EV 不會減弱效果；負 EV 不自動補亮。三區同值時，線性亮度按 2^EV 調整，再套用底片效果。")),
       renderRange(L.text("暗部曝光補償"), "printExposureShadows", value("printExposureShadows", value("printExposure", 0)), Math.min(state.exposureExpansionEnabled ? -16 : -8, value("printExposureShadows", value("printExposure", 0))), Math.max(state.exposureExpansionEnabled ? 16 : 8, value("printExposureShadows", value("printExposure", 0))), 0.05, " EV", L.text("依原始亮度分區，平滑調整曝光並保留色度，避免亮暗反轉及暗部提亮時色彩過度放大。提高 EV 不會減弱效果；負 EV 不自動補亮。三區同值時，線性亮度按 2^EV 調整，再套用底片效果。")),
+      renderRange(L.text("極暗曝光補償 (實驗功能)"), "deepShadowAmount", value("deepShadowAmount", 0), 0, 100, 1, "%", L.text("提亮極暗區域，同時保留色彩濃度並減少色彩雜訊；0% 保留原圖，100% 套用完整增強。")),
       renderRange(reversal ? L.text("觀看反差") : L.text("印相反差"), "printContrast", value("printContrast", 50), 0, 100, 1, "", L.text("50 為目前風格或底片的基準；提高數值增加明暗反差，降低數值讓階調更柔和。")),
       renderRange(L.text("暗角"), "vignetteBalance", vignetteBalance(adjustment), -100, 100),
       '</div>'
@@ -1324,14 +1363,6 @@
     sections.push(renderRange(L.text("片幅長邊"), "filmWidthMM", value("filmWidthMM", 36), 8, 120, 1, " mm", L.text("以毫米指定曝光片幅長邊；同樣輸出尺寸下，片幅越大，顆粒及光學散射尺度越小。"), false));
     sections.push(renderRange(L.text("粒徑分布"), "grainDistribution", value("grainDistribution", 0), 0, 100, 1, "", L.text("增加大小晶體的分布寬度，並校正平均覆蓋面積；需啟用顆粒。"), false));
     sections.push(renderRange(L.text("乳劑解析力衰減"), "emulsionMTF", value("emulsionMTF", 0), 0, 100, 1, "", L.text("模擬片種與色層的光學細節衰減；0 保留原始解析力。"), false));
-    var developmentHelp = L.text('模擬顯影液消耗與補充，調整局部反差。效果設為 0 時關閉，時間、擴散與攪拌不會生效；提高效果後，時間與擴散影響局部反差，提高攪拌補充會減弱顯影液耗竭效果。');
-    sections.push('</div><div class="film-section">');
-    sections.push(renderRange(L.text("顯影效果"), "developmentAmount", value("developmentAmount", 0), 0, 100, 1, "", developmentHelp));
-    sections.push(renderRange(L.text("顯影時間"), "developmentTime", value("developmentTime", 50)));
-    sections.push(renderRange(L.text("擴散範圍"), "developmentDiffusion", value("developmentDiffusion", 0.15), 0.02, 1, 0.01, "%"));
-    sections.push(renderRange(L.text("攪拌補充"), "developmentAgitation", value("developmentAgitation", 50)));
-    sections.push(renderRange(L.text("顯影溫度"), "developerTemperature", value("developerTemperature", 20), 10, 40, 1, " °C", L.text("以 20°C 為參考的相對反應速率模型；需啟用顯影效果，不是特定藥水的時間表。"), false));
-    sections.push(renderRange(L.text("顯影劑活性"), "developerActivity", value("developerActivity", 100), 20, 200, 1, "", L.text("顯影劑相對活性；100 為參考，用於反應速率。"), false));
     sections.push('</div><div class="film-section">');
     sections.push(renderRange(L.text("色層感光差異"), "layerResponse", value("layerResponse", 0), 0, 100, 1, "", L.text("各感色層使用獨立暗部、斜率與高光曲線；0 保留原曲線。"), !filmStock || monochrome));
     sections.push(renderRange(L.text("色層抑制"), "couplerAmount", value("couplerAmount", 0), 0, 100, 1, "", L.text("模擬色層間的密度依賴顯影抑制；0 關閉，並非一般彩度。"), !filmStock));

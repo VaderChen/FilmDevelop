@@ -125,17 +125,18 @@ final class PhotoAppUpdater {
         defaults.set(version.tag, forKey: lastLaunchedVersionKey)
     }
 
-    // Bundled with this release so the notice is available without a network request.
+    // Bundled for offline use. Replace this list for each release with user-facing changes
+    // since the immediately preceding published release; never append historical highlights.
+    // Current comparison baseline: v1.26.0926-build-2115.
     static let releaseHighlights = [
-        "右鍵選單新增顯示 EXIF，可分類查看照片的拍攝資訊。",
-        "EXIF 數值最多顯示兩位小數，並可選取與複製。",
-        "數位曝光下方新增鮮豔度與飽和度，可分別調整色彩。",
-        "調整明暗時更能保留原有色彩，減少偏色與色彩過度放大。",
-
-        "裁切第一次拖曳就能調整，不必再拖第二次。",
-        "切換底片不會清除裁切與修復；切到未編輯照片時會顯示原片。",
-        "各款底片與掃描風格更容易分辨，新增五款掃描設備模擬。",
-        "可選擇顯示更多同系列底片，底片清單也能收合。"
+        "新增「極暗曝光補償 (實驗功能)」，可提亮暗處並保留色彩，預設 0%。",
+        "新增藥水頁面，可調整顯影反差、感度、顆粒與色層反差。",
+        "各款底片有專屬藥水預設值，舊配方會自動補齊新增設定。",
+        "新增新式底片曝光選項，可加強高光抑制與色彩保留，預設關閉。",
+        "加快 RAW 縮圖讀取，載入縮圖時暫緩編輯預覽運算。",
+        "修正部分 RAW 編輯預覽全黑，必要時改用相機內嵌 JPEG 並顯示提示。",
+        "修正部分調整造成的亮度異常與影像顯示問題。",
+        "匯出檔名改為「來源目錄名稱＋空格＋原檔名」。"
     ]
 
     private func presentUpdateNoticeIfNeeded() async throws {

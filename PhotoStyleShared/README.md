@@ -94,3 +94,9 @@ CPU FP64 參考已補齊新密度曲線、抑制、互易律、額外保留銀�
 開啟時，`PhotoFilmEffectsProcessor.applyExposure` 呼叫 `PhotoAdaptiveExposureProcessor.applyFilmExposure`，沿用數位曝光的局部照明估計與 BIMEF 反應，再以 Lab 重建亮度與色彩。底片的平滑分區 EV 計算保留；正 EV 且啟用高光抑制才建立局部照明場，負 EV 或關閉保護時略過此步。極高正 EV 可能壓縮階調、降低畫面層次。
 
 `renderContext` 由呼叫端傳入，以沿用既有 Core Image context。此選項不統一或改寫數位曝光，也不包含本機藥水研究中的參數模型。
+
+## 藥水階調與顯影細節
+
+`PhotoDeveloperSettings` 提供八個新控制，`PhotoFilmStock.developerDefaults` 列出全部 23 款底片預設。`PhotoDeveloperChemistryProcessor` 在顯影耗竭處理後、底片曲線前運作。全中性或強度 0 完全略過；既有 `PhotoFilmEffects` 缺少欄位時維持中性，具片種資訊的照片、底片設定與自訂配方載入器則逐欄補上片種預設。
+
+詳細公式、範圍、預設值與來源見 [DEVELOPER_CHEMISTRY.md](DEVELOPER_CHEMISTRY.md)。
