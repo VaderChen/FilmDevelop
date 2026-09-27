@@ -31,8 +31,9 @@ Film recipes now combine layer response, tone curves, hue-selective saturation a
 
 Cross Process, Kodak Gold 200, CineStill 800T and Polaroid SX-70 retain their current rendering. Digital simulations and the original receive no film-specific grading. Scanner device labels use simulation; legacy off becomes neutral. Paper controls are hidden for film scanning. UI help describes controls and their visual effects. Processing uses Metal point operations without CPU image readback.
 
-## Latest changes — 1.26.0927 build 2302
+## Latest changes — 1.26.0927 build 2327
 
+- Crop and repair tools now display the current edited look. Coordinates and repairs still apply to the original image, followed by the full processing pipeline.
 - Added Settings → Export for the output folder, format, size and format-specific options.
 - Export defaults to sRGB, with Adobe RGB (1998) and Display P3 options, color conversion and embedded ICC profiles.
 - The maximum output size rounds to the nearest multiple of 8 when edited; 0 keeps the original size, with downscaling only.

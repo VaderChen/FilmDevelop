@@ -130,6 +130,7 @@ final class PhotoAppUpdater {
     // since the immediately preceding published release; never append historical highlights.
     // Current comparison baseline: v1.26.0927-build-1906.
     static let releaseHighlights = [
+        "裁切與修復筆刷改用目前調色後的影像供操作；座標與修復仍作用於原圖，完成後重新套用完整處理流程。",
         "新增「設定 → 輸出」，集中設定輸出目錄、格式、尺寸與各格式參數。",
         "輸出預設使用 sRGB，支援 Adobe RGB (1998) 與 Display P3，並轉換色彩及嵌入 ICC 描述檔。",
         "最大輸出尺寸修改後自動取最接近的 8 倍數；0 表示原始尺寸，只縮小、不放大。",

@@ -48,8 +48,9 @@
 
 片種資料：[Portra / Ektar](https://www.kodak.com/global/plugins/acrobat/en/professional/products/films/2012Brochure.pdf)、[VISION3 50D](https://www.kodak.com/en/motion/product/camera-films/50d-5203-7203/resources/)、[E100](https://www.kodakprofessional.com/sites/default/files/wysiwyg/E100%20FAQs%20PDF%202024.pdf)、[Provia 100F](https://www.fujifilm.com/us/en/business/professional-photography/film/provia-100f)、[Velvia](https://www.fujifilm.com/jp/ja/consumer/films/negative-and-reversal/velvia)。
 
-## 本版更新 — 1.26.0927 build 2302
+## 本版更新 — 1.26.0927 build 2327
 
+- 裁切與修復筆刷改用目前調色後的影像供操作；座標與修復仍作用於原圖，完成後重新套用完整處理流程。
 - 新增「設定 → 輸出」，集中設定輸出目錄、格式、尺寸與各格式參數。
 - 輸出預設使用 sRGB，支援 Adobe RGB (1998) 與 Display P3，並轉換色彩及嵌入 ICC 描述檔。
 - 最大輸出尺寸修改後自動取最接近的 8 倍數；0 表示原始尺寸，只縮小、不放大。
@@ -162,7 +163,7 @@ HDR 不依賴 AI 提供色調曲線也能手動調整；模擬鏡頭模糊已改
 
 每次開啟 App 也會在背景檢查，有新版才提醒；離線或尚未發布版本時不打擾編輯。請將 App 安裝在可寫入的「應用程式」資料夾後使用更新功能。版本顯示為 `1.YY.MMdd build HHmm`，例如 `1.26.0923 build 2350`，日期與時間採台灣時間。
 
-更新來源為 [FilmDevelop 的 GitHub Releases](https://github.com/VaderChen/FilmDevelop/releases)。儲存庫需公開並發布含安裝檔的正式 Release，更新功能才有版本可下載。更新說明以緊鄰的上一版正式 Release 為比較基準；App 更新對話框與 GitHub Release 說明皆只列本次差異，保留簡單易懂的條列與四語翻譯。即使移除舊 Release，也不將舊版說明合併到新版；歷史紀錄保留在 CHANGELOG。發布時，Release 標籤使用 `v1.YY.MMdd-build-HHmm`，安裝檔名稱為 `FilmYourPhoto-1.YY.MMdd-build-HHmm-arm64.dmg`；本機打包工具會依建置版本自動產生對應名稱。
+更新來源為 [FilmDevelop 的 GitHub Releases](https://github.com/VaderChen/FilmDevelop/releases)。儲存庫需公開並發布含安裝檔的正式 Release，更新功能才有版本可下載。更新說明以緊鄰的上一版正式 Release 為比較基準；App 更新對話框與 GitHub Release 說明皆只列本次差異，保留簡單易懂的條列與四語翻譯。一般更新不重複舊版說明；明確合併並取代前一版時，整合兩版變更並標明比較基準，確認新版可下載後才移除被取代的 Release。Release 內文提供繁體中文、英文、日文與韓文，不重複外層標題的版本名稱。歷史紀錄保留在 CHANGELOG。發布時，Release 標籤使用 `v1.YY.MMdd-build-HHmm`，安裝檔名稱為 `FilmYourPhoto-1.YY.MMdd-build-HHmm-arm64.dmg`；本機打包工具會依建置版本自動產生對應名稱。
 
 若早期版本在下載後顯示「更新未完成」，可從 [GitHub Releases](https://github.com/VaderChen/FilmDevelop/releases/latest) 下載安裝檔，關閉舊版後重新安裝一次；已儲存的照片調整與自訂底片會保留。新版已改善 App 改名後的更新相容性，並會依實際問題顯示提示。
 

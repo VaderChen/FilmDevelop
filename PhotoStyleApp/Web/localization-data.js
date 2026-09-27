@@ -1,4 +1,6 @@
 window.PhotoLocalizationData = {
+  "裁切與修復筆刷改用目前調色後的影像供操作；座標與修復仍作用於原圖，完成後重新套用完整處理流程。": ["Crop and repair tools now display the current edited look. Coordinates and repairs still apply to the original image, followed by the full processing pipeline.", "切り抜きと修復ブラシでは現在の色調整後の画像を表示します。座標と修復は元画像に適用し、その後に全処理を再適用します。", "자르기와 복구 브러시에 현재 색 보정된 이미지를 표시합니다. 좌표와 복구는 원본에 적용한 뒤 전체 처리 과정을 다시 적용합니다."],
+
   "新增「設定 → 輸出」，集中設定輸出目錄、格式、尺寸與各格式參數。": ["Added Settings → Export for the output folder, format, size and format-specific options.", "「設定 → 書き出し」を追加し、保存先・形式・サイズ・形式別の設定をまとめました。", "설정 → 내보내기를 추가해 폴더, 형식, 크기와 형식별 옵션을 한곳에 모았습니다."],
   "輸出預設使用 sRGB，支援 Adobe RGB (1998) 與 Display P3，並轉換色彩及嵌入 ICC 描述檔。": ["Export defaults to sRGB, with Adobe RGB (1998) and Display P3 options, color conversion and embedded ICC profiles.", "出力は sRGB が初期値。Adobe RGB (1998) と Display P3 にも対応し、色変換と ICC プロファイルの埋め込みを行います。", "기본 출력 색 공간은 sRGB이며 Adobe RGB (1998), Display P3, 색 변환 및 ICC 프로파일 포함을 지원합니다."],
   "最大輸出尺寸修改後自動取最接近的 8 倍數；0 表示原始尺寸，只縮小、不放大。": ["The maximum output size rounds to the nearest multiple of 8 when edited; 0 keeps the original size, with downscaling only.", "最大出力サイズは編集後に最も近い 8 の倍数に調整します。0 は元のサイズで、拡大はしません。", "최대 출력 크기는 수정 시 가장 가까운 8의 배수로 조정됩니다. 0은 원래 크기이며 확대하지 않습니다."],

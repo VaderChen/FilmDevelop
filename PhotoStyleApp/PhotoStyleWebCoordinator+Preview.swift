@@ -140,13 +140,30 @@ extension PhotoStyleWebCoordinator {
                         image: job.request.image, subjectMask: subjectMask, shouldDetectSubjectMask: false, repairPatches: job.request.repairPatches, isPreview: true
                     )).resizedForWebPreview(maxPixel: Self.processingPreviewMaxPixel)
                     var images: [String: String] = [:]
-                    images["cropSourceImage"] = sourceCache.value(for: job.request.image, variant: "crop-source") {
-                        imageDataURL(job.request.image, maxPixel: PhotoImage.previewMaxPixel)
+                    // Editing uses the current look in original-image coordinates. Geometry
+                    // and decoration remain presentation-only until the normal render runs.
+                    let editorAdjustment = job.request.adjustment.forSourceEditingPreview
+                    let editorPayload: String?
+                    if editorAdjustment == job.request.adjustment {
+                        editorPayload = imageDataURL(output, maxPixel: Self.processingPreviewMaxPixel)
+                    } else {
+                        let repairs = job.request.repairPatches.map { $0.id.uuidString }.joined(separator: ",")
+                        let maskIdentity = subjectMask.map { String(describing: ObjectIdentifier($0)) } ?? "none"
+                        let encoder = JSONEncoder()
+                        encoder.outputFormatting = [.sortedKeys]
+                        let settings = (try? encoder.encode(editorAdjustment)).map { $0.base64EncodedString() } ?? UUID().uuidString
+                        editorPayload = sourceCache.value(for: job.request.image,
+                            variant: "editor:" + job.request.style.rawValue + ":" + repairs + ":" + maskIdentity + ":" + settings) {
+                            let editorImage = renderer.render(.init(
+                                style: job.request.style, adjustment: editorAdjustment,
+                                image: job.request.image, subjectMask: subjectMask,
+                                shouldDetectSubjectMask: false, repairPatches: job.request.repairPatches, isPreview: true
+                            ))
+                            return imageDataURL(editorImage, maxPixel: Self.processingPreviewMaxPixel)
+                        }
                     }
-                    let repairs = job.request.repairPatches.map { $0.id.uuidString }.joined(separator: ",")
-                    images["repairSourceImage"] = sourceCache.value(for: job.maskDetectionImage, variant: "repair:" + repairs) {
-                        imageDataURL(PhotoStyleProcessor.repairedSource(job.maskDetectionImage, patches: job.request.repairPatches), maxPixel: PhotoImage.previewMaxPixel)
-                    }
+                    images["cropSourceImage"] = editorPayload
+                    images["repairSourceImage"] = editorPayload
                     let a = job.request.adjustment
                     let crop = "\(a.cropAspectRatio):\(a.cropRotation):\(a.cropScale):\(a.cropWidth):\(a.cropHeight):\(a.cropHorizontalPosition):\(a.cropVerticalPosition)"
                     images["sourceImage"] = sourceCache.value(for: job.request.image, variant: "comparison:" + crop) {
@@ -264,5 +281,22 @@ final class PhotoPreviewSourcePayloadCache {
             entries.removeFirst()
         }
         return payload
+    }
+}
+
+private extension StyleAdjustment {
+    /// Keep the current look and repairs, but display the full source coordinate plane.
+    var forSourceEditingPreview: StyleAdjustment {
+        var value = self
+        value.cropAspectRatio = .original
+        value.cropRotation = 0
+        value.cropScale = 100
+        value.cropWidth = 100
+        value.cropHeight = 100
+        value.cropHorizontalPosition = 0
+        value.cropVerticalPosition = 0
+        value.frameEnabled = false
+        value.dateEnabled = false
+        return value
     }
 }
