@@ -178,7 +178,6 @@ public enum PhotoStylePlanJSONDecoder {
                 "print_exposure_highlights": PhotoFilmEffects.printExposureRange,
                 "print_exposure_midtones": PhotoFilmEffects.printExposureRange,
                 "print_exposure_shadows": PhotoFilmEffects.printExposureRange,
-                "deep_shadow_amount": PhotoFilmEffects.deepShadowAmountRange,
                 "layer_response": 0...100,
                 "coupler_amount": 0...100,
                 "coupler_radius": 0...1,

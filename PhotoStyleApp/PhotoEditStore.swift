@@ -60,6 +60,18 @@ final class PhotoEditStore {
         editedPhotos[Self.editedKey(url)] == true
     }
 
+    func shouldRestoreEdits(_ record: PhotoEditRecord?, at url: URL?) -> Bool {
+        guard let url else { return record != nil }
+        if hasRecordedEditState(at: url) { return hasEdits(at: url) }
+        guard let record, let style = PhotoStyle(rawValue: record.selectedStyle) else { return false }
+        let defaults = StyleAdjustment.default(for: style)
+        var legacyDefaults = defaults
+        legacyDefaults.filmEffects.scannerProfile = .off
+        let adjustment = record.adjustments[record.selectedStyle] ?? defaults
+        return record.customFilmID != nil || !(record.repairPatches ?? []).isEmpty
+            || (adjustment != defaults && adjustment != legacyDefaults)
+    }
+
     @discardableResult
     func markEdited(at url: URL) -> Bool {
         setEdited(true, at: url)

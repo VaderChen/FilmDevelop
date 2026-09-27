@@ -85,22 +85,8 @@ extension PhotoStyleWebCoordinator {
         repairPatches = []
         // Merely viewing a photo can create a cache record. Only an actual edit
         // record may restore a look; never inherit the outgoing photo's recipe.
-        let hasSavedEdits: Bool
-        if sourceURL == nil {
-            hasSavedEdits = loaded.record != nil
-        } else if let url = sourceURL, photoEditStore.hasRecordedEditState(at: url) {
-            hasSavedEdits = photoEditStore.hasEdits(at: url)
-        } else if let record = loaded.record, let style = PhotoStyle(rawValue: record.selectedStyle) {
-            let defaults = StyleAdjustment.default(for: style)
-            var legacyDefaults = defaults
-            legacyDefaults.filmEffects.scannerProfile = .off
-            let adjustment = record.adjustments[record.selectedStyle] ?? defaults
-            hasSavedEdits = record.customFilmID != nil || !(record.repairPatches ?? []).isEmpty
-                || (adjustment != defaults && adjustment != legacyDefaults)
-            if hasSavedEdits, let url = sourceURL { photoEditStore.markEdited(at: url) }
-        } else {
-            hasSavedEdits = false
-        }
+        let hasSavedEdits = photoEditStore.shouldRestoreEdits(loaded.record, at: sourceURL)
+        if hasSavedEdits, let url = sourceURL { photoEditStore.markEdited(at: url) }
         if hasSavedEdits, let record = loaded.record,
            let restoredStyle = PhotoStyle(rawValue: record.selectedStyle) {
             let custom = customFilmStore.film(id: record.customFilmID)

@@ -7,6 +7,7 @@ final class PhotoAppUpdater {
     private weak var coordinator: PhotoStyleWebCoordinator?
     private var task: Task<Void, Never>?
     private var didCheckAtLaunch = false
+    private var noticeVersionTag: String?
     private var checkingNetwork = false
     private var manualRequested = false
     private var progressAlert: NSAlert?
@@ -127,16 +128,16 @@ final class PhotoAppUpdater {
 
     // Bundled for offline use. Replace this list for each release with user-facing changes
     // since the immediately preceding published release; never append historical highlights.
-    // Current comparison baseline: v1.26.0926-build-2115.
+    // Current comparison baseline: v1.26.0927-build-1657.
     static let releaseHighlights = [
-        "新增「極暗曝光補償 (實驗功能)」，可提亮暗處並保留色彩，預設 0%。",
-        "新增藥水頁面，可調整顯影反差、感度、顆粒與色層反差。",
-        "各款底片有專屬藥水預設值，舊配方會自動補齊新增設定。",
-        "新增新式底片曝光選項，可加強高光抑制與色彩保留，預設關閉。",
-        "加快 RAW 縮圖讀取，載入縮圖時暫緩編輯預覽運算。",
-        "修正部分 RAW 編輯預覽全黑，必要時改用相機內嵌 JPEG 並顯示提示。",
-        "修正部分調整造成的亮度異常與影像顯示問題。",
-        "匯出檔名改為「來源目錄名稱＋空格＋原檔名」。"
+        "縮圖支援 Command／Shift 複選，可批次輸出、刪除、分級與分類。",
+        "新增 0～5 星評分與自訂分類標籤；移除分類前會確認並檢查沒有照片使用。",
+        "新增名稱、時間、分級排序與分類篩選；縮圖尺寸增加「超大」。",
+        "批次輸出顯示進度視窗，依每張照片的設定輸出並統計成功與失敗。",
+        "更新完成改用自建對話框，縮小並統一內容上下間距。",
+        "修正曝光與分區明暗運算，改善提亮後灰平及極端調整的階調銜接。",
+        "改善 RAW 浮點解碼與高光映射，修正部分 Fujifilm RAF 被誤判為不支援的問題。",
+        "極暗曝光補償已隱藏並停用；舊配方中的設定也不會套用。"
     ]
 
     private func presentUpdateNoticeIfNeeded() async throws {
@@ -148,10 +149,28 @@ final class PhotoAppUpdater {
             guard coordinator?.isTerminating != true else { return }
             try await Task.sleep(nanoseconds: 500_000_000)
         }
-        _ = await alert("更新完成", "目前版本：\(currentVersion.display)", buttons: ["好"],
-                        bullets: Self.releaseHighlights)
-        UserDefaults.standard.set(currentVersion.tag, forKey: Self.acknowledgedNoticeKey)
+        noticeVersionTag = currentVersion.tag
+        defer { noticeVersionTag = nil }
+        // Retry after a page reload or another custom dialog; the Web dialog is idempotent.
+        while noticeVersionTag != nil {
+            try Task.checkCancellation()
+            guard let coordinator, !coordinator.isTerminating else { throw CancellationError() }
+            if readyToPresent {
+                coordinator.callJavaScript(function: "handleUpdateComplete", payload: [
+                    "tag": currentVersion.tag, "version": currentVersion.display,
+                    "highlights": Self.releaseHighlights
+                ])
+            }
+            try await Task.sleep(nanoseconds: 1_000_000_000)
+        }
+    }
+
+    func acknowledgeUpdateNotice(_ payload: [String: Any]) {
+        guard let tag = payload["tag"] as? String, tag == noticeVersionTag,
+              tag == currentVersion?.tag else { return }
+        UserDefaults.standard.set(tag, forKey: Self.acknowledgedNoticeKey)
         UserDefaults.standard.removeObject(forKey: Self.pendingNoticeKey)
+        noticeVersionTag = nil
     }
 
     private var readyToPresent: Bool {

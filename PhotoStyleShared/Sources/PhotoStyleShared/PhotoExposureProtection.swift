@@ -2,66 +2,87 @@ import Foundation
 import simd
 
 /// Linear-luminance exposure with an optional smooth highlight shoulder.
-/// Lab lightness and chroma are separated; existing HDR headroom is retained.
+/// A common RGB gain preserves chromaticity and existing HDR headroom.
 /// This is pointwise: no statistics, masks or additional image buffers.
 enum PhotoExposureProtection {
-    /// Integrate a local exposure velocity in log luminance. The nonnegative
-    /// weights sum to one, so equal controls remain literal global EV. A zero
-    /// neighboring zone is a fixed boundary, not a residual of middle exposure.
-    /// 64 Euler steps keep the map strictly increasing: on [-16,16] controls,
-    /// the worst velocity slope is 32 stops/stop (1.5-stop smoothstep overlap).
-    /// Each step therefore has derivative >= 0.5, and is monotone in every EV.
-    /// This stays pointwise on the GPU; no masks or image buffers are added.
+    /// Fit the requested shadow/middle/highlight offsets at -6/-1/+2 stops
+    /// relative to 18% gray. A least-squares projection keeps both intervening
+    /// slopes in 0.5...2. Extreme local edits therefore spread gently into
+    /// neighboring tones instead of collapsing them against a fixed boundary.
+    /// The result is (shadow-tail EV, first slope, second slope), computed once
+    /// per adjustment and shared by the CPU reference and GPU pixel function.
+    static func curveParameters(zones: SIMD3<Double>) -> SIMD3<Double> {
+        guard zones.x.isFinite, zones.y.isFinite, zones.z.isFinite else {
+            return SIMD3(0, 1, 1)
+        }
+        if zones.x == zones.y && zones.z == zones.y { return SIMD3(zones.y, 1, 1) }
+        let anchors = SIMD3<Double>(-6, -1, 2)
+        let target = anchors + SIMD3(zones.z, zones.y, zones.x)
+        // C * knots >= limits expresses lower and upper secant bounds.
+        let rows = [SIMD3<Double>(-1, 1, 0), SIMD3(1, -1, 0),
+                    SIMD3(0, -1, 1), SIMD3(0, 1, -1)]
+        let limits = [2.5, -10.0, 1.5, -6.0]
+        // A common translation is always feasible. At most two independent
+        // constraints can bind because every row is orthogonal to (1,1,1).
+        var best = anchors + SIMD3(repeating: (zones.x + zones.y + zones.z) / 3)
+        var bestLoss = simd_length_squared(best - target)
+        func consider(_ candidate: SIMD3<Double>) {
+            for i in rows.indices where simd_dot(rows[i], candidate) < limits[i] - 1e-10 { return }
+            let loss = simd_length_squared(candidate - target)
+            if loss < bestLoss { best = candidate; bestLoss = loss }
+        }
+        consider(target)
+        for i in rows.indices {
+            let first = rows[i]
+            let residual = limits[i] - simd_dot(first, target)
+            consider(target + first * (residual / 2))
+            for j in (i + 1)..<rows.count {
+                let second = rows[j]
+                let cross = simd_dot(first, second)
+                let determinant = 4 - cross * cross
+                guard determinant > 0 else { continue }
+                let otherResidual = limits[j] - simd_dot(second, target)
+                let firstWeight = (2 * residual - cross * otherResidual) / determinant
+                let secondWeight = (2 * otherResidual - cross * residual) / determinant
+                consider(target + first * firstWeight + second * secondWeight)
+            }
+        }
+        return SIMD3(best.x + 6, (best.y - best.x) / 5, (best.z - best.y) / 3)
+    }
+
     static func exposureEV(_ rgb: SIMD3<Double>, zones: SIMD3<Double>) -> Double {
-        if zones.x == zones.y && zones.z == zones.y { return zones.y }
-        let y = simd_dot(rgb, PhotoExposureColor.luminanceWeights)
-        let origin = log2(max(y, 1e-20) / 0.18)
-        var position = origin
-        func smooth(_ value: Double) -> Double {
-            let t = min(1, max(0, value))
-            return t * t * (3 - 2 * t)
+        exposureEV(luminance: simd_dot(rgb, PhotoExposureColor.luminanceWeights),
+                   curve: curveParameters(zones: zones))
+    }
+
+    /// Smoothing the piecewise-linear curve with softplus makes its derivative
+    /// a convex combination of [1, first slope, second slope, 1]. Thus local
+    /// log contrast stays within 0.5...2 everywhere, including the smooth joins.
+    /// Global exposure is added separately by the caller after this local EV.
+    static func exposureEV(luminance: Double, curve: SIMD3<Double>) -> Double {
+        if curve.y == 1 && curve.z == 1 { return curve.x }
+        let x = log2(max(luminance, 1e-20) / 0.18)
+        func softplus(_ value: Double) -> Double {
+            max(value, 0) + 0.4 * log1p(exp(-abs(value) / 0.4))
         }
-        for step in 0..<64 {
-            let remaining = Double(64-step) / 64
-            if position <= -4 && position + zones.z * remaining <= -4 {
-                position += zones.z * remaining
-                break
-            }
-            if position >= 1.5 && position + zones.x * remaining >= 1.5 {
-                position += zones.x * remaining
-                break
-            }
-            let shadow = 1-smooth((position+4)/3)
-            let highlight = smooth(position/1.5)
-            let velocity = shadow*zones.z + highlight*zones.x + (1-shadow-highlight)*zones.y
-            if velocity == 0 { break }
-            position += velocity / 64
-        }
-        return position-origin
+        let first = softplus(x + 6)
+        let middle = softplus(x + 1)
+        let last = softplus(x - 2)
+        return curve.x + (curve.y - 1) * (first - middle) + (curve.z - 1) * (middle - last)
     }
 
     static let zoneKernel = """
-    float zoneExposureEV(float y, vec3 ev) {
-        if (ev.x == ev.y && ev.z == ev.y) { return ev.y; }
-        float origin = log2(max(y, 1.0e-20) / 0.18);
-        float position = origin;
-        for (int step = 0; step < 64; ++step) {
-            float remaining = float(64-step) / 64.0;
-            if (position <= -4.0 && position + ev.z * remaining <= -4.0) {
-                position += ev.z * remaining;
-                break;
-            }
-            if (position >= 1.5 && position + ev.x * remaining >= 1.5) {
-                position += ev.x * remaining;
-                break;
-            }
-            float shadow = 1.0-smoothstep(-4.0, -1.0, position);
-            float highlight = smoothstep(0.0, 1.5, position);
-            float velocity = shadow*ev.z + highlight*ev.x + (1.0-shadow-highlight)*ev.y;
-            if (velocity == 0.0) { break; }
-            position += velocity / 64.0;
-        }
-        return position-origin;
+    float exposureSoftplus(float value) {
+        return max(value, 0.0) + 0.4 * log(1.0 + exp(-abs(value) / 0.4));
+    }
+    // curve is precomputed on the CPU: (shadow-tail EV, first slope, second slope).
+    float zoneExposureEV(float y, vec3 curve) {
+        if (curve.y == 1.0 && curve.z == 1.0) { return curve.x; }
+        float x = log2(max(y, 1.0e-20) / 0.18);
+        float first = exposureSoftplus(x + 6.0);
+        float middle = exposureSoftplus(x + 1.0);
+        float last = exposureSoftplus(x - 2.0);
+        return curve.x + (curve.y - 1.0) * (first - middle) + (curve.z - 1.0) * (middle - last);
     }
 
     """
@@ -86,17 +107,15 @@ enum PhotoExposureProtection {
         return rgb * (maximum > 1e-8 ? peak(maximum, gain: gain) / maximum : gain)
     }
 
-    /// 線性亮度的曝光倍率；RGB 重建由 Lab 亮度／色度分離處理。
-    static func luminanceGain(_ rgb: SIMD3<Double>, gain: Double, protectsHighlights: Bool) -> Double {
-        let y = simd_dot(rgb, PhotoExposureColor.luminanceWeights)
+    /// 以線性亮度決定共同 RGB 增益；不固定 Lab 色度。
+    static func luminanceGain(_ rgb: SIMD3<Double>, gain: Double, protectsHighlights: Bool, protectsPeak: Bool = false) -> Double {
+        let y = protectsPeak ? max(rgb.x, max(rgb.y, rgb.z)) : simd_dot(rgb, PhotoExposureColor.luminanceWeights)
         guard y > 1e-20, protectsHighlights, gain > 1 else { return gain }
         return peak(y, gain: gain) / y
     }
 
-    static func applyLuminance(_ rgb: SIMD3<Double>, gain: Double, protectsHighlights: Bool) -> SIMD3<Double> {
-        let ceiling = protectsHighlights && gain > 1 ? max(1, max(rgb.x, max(rgb.y, rgb.z))) : Double.infinity
-        return PhotoExposureColor.replacingLuminance(rgb,
-            scale: luminanceGain(rgb, gain: gain, protectsHighlights: protectsHighlights), ceiling: ceiling)
+    static func applyLuminance(_ rgb: SIMD3<Double>, gain: Double, protectsHighlights: Bool, protectsPeak: Bool = false) -> SIMD3<Double> {
+        rgb * luminanceGain(rgb, gain: gain, protectsHighlights: protectsHighlights, protectsPeak: protectsPeak)
     }
 
     // Shared syntax supported by both Core Image Kernel Language and Metal.

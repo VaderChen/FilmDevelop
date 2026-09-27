@@ -1,6 +1,25 @@
 import AppKit
+import CoreImage
+import PhotoStyleShared
 import OSLog
 import UniformTypeIdentifiers
+
+struct PhotoBatchExportProgress {
+    let id = UUID().uuidString
+    let total: Int
+    var index = 0
+    var succeeded = 0
+    var failed = 0
+    var filename = ""
+    var stage = "準備輸出"
+    var fraction = 0.0
+
+    var payload: [String: Any] {
+        ["id": id, "total": total, "current": index + 1, "succeeded": succeeded,
+         "failed": failed, "filename": filename, "stage": stage,
+         "progress": min(1, (Double(index) + fraction) / Double(max(1, total)))]
+    }
+}
 
 extension PhotoStyleWebCoordinator {
     func chooseExportDirectory() {
@@ -25,6 +44,161 @@ extension PhotoStyleWebCoordinator {
                 self.sendToast("無法記住輸出目錄：\(error.localizedDescription)")
             }
         }
+    }
+
+    func chooseThumbnailExportDirectory(urls: [URL]) {
+        guard !urls.isEmpty, canImport, let window = webView?.window, window.attachedSheet == nil else { return }
+        let panel = NSOpenPanel()
+        panel.title = PhotoL10n.text("輸出")
+        panel.prompt = PhotoL10n.text("選擇目錄")
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        panel.allowsMultipleSelection = false
+        let initialURL = exportDirectoryPreference.directoryURL()
+        let scoped = initialURL?.startAccessingSecurityScopedResource() ?? false
+        panel.directoryURL = initialURL
+        // The same format/depth controls as single-photo export, without filename filtering.
+        let format = PhotoExportFormatAccessory(panel: nil)
+        panel.accessoryView = format.view
+        panel.isAccessoryViewDisclosed = true
+        panel.beginSheetModal(for: window) { [weak self, format] response in
+            guard response == .OK, let directory = panel.url, let self, self.canImport else {
+                if scoped { initialURL?.stopAccessingSecurityScopedResource() }
+                return
+            }
+            Task { @MainActor in
+                defer { if scoped { initialURL?.stopAccessingSecurityScopedResource() } }
+                await self.exportThumbnailPhotos(urls, to: directory, format: format.selectedFormat,
+                                                 bitDepth: format.selectedBitDepth)
+            }
+        }
+    }
+
+    @MainActor
+    func exportThumbnailPhotos(_ urls: [URL], to directory: URL, format: PhotoExportFormat, bitDepth: Int) async {
+        guard canImport, !urls.isEmpty else { return }
+        commitAdjustmentPreview()
+        persistCurrentPhotoEdits()
+        isSavingImage = true
+        batchExportProgress = PhotoBatchExportProgress(total: urls.count)
+        let batchID = batchExportProgress!.id
+        let access = directory.startAccessingSecurityScopedResource()
+        defer {
+            if access { directory.stopAccessingSecurityScopedResource() }
+            exportWorker = nil
+            batchExportProgress = nil
+            isSavingImage = false
+            savingStep = ""
+            sendState(includeImages: false)
+        }
+        var completed = 0
+        var failures: [String] = []
+        for (index, url) in urls.enumerated() {
+            if isTerminating || Task.isCancelled { break }
+            batchExportProgress?.index = index
+            batchExportProgress?.filename = url.lastPathComponent
+            batchExportProgress?.stage = "正在讀取圖片"
+            batchExportProgress?.fraction = 0
+            let report: @Sendable (String, Double) -> Void = { [weak self] stage, fraction in
+                DispatchQueue.main.async { [weak self] in
+                    self?.updateBatchExportProgress(id: batchID, index: index, stage: stage, fraction: fraction)
+                }
+            }
+            updateSavingStep("輸出 \(index + 1)／\(urls.count)：\(url.lastPathComponent)")
+            let sourceAccess = url.startAccessingSecurityScopedResource()
+            defer { if sourceAccess { url.stopAccessingSecurityScopedResource() } }
+            do {
+                let image: PhotoImage
+                let style: PhotoStyle
+                let adjustment: StyleAdjustment
+                let patches: [PhotoRepairPatch]
+                let fallbackMask: CIImage?
+                if url == sourceFileURL, let current = sourceImage {
+                    image = current
+                    style = selectedStyle
+                    adjustment = renderingAdjustment(adjustmentStore.adjustment(for: style))
+                    patches = repairPatches
+                    fallbackMask = sourceSubjectMask
+                } else {
+                    let decoded: (PhotoImage, String) = try await withCheckedThrowingContinuation { continuation in
+                        DispatchQueue.global(qos: .userInitiated).async { [self] in
+                            do {
+                                let data = try Data(contentsOf: url)
+                                guard let image = decodePickedImage(data: data, url: url) else {
+                                    throw PhotoStyleWebSaveError.imageEncodingFailed
+                                }
+                                continuation.resume(returning: (image, Self.sourceImageIdentifier(for: data)))
+                            } catch { continuation.resume(throwing: error) }
+                        }
+                    }
+                    image = decoded.0
+                    let loaded = await photoEditStore.load(identifier: decoded.1, url: url, maskSize: image.size)
+                    let record = photoEditStore.shouldRestoreEdits(loaded.record, at: url) ? loaded.record : nil
+                    style = record.flatMap { PhotoStyle(rawValue: $0.selectedStyle) } ?? .original
+                    adjustment = renderingAdjustment(record?.adjustments[style.rawValue]?.clamped() ?? .default(for: style))
+                    patches = record?.repairPatches ?? []
+                    fallbackMask = loaded.mask
+                }
+                if isTerminating || Task.isCancelled { break }
+                let base = url.deletingLastPathComponent().lastPathComponent + " " + url.deletingPathExtension().lastPathComponent
+                let suffix = format.fileExtensions[0]
+                var destination = directory.appendingPathComponent(base + "." + suffix)
+                var number = 2
+                while FileManager.default.fileExists(atPath: destination.path) {
+                    destination = directory.appendingPathComponent("\(base) (\(number)).\(suffix)")
+                    number += 1
+                }
+                let outputURL = destination
+                let worker = Task.detached(priority: .userInitiated) { [renderer] () throws -> CGSize in
+                    try Task.checkCancellation()
+                    report("正在偵測主體遮罩", 0.1)
+                    let needsMask = fallbackMask != nil || adjustment.requiresSubjectMask
+                    let mask = needsMask && renderer.canDetectSubjectMask
+                        ? renderer.detectSubjectMask(for: PhotoStyleProcessor.repairedSource(image, patches: patches)) : nil
+                    report("正在處理照片", 0.15)
+                    let output = autoreleasepool {
+                        renderer.render(.init(style: style, adjustment: adjustment, image: image,
+                            subjectMask: mask ?? fallbackMask, shouldDetectSubjectMask: false, repairPatches: patches,
+                            progress: { report("正在處理照片", 0.15 + min(1, max(0, $0)) * 0.65) }))
+                    }
+                    try Task.checkCancellation()
+                    report("正在編碼照片", 0.8)
+                    guard let data = autoreleasepool(invoking: { output.encodedData(format: format, bitDepth: bitDepth, quality: 0.95) }) else {
+                        throw PhotoStyleWebSaveError.imageEncodingFailed
+                    }
+                    try Task.checkCancellation()
+                    report("正在儲存照片", 0.95)
+                    try data.write(to: outputURL, options: .withoutOverwriting)
+                    return output.size
+                }
+                exportWorker = worker
+                _ = try await withTaskCancellationHandler { try await worker.value } onCancel: { worker.cancel() }
+                exportWorker = nil
+                lastExportedPath = outputURL.path
+                completed += 1
+            } catch is CancellationError { break }
+            catch { failures.append("\(url.lastPathComponent)：\(error.localizedDescription)") }
+            batchExportProgress?.succeeded = completed
+            batchExportProgress?.failed = failures.count
+            updateBatchExportProgress(id: batchID, index: index, stage: "輸出完成", fraction: 1)
+        }
+        if !isTerminating {
+            sendToast("已輸出 \(completed)／\(urls.count) 張照片。" + (failures.isEmpty ? "" : "\n" + failures.joined(separator: "\n")))
+        }
+    }
+
+    func updateBatchExportProgress(id: String, index: Int, stage: String, fraction: Double) {
+        guard isSavingImage, var progress = batchExportProgress,
+              progress.id == id, progress.index == index, fraction.isFinite else { return }
+        let fraction = min(1, max(0, fraction))
+        // Ignore late worker callbacks and coalesce render updates without repainting the editor.
+        guard fraction >= progress.fraction,
+              fraction - progress.fraction >= 0.01 || stage != progress.stage else { return }
+        progress.stage = stage
+        progress.fraction = fraction
+        batchExportProgress = progress
+        callJavaScript(function: "handleBatchExportProgress", payload: progress.payload)
     }
 
     func requestImageExport() {
@@ -247,7 +421,7 @@ final class PhotoExportFormatAccessory: NSObject {
     private(set) var selectedFormat: PhotoExportFormat
     private(set) var selectedBitDepth: Int
 
-    init(panel: NSSavePanel, defaults: UserDefaults = .standard) {
+    init(panel: NSSavePanel?, defaults: UserDefaults = .standard) {
         self.panel = panel
         self.defaults = defaults
         let format = defaults.string(forKey: Self.formatKey).flatMap(PhotoExportFormat.init(rawValue:)) ?? .png

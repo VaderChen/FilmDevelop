@@ -66,6 +66,23 @@ public enum PhotoPlanToneProcessor {
         let strength = min(max(strength, 0), 1)
         guard strength > 0.001, !components.isEmpty else { return image }
 
+        let mappingAmounts = components.contains(.mapping)
+            ? PhotoToneZoneMappingAmounts(shadows: normalized(toneZones.shadows.mapping),
+                midtones: normalized(toneZones.midtones.mapping), highlights: normalized(toneZones.highlights.mapping))
+            : .full
+        var image = image
+        if components.contains(.exposure) {
+            // Retain plan mapping as an opacity: mapping=0 must disable EV too.
+            // Every branch is a physical gain; mask blending preserves RGB ratios.
+            let original = image
+            image = PhotoToneZoneProcessor.composite(base: original,
+                shadows: PhotoToneProcessor.applyExposure(to: original, ev: PhotoExposureScale.ev(fromSlider: Double(toneZones.shadows.exposure)) * strength),
+                midtones: PhotoToneProcessor.applyExposure(to: original, ev: PhotoExposureScale.ev(fromSlider: Double(toneZones.midtones.exposure)) * strength),
+                highlights: PhotoToneProcessor.applyExposure(to: original, ev: PhotoExposureScale.ev(fromSlider: Double(toneZones.highlights.exposure)) * strength),
+                masks: masks, mappingAmounts: mappingAmounts)
+        }
+        let components = components.subtracting(.exposure)
+        guard !components.subtracting(.mapping).isEmpty else { return image }
         let shadowAdjusted = applyZone(
             to: image,
             adjustment: toneZones.shadows,
@@ -85,13 +102,6 @@ public enum PhotoPlanToneProcessor {
             strength: strength,
             components: components
         )
-        let mappingAmounts = components.contains(.mapping)
-            ? PhotoToneZoneMappingAmounts(
-                shadows: normalized(toneZones.shadows.mapping),
-                midtones: normalized(toneZones.midtones.mapping),
-                highlights: normalized(toneZones.highlights.mapping)
-            )
-            : .full
         return PhotoToneZoneProcessor.composite(
             base: image,
             shadows: shadowAdjusted,
@@ -110,10 +120,6 @@ public enum PhotoPlanToneProcessor {
     ) -> CIImage {
         var adjusted = image
 
-        if components.contains(.exposure) {
-            let exposureEV = PhotoExposureScale.ev(fromSlider: Double(adjustment.exposure)) * strength
-            adjusted = PhotoToneProcessor.applyExposure(to: adjusted, ev: exposureEV)
-        }
 
         let saturation = components.contains(.baseTone)
             ? 1 + signedNormalized(adjustment.baseTone) * 0.55 * strength

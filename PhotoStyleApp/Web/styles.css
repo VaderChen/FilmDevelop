@@ -1968,3 +1968,8 @@ img.brand-mark { display: block; object-fit: contain; flex-shrink: 0; background
 .export-directory-control { display: flex; align-items: center; justify-content: flex-end; gap: 12px; min-width: 0; }
 .export-directory-path { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 13px; }
 .export-directory-control .button { flex-shrink: 0; }
+
+.batch-export-details { margin-top:15px; }
+.batch-export-details[hidden] { display:none; }
+.batch-export-filename { margin-bottom:12px; overflow-wrap:anywhere; font-size:13px; color:var(--text); }
+.batch-export-details progress { display:block; height:10px; }

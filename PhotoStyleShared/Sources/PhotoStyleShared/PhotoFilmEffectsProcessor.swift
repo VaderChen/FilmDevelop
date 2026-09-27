@@ -96,14 +96,13 @@ public enum PhotoFilmEffectsProcessor {
             monochrome: monochrome, seed: seed)
     }
 
-    /// 曝光補償先於乳劑、顯影與底片色彩。線性 sRGB → XYZ → Lab (D65)，
-    /// 依曝光／保護曲線更新 L，保留 a/b 後重建 RGB，避免同步放大暗部色度。
+    /// 曝光補償先於乳劑、顯影與底片色彩；在線性 RGB 使用共同增益。
+    /// 高光保護是獨立的亮度 shoulder，不再固定 Lab a/b。
     public static func applyExposure(to image: CIImage, effects: PhotoFilmEffects,
                                      strength: Double = 1, renderContext: CIContext? = nil) -> CIImage {
         let e = effects.clamped()
-        let exposed = applyBaseExposure(to: image, effects: e, strength: strength, renderContext: renderContext)
-        return PhotoDeepShadowExposureProcessor.apply(to: exposed, amount: e.deepShadowAmount,
-                                                      strength: strength, renderContext: renderContext)
+        // Deep-shadow compensation is unavailable in previews and exports, including old recipes.
+        return applyBaseExposure(to: image, effects: e, strength: strength, renderContext: renderContext)
     }
 
     private static func applyBaseExposure(to image: CIImage, effects e: PhotoFilmEffects,
@@ -111,14 +110,8 @@ public enum PhotoFilmEffectsProcessor {
         if e.modernFilmExposureEnabled {
             return PhotoAdaptiveExposureProcessor.applyFilmExposure(to: image, effects: e, strength: strength, renderContext: renderContext)
         }
-        let amount = unit(strength)
-        let ev = e.resolvedPrintExposure
-        guard ev != .zero, amount > 0,
-              let linear = image.matchedFromWorkingSpace(to: linearSRGB),
-              let result = kernels.exposure?.apply(extent: image.extent, arguments: [
-                linear, CIVector(x: ev.x, y: ev.y, z: ev.z), e.highlightProtectionEnabled ? 1.0 : 0.0, amount
-              ]) else { return image }
-        return (result.matchedToWorkingSpace(from: linearSRGB) ?? image).cropped(to: image.extent)
+        return PhotoExposureProcessor.apply(to: image, zones: e.resolvedPrintExposure,
+            globalEV: e.printExposure, strength: strength, protectsHighlights: e.highlightProtectionEnabled)
     }
 
     /// 一般風格的中性數位印相：負片印相光源反向補償，觀看光源正向投射。
@@ -174,7 +167,6 @@ public enum PhotoFilmEffectsProcessor {
         let extract: CIColorKernel?
         let scatter: CIColorKernel?
         let print: CIColorKernel?
-        let exposure: CIColorKernel?
     }
 
     private static let kernels: FilmKernels = {
@@ -194,19 +186,6 @@ public enum PhotoFilmEffectsProcessor {
             vec3 glow = vec3(bloomRing * bloom);
             return vec4(image.rgb + glow * image.a, image.a);
             """)
-        let exposure = make("filmLuminanceExposure", parameters: "__sample image, vec3 ev, float protection, float amount", body: """
-            if (image.a <= 0.0) { return vec4(0.0); }
-            vec3 rgb = image.rgb / image.a;
-            // Compute EV in linear Y, then change Lab L while retaining a/b.
-            float y = dot(rgb, vec3(0.21263900587151027, 0.7151686787677559, 0.07219231536073371));
-            float gain = exp2(zoneExposureEV(y, ev));
-            float scale = gain;
-            if (y > 1.0e-20 && (protection > 0.5 && gain > 1.0)) {
-                scale = protectedExposurePeak(y, gain) / y;
-            }
-            float ceiling = protection > 0.5 && gain > 1.0 ? max(1.0, max(rgb.r, max(rgb.g, rgb.b))) : 0.0;
-            return vec4(exposureLabLuminance(rgb, y, mix(1.0, scale, amount), ceiling) * image.a, image.a);
-            """, helpers: PhotoExposureProtection.kernel + PhotoExposureProtection.zoneKernel + PhotoExposureColor.kernel)
         let print = make("filmPrint", parameters: "__sample image, vec3 printR, vec3 printG, vec3 printB, vec3 viewR, vec3 viewG, vec3 viewB, vec4 controls", body: """
             if (image.a <= 0.0) { return vec4(0.0); }
             vec3 source = image.rgb / image.a;
@@ -216,6 +195,6 @@ public enum PhotoFilmEffectsProcessor {
             rgb = vec3(dot(rgb, viewR), dot(rgb, viewG), dot(rgb, viewB));
             return vec4(mix(source, rgb, controls.z) * image.a, image.a);
             """, helpers: PhotoExposureProtection.kernel)
-        return FilmKernels(extract: extract, scatter: scatter, print: print, exposure: exposure)
+        return FilmKernels(extract: extract, scatter: scatter, print: print)
     }()
 }

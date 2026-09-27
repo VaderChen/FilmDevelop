@@ -46,11 +46,15 @@ extension PhotoStyleWebCoordinator {
 
     func photoDirectoryPayload() -> [String: Any] {
         var payload = photoDirectoryStore.payload(selectedURL: sourceFileURL)
+        payload["categories"] = photoOrganizationStore.tags
         if let items = payload["items"] as? [[String: Any]] {
             payload["items"] = items.map { item -> [String: Any] in
                 var item = item
                 if let id = item["id"] as? String, let url = photoDirectoryStore.url(for: id) {
                     item["edited"] = photoEditStore.hasEdits(at: url)
+                    let organization = photoOrganizationStore.metadata(for: url)
+                    item["rating"] = organization.rating
+                    item["tags"] = organization.tags
                 }
                 return item
             }
@@ -130,17 +134,25 @@ extension PhotoStyleWebCoordinator {
     func showPreviewMenu(_ payload: [String: Any] = [:]) {
         if let id = payload["id"] as? String {
             guard canImport, photoDirectoryStore.url(for: id) != nil else { return }
+            let requested = Set(payload["ids"] as? [String] ?? [id])
+            let ids = photoDirectoryStore.items.map(\.id).filter { requested.contains($0) }
+            guard !ids.isEmpty, ids.contains(id) else { return }
             let menu = NSMenu()
-            let exif = NSMenuItem(title: PhotoL10n.text("顯示 EXIF"), action: #selector(performThumbnailEXIF(_:)), keyEquivalent: "")
-            exif.target = self
-            exif.representedObject = id
-            menu.addItem(exif)
-            menu.addItem(.separator())
-            let item = NSMenuItem(title: PhotoL10n.text("刪除檔案"),
-                                  action: #selector(performThumbnailDelete(_:)), keyEquivalent: "")
-            item.target = self
-            item.representedObject = id
-            menu.addItem(item)
+            if ids.count == 1 {
+                let exif = NSMenuItem(title: PhotoL10n.text("顯示 EXIF"), action: #selector(performThumbnailEXIF(_:)), keyEquivalent: "")
+                exif.target = self
+                exif.representedObject = id
+                menu.addItem(exif)
+                menu.addItem(.separator())
+            }
+            addThumbnailOrganizationMenus(to: menu, ids: ids)
+            for (title, action) in [("輸出", #selector(performThumbnailExport(_:))),
+                                    ("刪除", #selector(performThumbnailDelete(_:)))] {
+                let item = NSMenuItem(title: PhotoL10n.text(title), action: action, keyEquivalent: "")
+                item.target = self
+                item.representedObject = ids
+                menu.addItem(item)
+            }
             menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
             return
         }
@@ -181,37 +193,48 @@ extension PhotoStyleWebCoordinator {
         callJavaScript(function: "handlePreviewMenu", payload: ["command": command])
     }
 
+    @objc func performThumbnailExport(_ item: NSMenuItem) {
+        guard canImport, let ids = item.representedObject as? [String] else { return }
+        chooseThumbnailExportDirectory(urls: ids.compactMap { photoDirectoryStore.url(for: $0) })
+    }
+
     @objc func performThumbnailDelete(_ item: NSMenuItem) {
-        guard canImport, let id = item.representedObject as? String,
-              let url = photoDirectoryStore.url(for: id) else { return }
-        confirmTrashCurrentPhoto(targetURL: url)
+        guard canImport else { return }
+        let ids = item.representedObject as? [String] ?? (item.representedObject as? String).map { [$0] } ?? []
+        confirmTrashPhotos(ids.compactMap { photoDirectoryStore.url(for: $0) })
     }
 
     func confirmTrashCurrentPhoto(targetURL: URL? = nil) {
-        guard let url = targetURL ?? sourceFileURL, let window = webView?.window, window.attachedSheet == nil else { return }
+        guard let url = targetURL ?? sourceFileURL else { return }
+        confirmTrashPhotos([url])
+    }
+
+    func confirmTrashPhotos(_ urls: [URL]) {
+        guard !urls.isEmpty, let window = webView?.window, window.attachedSheet == nil else { return }
         let alert = NSAlert()
-        alert.messageText = PhotoL10n.text("將「\(url.lastPathComponent)」移到垃圾桶？")
+        alert.messageText = PhotoL10n.text(urls.count == 1
+            ? "將「\(urls[0].lastPathComponent)」移到垃圾桶？" : "將選取的 \(urls.count) 張照片移到垃圾桶？")
         alert.informativeText = PhotoL10n.text("可從 Finder 的垃圾桶還原檔案。")
         alert.addButton(withTitle: PhotoL10n.text("移到垃圾桶"))
         alert.addButton(withTitle: PhotoL10n.text("取消"))
         alert.beginSheetModal(for: window) { [weak self] response in
             guard response == .alertFirstButtonReturn, let self, self.canImport else { return }
-            let access = url.startAccessingSecurityScopedResource()
-            defer { if access { url.stopAccessingSecurityScopedResource() } }
-            do {
-                try FileManager.default.trashItem(at: url, resultingItemURL: nil)
-                let urls = self.photoDirectoryStore.items.compactMap { self.photoDirectoryStore.url(for: $0.id) }
-                let index = urls.firstIndex(of: url) ?? 0
-                let remaining = urls.filter { $0 != url }
-                let next = remaining.isEmpty ? nil : remaining[min(index, remaining.count - 1)]
-                let deletingCurrent = self.sourceFileURL == url
-                if !deletingCurrent {
-                    if let directory = self.photoDirectoryStore.directoryURL {
-                        self.photoDirectoryStore.selectDirectory(directory, preferredPhotoURL: self.sourceFileURL)
-                    }
-                    self.sendState(includeImages: false)
-                    return
-                }
+            var deleted = Set<URL>()
+            var failures: [String] = []
+            for url in urls {
+                let access = url.startAccessingSecurityScopedResource()
+                defer { if access { url.stopAccessingSecurityScopedResource() } }
+                do {
+                    try FileManager.default.trashItem(at: url, resultingItemURL: nil)
+                    deleted.insert(url)
+                } catch { failures.append("\(url.lastPathComponent)：\(error.localizedDescription)") }
+            }
+            let all = self.photoDirectoryStore.items.compactMap { self.photoDirectoryStore.url(for: $0.id) }
+            let index = self.sourceFileURL.flatMap { all.firstIndex(of: $0) } ?? 0
+            let remaining = all.filter { !deleted.contains($0) }
+            let next = remaining.isEmpty ? nil : remaining[min(index, remaining.count - 1)]
+            let deletingCurrent = self.sourceFileURL.map { deleted.contains($0) } ?? false
+            if deletingCurrent {
                 self.cancelCurrentSubjectMaskDetection()
                 self.clearPreviewRender()
                 self.sourceImage = nil
@@ -224,12 +247,13 @@ extension PhotoStyleWebCoordinator {
                 self.resetEditHistory()
                 self.clearLastImageImportFile()
                 self.clearDeletedSourcePersistence()
-                if let directory = self.photoDirectoryStore.directoryURL {
-                    self.photoDirectoryStore.selectDirectory(directory, preferredPhotoURL: next)
-                }
-                if let next { self.loadPickedImage(from: next) }
-                else { self.sendState(includeImages: true) }
-            } catch { self.sendToast("無法刪除檔案：\(error.localizedDescription)") }
+            }
+            if !deleted.isEmpty, let directory = self.photoDirectoryStore.directoryURL {
+                self.photoDirectoryStore.selectDirectory(directory, preferredPhotoURL: deletingCurrent ? next : self.sourceFileURL)
+            }
+            if deletingCurrent, let next { self.loadPickedImage(from: next) }
+            else { self.sendState(includeImages: deletingCurrent) }
+            if !failures.isEmpty { self.sendToast("無法刪除檔案：\(failures.joined(separator: "\n"))") }
         }
     }
 

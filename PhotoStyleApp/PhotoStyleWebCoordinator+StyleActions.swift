@@ -449,7 +449,6 @@ extension PhotoStyleWebCoordinator {
                 case "printExposureHighlights": adjustment.filmEffects.printExposureHighlights = doubleValue(from: value)!
                 case "printExposureMidtones": adjustment.filmEffects.printExposureMidtones = doubleValue(from: value)!
                 case "printExposureShadows": adjustment.filmEffects.printExposureShadows = doubleValue(from: value)!
-                case "deepShadowAmount": adjustment.filmEffects.deepShadowAmount = doubleValue(from: value)!
 
                 case "printContrast": adjustment.filmEffects.printContrast = doubleValue(from: value)!
                 case "developmentAmount": adjustment.filmEffects.developmentAmount = doubleValue(from: value)!

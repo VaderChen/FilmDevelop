@@ -2,6 +2,7 @@ import CoreImage
 import ImageIO
 import AppKit
 import UniformTypeIdentifiers
+import PhotoStyleShared
 
 final class PhotoStyleImageLoadCancellation: @unchecked Sendable {
     private let lock = NSLock()
@@ -189,15 +190,14 @@ extension PhotoStyleWebCoordinator {
 
     private func decodeRAWImage(data: Data, url: URL) -> PhotoImage? {
         let identifierHint = UTType(filenameExtension: url.pathExtension)?.identifier
-        let rawFilter = CIRAWFilter(
-            imageData: data,
+        let rawFilter = PhotoRAWDecoder.makeSceneLinearFilter(
+            data: data,
             identifierHint: identifierHint
         )
         // Malformed files can return nil metadata despite the SDK's nonnull annotation.
         // KVC keeps that Objective-C nil optional instead of trapping during Swift bridging.
         guard let rawFilter,
               let rawProperties = rawFilter.value(forKey: "properties") as? NSDictionary,
-              rawFilterContainsHighDepthSensorData(rawProperties),
               let output = rawFilter.outputImage,
               output.extent.minX.isFinite,
               output.extent.minY.isFinite,
@@ -264,22 +264,6 @@ extension PhotoStyleWebCoordinator {
     static func rawPreviewHasVisibleContent(_ image: PhotoImage) -> Bool {
         guard let (minimum, maximum) = rawBitmapSampleRange(image) else { return false }
         return maximum > 0.05 && maximum - minimum > 0.02
-    }
-
-    private func rawFilterContainsHighDepthSensorData(_ properties: NSDictionary) -> Bool {
-        let depth = (properties[kCGImagePropertyDepth] as? NSNumber)?.intValue ?? 0
-        let exif = properties[kCGImagePropertyExifDictionary] as? NSDictionary
-        let tiff = properties[kCGImagePropertyTIFFDictionary] as? NSDictionary
-        let hasColorFilterArray = exif?[kCGImagePropertyExifCFAPattern] != nil
-        let photometricInterpretation = (
-            tiff?[kCGImagePropertyTIFFPhotometricInterpretation] as? NSNumber
-        )?.intValue
-        let hasRawPhotometricData = photometricInterpretation == 32_803
-        let hasCameraMakerData = properties.allKeys.contains {
-            String(describing: $0).hasPrefix("{Maker")
-        }
-        return depth > 8
-            && (hasColorFilterArray || hasRawPhotometricData || hasCameraMakerData)
     }
 
     func decodeImageSource(_ source: CGImageSource) -> PhotoImage? {

@@ -300,8 +300,11 @@ struct PhotoFilmSpectralProfile: Sendable {
             let flare = pow(effects.scanFlare / 100, 2) * 0.005
             return PhotoFilmScanner.grade((paper + flare) / (1 + flare), effects: effects, monochrome: false)
         }
-        let exposed = PhotoExposureProtection.applyLuminance(input, gain: pow(2, PhotoExposureProtection.exposureEV(input, zones: effects.resolvedPrintExposure)),
-                                                            protectsHighlights: effects.highlightProtectionEnabled)
+        let localZones = effects.resolvedPrintExposure - SIMD3(repeating: effects.printExposure)
+        let exposureEV = effects.printExposure + PhotoExposureProtection.exposureEV(input, zones: localZones)
+        let exposed = PhotoExposureProtection.applyLuminance(input, gain: pow(2, exposureEV),
+                                                            protectsHighlights: effects.highlightProtectionEnabled,
+                                                            protectsPeak: effects.modernFilmExposureEnabled)
         var baseline = effects
         baseline.clearPrintExposure()
         baseline.printContrast = 50

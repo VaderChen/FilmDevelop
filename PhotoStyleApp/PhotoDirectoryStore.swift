@@ -9,6 +9,7 @@ struct PhotoDirectoryItem {
     let thumbnail: String?
     var isLoading = false
     var failed = false
+    var modifiedAt: Double?
 }
 
 // A lease survives cancelled work, so switching folders cannot revoke an active decode.
@@ -141,6 +142,7 @@ final class PhotoDirectoryStore {
         let url: URL
         let id: String
         let cacheKey: String
+        let modifiedAt: Double?
         var name: String { url.lastPathComponent }
     }
     let previewWorkGate = PhotoPreviewWorkGate()
@@ -238,7 +240,8 @@ final class PhotoDirectoryStore {
             "isScanning": isScanning, "isLoadingThumbnails": isLoadingThumbnails,
             "items": items.map { item -> [String: Any] in
                 ["id": item.id, "name": item.name, "thumbnail": item.thumbnail as Any? ?? NSNull(),
-                 "selected": item.id == selectedID, "isLoading": item.isLoading, "failed": item.failed]
+                 "selected": item.id == selectedID, "isLoading": item.isLoading, "failed": item.failed,
+                 "modifiedAt": item.modifiedAt as Any? ?? NSNull()]
             },
             "totalCount": totalCount, "message": message
         ]
@@ -256,7 +259,7 @@ final class PhotoDirectoryStore {
         requestedIDs = []
         thumbnailOperation = PhotoDirectoryOperation()
         // Even cached derivatives are requested only after the web viewport reports visibility.
-        items = urls.map { .init(id: $0.id, name: $0.name, thumbnail: nil) }
+        items = urls.map { .init(id: $0.id, name: $0.name, thumbnail: nil, modifiedAt: $0.modifiedAt) }
         isLoadingThumbnails = false
         onChange?()
     }
@@ -330,7 +333,7 @@ final class PhotoDirectoryStore {
             .init(id: item.id, name: item.name,
                   thumbnail: requestedIDs.contains(item.id) ? (pendingThumbnails[item.id] ?? item.thumbnail) : nil,
                   isLoading: thumbnailWork[item.id] != nil,
-                  failed: pendingFailures.contains(item.id) || item.failed)
+                  failed: pendingFailures.contains(item.id) || item.failed, modifiedAt: item.modifiedAt)
         }
         pendingThumbnails.removeAll(keepingCapacity: true)
         pendingFailures.removeAll(keepingCapacity: true)
@@ -383,7 +386,7 @@ final class PhotoDirectoryStore {
                 }
             }
             validations[key] = isReadable
-            if isReadable { readable.append(.init(url: candidate, id: id, cacheKey: key)) }
+            if isReadable { readable.append(.init(url: candidate, id: id, cacheKey: key, modifiedAt: values.contentModificationDate?.timeIntervalSince1970)) }
         }
         guard !operation.isCancelled else { return [] }
         cache.saveValidations(validations, directoryID: directoryID)

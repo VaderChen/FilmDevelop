@@ -17,18 +17,18 @@ Film recipes now combine layer response, tone curves, hue-selective saturation a
 
 Cross Process, Kodak Gold 200, CineStill 800T and Polaroid SX-70 retain their current rendering. Digital simulations and the original receive no film-specific grading. Scanner device labels use simulation; legacy off becomes neutral. Paper controls are hidden for film scanning. UI help describes controls and their visual effects. Processing uses Metal point operations without CPU image readback.
 
-## Latest changes — 1.26.0927 build 1657
+## Latest changes — 1.26.0927 build 1906
 
-- Added Deep shadow exposure compensation (Experimental) to brighten dark areas while preserving color; defaults to 0%.
-- Added a Chemicals tab to adjust development contrast, sensitivity, grain and color-layer contrast.
-- Each film has its own presets for processing chemicals; older recipes automatically receive the new settings.
-- Added an optional film exposure mode with stronger highlight protection and color preservation, off by default.
-- Faster RAW thumbnails, with editing preview processing deferred while thumbnails load.
-- Fixed black editing previews for some RAW files by using the embedded camera JPEG when needed, with an on-screen notice.
-- Fixed brightness anomalies and image display issues caused by some adjustments.
-- Export filenames now use the source folder name, a space and the original filename.
+- Thumbnails support Command/Shift multi-selection for batch export, deletion, ratings and categories.
+- Added 0–5 star ratings and custom category tags; deleting a category requires confirmation and a check that no photos use it.
+- Added name, time and rating sorting, category filtering, and an extra-large thumbnail size.
+- Batch export shows a progress dialog, uses each photo’s settings, and reports successful and failed exports.
+- The update-complete notice now uses a custom dialog with tighter, symmetric vertical spacing.
+- Corrected exposure and tonal-zone processing to reduce washed-out tones after brightening and improve transitions at extreme settings.
+- Improved floating-point RAW decoding and highlight mapping, and fixed incorrect rejection of some Fujifilm RAF files.
+- Deep shadow exposure compensation is hidden and disabled, including values saved in older recipes.
 
-[Deep shadow processing](PhotoStyleShared/DEEP_SHADOW_EXPOSURE.md) · [Processing chemicals](PhotoStyleShared/DEVELOPER_CHEMISTRY.md)
+Exposure corrections can change the appearance of re-rendered older recipes; original photos are not modified. Deep shadow compensation is unavailable in the UI, AI and MCP and is not applied to previews or exports.
 
 ## Download and languages
 
@@ -85,7 +85,7 @@ HDR can be adjusted without an AI tone curve. Lens blur respects crop and depth 
 
 ### Adjustments and AI
 
-Film intensity defaults to 50. All built-in films, including Original, default to neutral scanning. Exposure and contrast remain available under Develop while scanning is enabled. Exposure converts linear sRGB through XYZ to Lab (D65), updates lightness while preserving a/b, then reconstructs RGB before film processing. Gamut compression moves toward neutral at the same luminance instead of clipping individual channels; it retains existing wide-gamut and HDR headroom without amplifying shadow chroma. Positive exposure brightens and negative darkens. Highlight protection gently compresses positive EV when enabled; negative EV does not lift shadows. Highlights, midtones and shadows use smooth transitions with fixed boundaries, preserving tone order and ensuring that increasing EV never weakens the adjustment. Equal zone values scale global linear luminance by 2^EV, so three −8 EV values reduce luminance to 1/256. Zero EV leaves the appearance unchanged. Scan controls color density, layer separation, scanner flare and midtone/highlight warmth.
+Film intensity defaults to 50. All built-in films, including Original, default to neutral scanning. Exposure and contrast remain available under Develop while scanning is enabled. Exposure applies one common gain to scene-linear RGB before film processing. With highlight protection disabled, equal zone EVs multiply RGB by 2^EV. Signed channels and HDR headroom are retained until display mapping. Noise reduction is a separate operation; large lifts can reveal existing color noise. Positive exposure brightens and negative darkens. Highlight protection gently compresses positive EV when enabled; negative EV does not lift shadows. Highlights, midtones and shadows use a smooth curve with bounded contrast. Neighboring tones can change gently so that fixed boundaries do not flatten lifted shadows. Equal zone values scale global linear luminance by 2^EV, so three −8 EV values reduce luminance to 1/256. Zero EV leaves the appearance unchanged. Scan controls color density, layer separation, scanner flare and midtone/highlight warmth.
 
 Opening a photo does not start AI. Select a compatible local model, then run AI Assistance. Analysis can be cancelled and its results adjusted manually. Judge the result by your photo.
 

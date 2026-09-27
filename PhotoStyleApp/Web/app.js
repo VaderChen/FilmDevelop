@@ -308,7 +308,7 @@
   }
 
   function normalizedThumbnailSize(value) {
-    return ["small", "medium", "large"].indexOf(value) >= 0 ? value : "medium";
+    return ["small", "medium", "large", "xlarge"].indexOf(value) >= 0 ? value : "medium";
   }
 
   var i18n = {
@@ -847,28 +847,131 @@
       (item.isLoading ? '<span class="photo-directory-spinner" aria-hidden="true"></span>' : iconSvg('photos')) + '</span>';
   }
 
+  var photoDisplayMode = localStorage.getItem('photoStyle.photoDisplayMode') || 'standard';
+
+  function photoDirectoryCategories() {
+    var directory = state.photoDirectory || {};
+    return Array.from(new Set((directory.categories || []).concat(
+      (directory.items || []).reduce(function (tags, item) { return tags.concat(item.tags || []); }, []))))
+      .filter(function (tag) { return typeof tag === 'string'; }).sort(function (a, b) { return a.localeCompare(b); });
+  }
+
+  function visibleDirectoryPhotos() {
+    var items = ((state.photoDirectory || {}).items || []).slice();
+    if (photoDisplayMode === 'rating') {
+      // Stable ties keep the directory's standard ordering.
+      items.sort(function (a, b) { return (Number(b.rating) || 0) - (Number(a.rating) || 0); });
+    } else if (photoDisplayMode === 'time') {
+      // The directory arrives in natural filename order, which also breaks time/rating ties.
+      items.sort(function (a, b) {
+        var left = typeof a.modifiedAt === 'number' && Number.isFinite(a.modifiedAt) ? a.modifiedAt : Infinity;
+        var right = typeof b.modifiedAt === 'number' && Number.isFinite(b.modifiedAt) ? b.modifiedAt : Infinity;
+        return left === right ? 0 : (left < right ? -1 : 1);
+      });
+    } else if (photoDisplayMode.indexOf('tag:') === 0) {
+      var tag = photoDisplayMode.slice(4);
+      items = items.filter(function (item) { return (item.tags || []).indexOf(tag) >= 0; });
+    }
+    return items;
+  }
+
+  function renderPhotoDisplayOptions() {
+    var categories = photoDirectoryCategories();
+    // Keep a remembered category visible even when this directory has no matches.
+    if (photoDisplayMode.indexOf('tag:') === 0 && categories.indexOf(photoDisplayMode.slice(4)) < 0) categories.push(photoDisplayMode.slice(4));
+    return option('standard', L.text('標準排序'), photoDisplayMode) +
+      option('time', L.text('按照時間'), photoDisplayMode) +
+      option('rating', L.text('按照分級'), photoDisplayMode) + categories.map(function (tag) {
+        return '<option value="' + escapeHtml('tag:' + tag) + '"' + (photoDisplayMode === 'tag:' + tag ? ' selected' : '') + '>' + escapeHtml(tag) + '</option>';
+      }).join('');
+  }
+
+  var directorySelection = { path: null, ids: new Set(), anchor: null, active: null };
+
+  function syncDirectorySelection() {
+    var directory = state.photoDirectory || {}, items = visibleDirectoryPhotos();
+    var active = (items.find(function (item) { return item.selected; }) || {}).id || null;
+    if (directorySelection.path !== directory.path) {
+      directorySelection = { path: directory.path, ids: new Set(), anchor: active, active: active };
+      if (active) directorySelection.ids.add(active);
+    } else {
+      var valid = new Set(items.map(function (item) { return item.id; }));
+      directorySelection.ids.forEach(function (id) { if (!valid.has(id)) directorySelection.ids.delete(id); });
+      if (!valid.has(directorySelection.anchor)) directorySelection.anchor = active;
+      if (active !== directorySelection.active && active && !directorySelection.ids.has(active)) {
+        directorySelection.ids = new Set([active]);
+        directorySelection.anchor = active;
+      }
+      directorySelection.active = active;
+    }
+  }
+
+  function selectThumbnail(id, event) {
+    syncDirectorySelection();
+    var selection = directorySelection;
+    var ids = visibleDirectoryPhotos().map(function (item) { return item.id; });
+    if (event.shiftKey && ids.indexOf(selection.anchor) >= 0) {
+      var from = ids.indexOf(selection.anchor), to = ids.indexOf(id);
+      if (!event.metaKey) selection.ids.clear();
+      ids.slice(Math.min(from, to), Math.max(from, to) + 1).forEach(function (value) { selection.ids.add(value); });
+    } else if (event.metaKey) {
+      if (selection.ids.has(id)) selection.ids.delete(id); else selection.ids.add(id);
+      selection.anchor = id;
+    } else {
+      selection.ids = new Set([id]);
+      selection.anchor = id;
+    }
+    updateThumbnailSelection();
+  }
+
+  function updateThumbnailSelection() {
+    app.querySelectorAll('[data-directory-photo]').forEach(function (button) {
+      var selected = directorySelection.ids.has(button.dataset.directoryPhoto);
+      button.classList.toggle('selected', selected);
+      button.setAttribute('aria-pressed', String(selected));
+    });
+  }
+
+  function renderPhotoOrganization(item) {
+    var rating = Math.max(0, Math.min(5, Math.floor(Number(item.rating) || 0)));
+    var tags = Array.isArray(item.tags) ? item.tags.filter(function (tag) { return typeof tag === 'string'; }) : [];
+    var stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+    var label = (rating ? stars : L.text('未分級')) + (tags.length ? ' · ' + tags.join('、') : '');
+    return '<span class="photo-thumbnail-metadata" data-tooltip="' + escapeHtml(label) + '" aria-label="' + escapeHtml(label) + '">' +
+      '<span class="photo-thumbnail-rating' + (rating ? ' rated' : '') + '" aria-hidden="true">' + stars + '</span>' +
+      '<span class="photo-thumbnail-tags">' + escapeHtml(tags.join(' · ')) + '</span></span>';
+  }
+
   function renderPhotoDirectory() {
+    var catalog = (state.photoDirectory || {}).categories;
+    if (Array.isArray(catalog) && !(state.photoDirectory || {}).isScanning &&
+        photoDisplayMode.indexOf('tag:') === 0 && catalog.indexOf(photoDisplayMode.slice(4)) < 0) {
+      photoDisplayMode = 'standard';
+      localStorage.setItem('photoStyle.photoDisplayMode', photoDisplayMode);
+    }
+    syncDirectorySelection();
     var directory = state.photoDirectory || {};
     if (!directory.path && !directory.isScanning && !L.text(directory.message)) return "";
-    var items = directory.items || [];
+    var items = visibleDirectoryPhotos();
     var selectedIndex = items.findIndex(function (item) { return item.selected; });
     var selected = selectedIndex >= 0 ? items[selectedIndex] : null;
     var countLabel = selectedIndex >= 0
-      ? L.text('第 ' + (selectedIndex + 1) + ' 張／共 ' + (directory.totalCount || 0) + ' 張')
-      : L.text('共 ' + (directory.totalCount || 0) + ' 張');
+      ? L.text('第 ' + (selectedIndex + 1) + ' 張／共 ' + items.length + ' 張')
+      : L.text('共 ' + items.length + ' 張');
     var busy = photoIsBusy(state);
     var loading = !!(directory.isScanning || directory.isLoadingThumbnails);
     var spinner = '<span class="photo-directory-spinner" aria-hidden="true"></span>';
     return '<section class="photo-directory" data-directory-path="' + escapeHtml(directory.path || '') + '" data-selected-photo="' + escapeHtml(selected ? selected.id : '') + '" data-thumbnail-size="' + normalizedThumbnailSize(state.thumbnailSize) + L.html('" aria-label="目錄照片縮圖">') +
       '<div class="photo-directory-heading"><div class="photo-directory-summary"><strong tabindex="0" data-tooltip="' + escapeHtml(directory.path || '') + '">' + escapeHtml(directory.name || L.text('照片目錄')) + '</strong><span class="photo-directory-status" role="status">' + (loading ? spinner : '') +
       (directory.isScanning ? L.text('正在掃描目錄…') : (escapeHtml(countLabel) + (directory.isLoadingThumbnails ? L.text(' · 正在載入縮圖…') : ''))) + '</span></div>' +
-      L.html('<div class="photo-directory-controls"><label class="photo-thumbnail-size" for="photoThumbnailSize"><span>縮圖</span><select id="photoThumbnailSize" aria-label="縮圖大小">') +
-      option('small', L.text('小'), state.thumbnailSize) + option('medium', L.text('中'), state.thumbnailSize) + option('large', L.text('大'), state.thumbnailSize) + '</select></label></div></div>' +
+      L.html('<div class="photo-directory-controls"><label class="photo-display-mode" for="photoDisplayMode"><span>顯示方式</span><select id="photoDisplayMode" aria-label="顯示方式">') +
+      renderPhotoDisplayOptions() + L.html('</select></label><label class="photo-thumbnail-size" for="photoThumbnailSize"><span>縮圖</span><select id="photoThumbnailSize" aria-label="縮圖大小">') +
+      option('small', L.text('小'), state.thumbnailSize) + option('medium', L.text('中'), state.thumbnailSize) + option('large', L.text('大'), state.thumbnailSize) + option('xlarge', L.text('超大'), state.thumbnailSize) + '</select></label></div></div>' +
       (items.length ? L.html('<div class="photo-thumbnail-browser"><button class="photo-thumbnail-arrow" type="button" data-thumbnail-scroll="-1" aria-label="向左移動一張縮圖">‹</button>') +
         '<div class="photo-thumbnail-list" data-scroll-region="photo-thumbnails" aria-busy="' + loading + '">' + items.map(function (item, index) {
-        return '<button class="photo-thumbnail' + (item.edited ? ' edited' : '') + (item.selected ? ' selected' : '') + '" id="photo-choice-' + escapeHtml(item.id) + '" data-directory-photo="' + escapeHtml(item.id) + '" type="button" aria-pressed="' + !!item.selected + '" data-tooltip="' + escapeHtml(item.name) + '"' + (busy || directory.isScanning ? ' disabled' : '') + '>' +
-          renderPhotoThumbnail(item) + '<span class="photo-thumbnail-caption"><span class="photo-thumbnail-name">' + escapeHtml(item.name) + '</span><span class="photo-thumbnail-index">#' + String(index + 1).padStart(4, '0') + '</span></span></button>';
-      }).join('') + L.html('</div><button class="photo-thumbnail-arrow" type="button" data-thumbnail-scroll="1" aria-label="向右移動一張縮圖">›</button></div>') : '<p class="photo-directory-empty">' + escapeHtml(L.text(directory.message) || (directory.isScanning ? L.text('正在尋找照片…') : L.text('這個目錄沒有可開啟的照片。'))) + '</p>') + '</section>';
+        return '<button class="photo-thumbnail' + (item.edited ? ' edited' : '') + (directorySelection.ids.has(item.id) ? ' selected' : '') + '" id="photo-choice-' + escapeHtml(item.id) + '" data-directory-photo="' + escapeHtml(item.id) + '" type="button" aria-pressed="' + directorySelection.ids.has(item.id) + '" data-tooltip="' + escapeHtml(item.name) + '"' + (busy || directory.isScanning ? ' disabled' : '') + '>' +
+          renderPhotoThumbnail(item) + '<span class="photo-thumbnail-caption"><span class="photo-thumbnail-name">' + escapeHtml(item.name) + '</span><span class="photo-thumbnail-index">#' + String(index + 1).padStart(4, '0') + '</span></span>' + renderPhotoOrganization(item) + '</button>';
+      }).join('') + L.html('</div><button class="photo-thumbnail-arrow" type="button" data-thumbnail-scroll="1" aria-label="向右移動一張縮圖">›</button></div>') : '<p class="photo-directory-empty">' + escapeHtml(L.text(directory.message) || (directory.isScanning ? L.text('正在尋找照片…') : L.text(photoDisplayMode.indexOf('tag:') === 0 ? '此分類沒有照片。' : '這個目錄沒有可開啟的照片。'))) + '</p>') + '</section>';
   }
 
   // Thumbnail progress must not recreate the main photo, editors or scroll strip.
@@ -894,6 +997,10 @@
       });
     if (sameItems) {
       oldSection.dataset.selectedPhoto = newSection.dataset.selectedPhoto;
+      var displaySelect = oldSection.querySelector('#photoDisplayMode');
+      var replacementSelect = newSection.querySelector('#photoDisplayMode');
+      if (displaySelect && displaySelect.innerHTML !== replacementSelect.innerHTML) displaySelect.innerHTML = replacementSelect.innerHTML;
+      if (displaySelect) displaySelect.value = photoDisplayMode;
       var oldStatus = oldSection.querySelector(".photo-directory-status");
       var newStatus = newSection.querySelector(".photo-directory-status");
       if (oldStatus.innerHTML !== newStatus.innerHTML) oldStatus.innerHTML = newStatus.innerHTML;
@@ -906,6 +1013,12 @@
         node.setAttribute("aria-pressed", replacement.getAttribute("aria-pressed"));
         if (node.firstElementChild.outerHTML !== replacement.firstElementChild.outerHTML) {
           node.firstElementChild.replaceWith(replacement.firstElementChild);
+        }
+        var oldMetadata = node.querySelector('.photo-thumbnail-metadata');
+        var newMetadata = replacement.querySelector('.photo-thumbnail-metadata');
+        if (oldMetadata && newMetadata && oldMetadata.outerHTML !== newMetadata.outerHTML) {
+          if (tooltipAnchor && oldMetadata.contains(tooltipAnchor)) hideTooltip();
+          oldMetadata.replaceWith(newMetadata);
         }
       });
       var empty = oldSection.querySelector(".photo-directory-empty");
@@ -1191,6 +1304,38 @@
     ].join("");
   }
 
+  window.handleUpdateComplete = function (payload) {
+    if (!payload || typeof payload.tag !== 'string' || document.getElementById('updateCompleteDialog')) return;
+    // Wait for an existing modal to close; native delivery retries without duplicating this dialog.
+    if (document.querySelector('dialog[open]') || app.querySelector('.prompt-dialog-backdrop')) return;
+    var previousFocus = document.activeElement;
+    var dialog = document.createElement('dialog');
+    dialog.id = 'updateCompleteDialog';
+    dialog.className = 'prompt-dialog update-complete-dialog';
+    dialog.setAttribute('aria-labelledby', 'updateCompleteTitle');
+    dialog.setAttribute('aria-describedby', 'updateCompleteVersion');
+    var highlights = Array.isArray(payload.highlights) ? payload.highlights : [];
+    dialog.innerHTML = '<div class="prompt-dialog-head"><div><h2 id="updateCompleteTitle">' + escapeHtml(L.text('更新完成')) +
+      '</h2><p id="updateCompleteVersion">' + escapeHtml(L.text('目前版本：' + (payload.version || ''))) +
+      '</p></div><button type="button" class="collapse-button" data-update-close aria-label="' + escapeHtml(L.text('關閉')) + '">' +
+      iconSvg('x') + '</button></div><div class="update-complete-body selectable"><ul>' +
+      highlights.filter(function (item) { return typeof item === 'string'; }).map(function (item) {
+        return '<li>' + escapeHtml(L.text(item)) + '</li>';
+      }).join('') + '</ul></div><div class="prompt-dialog-actions"><button type="button" class="button primary" data-update-close autofocus>' +
+      escapeHtml(L.text('好')) + '</button></div>';
+    dialog.querySelectorAll('[data-update-close]').forEach(function (button) {
+      button.addEventListener('click', function () { dialog.close(); });
+    });
+    dialog.addEventListener('keydown', function (event) { event.stopPropagation(); });
+    dialog.addEventListener('close', function () {
+      post('acknowledgeUpdateNotice', { tag: payload.tag });
+      dialog.remove();
+      if (previousFocus && previousFocus.isConnected && !previousFocus.closest('[inert]')) previousFocus.focus({ preventScroll: true });
+    }, { once: true });
+    document.body.appendChild(dialog);
+    dialog.showModal();
+  };
+
   window.handlePhotoEXIF = function (payload) {
     var previous = document.getElementById("exifDialog");
     if (previous) previous.close();
@@ -1349,10 +1494,9 @@
       '<div class="film-section">',
       renderSelect(L.text("印相光源"), "printIlluminant", value("printIlluminant", "reference"), lights, false, printHelp),
       renderRange(L.text("銀鹽密度"), "silverRetention", value("silverRetention", 0), -100, 100, 1, "", silverHelp, !filmStock),
-      renderRange(L.text("全區曝光補償"), "printExposure", value("printExposure", 0), Math.min(state.exposureExpansionEnabled ? -16 : -8, value("printExposure", 0)), Math.max(state.exposureExpansionEnabled ? 16 : 8, value("printExposure", 0)), 0.05, " EV", L.text("同時增加或減少三區相同的 EV，保留亮部、中調與暗部的曝光差距；+1 EV 對應兩倍曝光倍率。任一區達到上限或下限時，整組停止。")),
-      renderRange(L.text("中調曝光補償"), "printExposureMidtones", value("printExposureMidtones", value("printExposure", 0)), Math.min(state.exposureExpansionEnabled ? -16 : -8, value("printExposureMidtones", value("printExposure", 0))), Math.max(state.exposureExpansionEnabled ? 16 : 8, value("printExposureMidtones", value("printExposure", 0))), 0.05, " EV", L.text("依原始亮度分區，平滑調整曝光並保留色度，避免亮暗反轉及暗部提亮時色彩過度放大。提高 EV 不會減弱效果；負 EV 不自動補亮。三區同值時，線性亮度按 2^EV 調整，再套用底片效果。")),
-      renderRange(L.text("暗部曝光補償"), "printExposureShadows", value("printExposureShadows", value("printExposure", 0)), Math.min(state.exposureExpansionEnabled ? -16 : -8, value("printExposureShadows", value("printExposure", 0))), Math.max(state.exposureExpansionEnabled ? 16 : 8, value("printExposureShadows", value("printExposure", 0))), 0.05, " EV", L.text("依原始亮度分區，平滑調整曝光並保留色度，避免亮暗反轉及暗部提亮時色彩過度放大。提高 EV 不會減弱效果；負 EV 不自動補亮。三區同值時，線性亮度按 2^EV 調整，再套用底片效果。")),
-      renderRange(L.text("極暗曝光補償 (實驗功能)"), "deepShadowAmount", value("deepShadowAmount", 0), 0, 100, 1, "%", L.text("提亮極暗區域，同時保留色彩濃度並減少色彩雜訊；0% 保留原圖，100% 套用完整增強。")),
+      renderRange(L.text("全區曝光補償"), "printExposure", value("printExposure", 0), Math.min(state.exposureExpansionEnabled ? -16 : -8, value("printExposure", 0)), Math.max(state.exposureExpansionEnabled ? 16 : 8, value("printExposure", 0)), 0.05, " EV", L.text("同時增加或減少三區相同的 EV，保留原有明暗差距。關閉高光抑制時，+1 EV 將線性 RGB 加倍；開啟時另保護高光。任一區達到範圍界限時，整組停止。")),
+      renderRange(L.text("中調曝光補償"), "printExposureMidtones", value("printExposureMidtones", value("printExposure", 0)), Math.min(state.exposureExpansionEnabled ? -16 : -8, value("printExposureMidtones", value("printExposure", 0))), Math.max(state.exposureExpansionEnabled ? 16 : 8, value("printExposureMidtones", value("printExposure", 0))), 0.05, " EV", L.text("柔和調整此區域，並適度影響相鄰明暗區域，以保留反差、避免提亮後灰平或出現明暗斷層。數值是區域調整目標，實際增益隨亮度平滑變化；三區同值時等於全域曝光。")),
+      renderRange(L.text("暗部曝光補償"), "printExposureShadows", value("printExposureShadows", value("printExposure", 0)), Math.min(state.exposureExpansionEnabled ? -16 : -8, value("printExposureShadows", value("printExposure", 0))), Math.max(state.exposureExpansionEnabled ? 16 : 8, value("printExposureShadows", value("printExposure", 0))), 0.05, " EV", L.text("柔和調整此區域，並適度影響相鄰明暗區域，以保留反差、避免提亮後灰平或出現明暗斷層。數值是區域調整目標，實際增益隨亮度平滑變化；三區同值時等於全域曝光。")),
       renderRange(reversal ? L.text("觀看反差") : L.text("印相反差"), "printContrast", value("printContrast", 50), 0, 100, 1, "", L.text("50 為目前風格或底片的基準；提高數值增加明暗反差，降低數值讓階調更柔和。")),
       renderRange(L.text("暗角"), "vignetteBalance", vignetteBalance(adjustment), -100, 100),
       '</div>'
@@ -2025,6 +2169,18 @@
   }
 
   function bindPhotoDirectoryEvents() {
+    var displaySelect = app.querySelector('#photoDisplayMode');
+    if (displaySelect) displaySelect.addEventListener('change', function () {
+      photoDisplayMode = displaySelect.value;
+      localStorage.setItem('photoStyle.photoDisplayMode', photoDisplayMode);
+      window.handlePhotoDirectoryState(state.photoDirectory);
+      var list = app.querySelector('.photo-thumbnail-list');
+      if (list) list.scrollLeft = 0;
+      rememberThumbnailViewport();
+      scheduleThumbnailRequest();
+      var refreshedSelect = app.querySelector('#photoDisplayMode');
+      if (refreshedSelect) refreshedSelect.focus({ preventScroll: true });
+    });
     var thumbnailSizeSelect = app.querySelector("#photoThumbnailSize");
     if (thumbnailSizeSelect) thumbnailSizeSelect.addEventListener("change", function () {
       state.thumbnailSize = normalizedThumbnailSize(thumbnailSizeSelect.value);
@@ -2041,10 +2197,16 @@
         event.preventDefault();
         event.stopPropagation();
         if (photoIsBusy(state) || (state.photoDirectory && state.photoDirectory.isScanning)) return;
-        post("showPreviewMenu", { id: button.dataset.directoryPhoto });
+        var id = button.dataset.directoryPhoto;
+        syncDirectorySelection();
+        if (!directorySelection.ids.has(id)) selectThumbnail(id, {});
+        var ids = visibleDirectoryPhotos().filter(function (item) { return directorySelection.ids.has(item.id); }).map(function (item) { return item.id; });
+        flushPhotoEdits("showPreviewMenu", { id: id, ids: ids });
       });
-      button.addEventListener("click", function () {
+      button.addEventListener("click", function (event) {
         if (photoIsBusy(state) || (state.photoDirectory && state.photoDirectory.isScanning)) return;
+        selectThumbnail(button.dataset.directoryPhoto, event);
+        if (event.metaKey || event.shiftKey) return;
         flushPhotoEdits("selectDirectoryPhoto", { id: button.dataset.directoryPhoto });
         discardPendingPhotoEdits();
       });
@@ -3679,9 +3841,19 @@
     }, 0);
   }
 
+  window.handleBatchExportProgress = function (payload) {
+    if (!state.isSavingImage || !state.batchExport || !payload || payload.id !== state.batchExport.id) return;
+    if (Number(payload.progress) < Number(state.batchExport.progress)) return;
+    state.batchExport = payload;
+    updateBusyDialog();
+  };
+
   function updateBusyDialog() {
     var isDetectingSubjectMask = !!(state.subjectMask && state.subjectMask.detecting);
     var modelDownload = state.isRepairingImage && state.repairModelProgress;
+    var batch = state.isSavingImage && state.batchExport;
+    var batchDetails = document.getElementById('batchExportDetails');
+    batchDetails.hidden = !batch;
     var downloadBar = document.getElementById('repairDownloadProgress');
     var downloadBytes = document.getElementById('repairDownloadBytes');
     downloadBar.hidden = downloadBytes.hidden = !modelDownload;
@@ -3730,13 +3902,26 @@
       if (!computeTimer) computeTimer = setInterval(updateBusySeconds, 250);
     } else if (state.isSavingImage) {
       computeStartedAt = null;
-      busyTitle.textContent = L.text("正在輸出照片");
-      setBusyStep(state.savingStep || L.text("準備輸出"));
+      busyTitle.textContent = L.text(batch ? "正在批次輸出照片" : "正在輸出照片");
+      setBusyStep(batch ? batch.stage : (state.savingStep || L.text("準備輸出")));
       setBusyItems([]);
       busyTime.hidden = true;
       busySeconds.textContent = "0";
       busyCancel.hidden = true;
-      busyDialog.hidden = true;
+      if (batch) {
+        var progress = clamp(Number(batch.progress) || 0, 0, 1);
+        var bar = document.getElementById('batchExportProgress');
+        bar.value = progress;
+        bar.setAttribute('aria-label', L.text('批次輸出進度'));
+        document.getElementById('batchExportFilename').textContent = batch.filename || '';
+        document.getElementById('batchExportCount').textContent = Math.floor(progress * 100) + '% · ' +
+          L.text('第 ' + batch.current + ' 張／共 ' + batch.total + ' 張') + ' · ' +
+          L.text('成功：' + batch.succeeded + ' 張／失敗：' + batch.failed + ' 張');
+        if (busyDialog.hidden) {
+          busyDialog.hidden = false;
+          busyDialog.querySelector('.busy-panel').focus({ preventScroll: true });
+        }
+      } else { busyDialog.hidden = true; }
       if (computeTimer) {
         clearInterval(computeTimer);
         computeTimer = null;

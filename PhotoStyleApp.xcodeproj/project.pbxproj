@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FA2700010000000000000002 /* PhotoStyleWebCoordinator+Organization.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA2700020000000000000002 /* PhotoStyleWebCoordinator+Organization.swift */; };
+		FA2700010000000000000001 /* PhotoOrganizationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA2700020000000000000001 /* PhotoOrganizationStore.swift */; };
 		F92700010000000000000002 /* PhotoPreviewWorkGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F92700020000000000000002 /* PhotoPreviewWorkGate.swift */; };
 		F92700010000000000000001 /* PhotoRAWThumbnail.swift in Sources */ = {isa = PBXBuildFile; fileRef = F92700020000000000000001 /* PhotoRAWThumbnail.swift */; };
 		44F8E6012C00100100000001 /* PhotoStyleAppApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F8E5012C00100100000001 /* PhotoStyleAppApp.swift */; };
@@ -83,6 +85,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		FA2700020000000000000002 /* PhotoStyleWebCoordinator+Organization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleWebCoordinator+Organization.swift"; sourceTree = "<group>"; };
+		FA2700020000000000000001 /* PhotoOrganizationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoOrganizationStore.swift"; sourceTree = "<group>"; };
 		F92700020000000000000002 /* PhotoPreviewWorkGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoPreviewWorkGate.swift"; sourceTree = "<group>"; };
 		F92700020000000000000001 /* PhotoRAWThumbnail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoRAWThumbnail.swift"; sourceTree = "<group>"; };
 		44F8E4012C00100100000001 /* PhotoStyleApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PhotoStyleApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -206,6 +210,8 @@
 				F92700020000000000000002 /* PhotoPreviewWorkGate.swift */,
 				F92700020000000000000001 /* PhotoRAWThumbnail.swift */,
 				DD1201022C00100100000001 /* PhotoStyleWebCoordinator+PhotoDirectory.swift */,
+				FA2700020000000000000001 /* PhotoOrganizationStore.swift */,
+				FA2700020000000000000002 /* PhotoStyleWebCoordinator+Organization.swift */,
 				DD1201042C00100100000001 /* PhotoEditStore.swift */,
 				DD1201052C00100100000001 /* PhotoStyleWebCoordinator+PhotoEdits.swift */,
 		DD1901052C00100100000001 /* CustomFilmStore.swift */,
@@ -417,6 +423,8 @@
 				F92700010000000000000002 /* PhotoPreviewWorkGate.swift in Sources */,
 				F92700010000000000000001 /* PhotoRAWThumbnail.swift in Sources */,
 				DD1202022C00100100000001 /* PhotoStyleWebCoordinator+PhotoDirectory.swift in Sources */,
+				FA2700010000000000000001 /* PhotoOrganizationStore.swift in Sources */,
+				FA2700010000000000000002 /* PhotoStyleWebCoordinator+Organization.swift in Sources */,
 				DD1202042C00100100000001 /* PhotoEditStore.swift in Sources */,
 				DD1202052C00100100000001 /* PhotoStyleWebCoordinator+PhotoEdits.swift in Sources */,
 		DD1902052C00100100000001 /* CustomFilmStore.swift in Sources */,

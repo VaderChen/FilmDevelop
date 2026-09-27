@@ -28,11 +28,44 @@ public struct PhotoStylizer: Sendable {
     public init() {}
 
     public func render(inputURL: URL, plan: PhotoStylePlan, outputURL: URL) throws -> URL {
-        guard let input = CIImage(
-            contentsOf: inputURL,
-            options: [.applyOrientationProperty: true]
-        ) else {
-            throw PhotoStylizerError.imageLoadFailed(inputURL)
+        // The decoded pixels must come from the same snapshot, including RAW
+        // detection. A second URL read can otherwise observe a replaced file.
+        let data = try Data(contentsOf: inputURL)
+        guard let linearSpace = CGColorSpace(name: CGColorSpace.extendedLinearSRGB),
+              let outputSpace = CGColorSpace(name: CGColorSpace.sRGB) else {
+            throw PhotoStylizerError.renderFailed
+        }
+        let context = CIContext(options: [
+            .workingFormat: CIFormat.RGBAf,
+            .workingColorSpace: linearSpace,
+            .outputColorSpace: outputSpace
+        ])
+        let sourceType = CGImageSourceCreateWithData(data as CFData, nil)
+            .flatMap { CGImageSourceGetType($0) }
+            .flatMap { UTType($0 as String) }
+        let hintedType = UTType(filenameExtension: inputURL.pathExtension)
+        let isRAW = sourceType?.conforms(to: .rawImage) == true
+            || hintedType?.conforms(to: .rawImage) == true
+        let input: CIImage
+        if isRAW {
+            guard let filter = PhotoRAWDecoder.makeSceneLinearFilter(data: data, identifierHint: hintedType?.identifier),
+                  let image = filter.outputImage,
+                  image.extent.minX.isFinite, image.extent.minY.isFinite,
+                  image.extent.width.isFinite, image.extent.height.isFinite,
+                  !image.extent.isEmpty,
+                  // Finish native-resolution decoding before downstream branches
+                  // sample at different scales. Never accept an embedded JPEG as
+                  // ordinary scene-referred RAW in this file-based renderer.
+                  let bitmap = context.createCGImage(image, from: image.extent,
+                      format: .RGBAf, colorSpace: linearSpace, deferred: false) else {
+                throw PhotoStylizerError.imageLoadFailed(inputURL)
+            }
+            input = CIImage(cgImage: bitmap)
+        } else {
+            guard let image = CIImage(data: data, options: [.applyOrientationProperty: true]) else {
+                throw PhotoStylizerError.imageLoadFailed(inputURL)
+            }
+            input = image
         }
 
         try FileManager.default.createDirectory(
@@ -40,17 +73,13 @@ public struct PhotoStylizer: Sendable {
             withIntermediateDirectories: true
         )
 
-        let styled = render(input: input, plan: plan)
+        let rendered = render(input: input, plan: plan)
+        // The CIImage API retains extended scene RGB for further processing.
+        // This PNG API is an SDR endpoint, so consume RAW headroom once here.
+        let styled = isRAW ? PhotoRAWDynamicRangeProcessor.prepareForDisplayAdjustments(rendered) : rendered
         let extent = styled.extent
 
-        let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
-        let context = CIContext(options: [
-            .workingFormat: CIFormat.RGBAf,
-            .workingColorSpace: colorSpace,
-            .outputColorSpace: colorSpace
-        ])
-
-        guard let cgImage = context.createCGImage(styled, from: extent, format: .RGBA16, colorSpace: colorSpace) else {
+        guard let cgImage = context.createCGImage(styled, from: extent, format: .RGBA16, colorSpace: outputSpace) else {
             throw PhotoStylizerError.renderFailed
         }
 
@@ -85,7 +114,9 @@ public struct PhotoStylizer: Sendable {
         let cleanedInput = PhotoToneZoneProcessor.applyDenoise(to: input,
             masks: PhotoToneMasks(input: input, profile: .balanced),
             amount: normalized(plan.postProcessing.denoise), strength: strength)
-        let exposedInput = PhotoFilmEffectsProcessor.applyExposure(to: cleanedInput, effects: plan.filmEffects, strength: strength)
+        let digitalInput = PhotoPlanToneProcessor.apply(to: cleanedInput, toneZones: plan.toneZones,
+            masks: PhotoToneMasks(input: cleanedInput, profile: .balanced), strength: strength, components: [.exposure, .mapping])
+        let exposedInput = PhotoFilmEffectsProcessor.applyExposure(to: digitalInput, effects: plan.filmEffects, strength: strength)
         let developed = PhotoFilmExposureProcessor.apply(to: exposedInput, effects: plan.filmEffects,
             amounts: amounts, strength: strength, monochrome: isMonochrome)
         let filteredInput = isMonochrome
@@ -114,7 +145,8 @@ public struct PhotoStylizer: Sendable {
             to: styled,
             toneZones: plan.toneZones,
             masks: masks,
-            strength: strength
+            strength: strength,
+            components: PhotoPlanToneComponents.all.subtracting(.exposure)
         )
         var printEffects = plan.filmEffects
         printEffects.clearPrintExposure()

@@ -38,6 +38,7 @@ final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMe
     let stylePromptStore = StylePromptStore()
     let aiModelStore: AIModelStore
     let photoDirectoryStore: PhotoDirectoryStore
+    let photoOrganizationStore: PhotoOrganizationStore
     let photoEditStore: PhotoEditStore
     let customFilmStore: CustomFilmStore
     var selectedCustomFilmID: String?
@@ -168,6 +169,7 @@ final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMe
     var computationStep = ""
     var computationCompletedItemCount = 0
     var isSavingImage = false
+    var batchExportProgress: PhotoBatchExportProgress?
     var exportWorker: Task<CGSize, Error>?
     var savingStep = ""
     var shouldExpandAdjustmentsAfterComputation = false
@@ -196,6 +198,7 @@ final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMe
             ?? (persistsImportedImages ? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
                 .appendingPathComponent("PhotoStyleApp/PhotoEdits", isDirectory: true) : nil)
         self.photoEditStore = photoEditStore ?? PhotoEditStore(directory: editDirectory)
+        self.photoOrganizationStore = PhotoOrganizationStore(fileURL: editDirectory?.deletingLastPathComponent().appendingPathComponent("PhotoOrganization.json"))
         self.customFilmStore = CustomFilmStore(fileURL: editDirectory?.deletingLastPathComponent().appendingPathComponent("CustomFilms.json"))
         super.init()
         photoPreviewCache.countLimit = 6

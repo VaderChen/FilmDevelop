@@ -114,7 +114,7 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
     public var printExposure: Double
     public var printExposureHighlights: Double?
     public var printExposureMidtones: Double?
-    /// Deep-shadow neural luminance blend, 0...100 percent. Missing recipes use zero.
+    /// Deep-shadow local exposure blend, 0...100 percent. Missing recipes use zero.
     public var deepShadowAmount: Double
     public var printExposureShadows: Double?
     public var resolvedPrintExposure: SIMD3<Double> {
@@ -342,7 +342,8 @@ public struct PhotoFilmEffects: Codable, Equatable, Sendable {
             printExposureHighlights: printExposureHighlights.map { bound($0, Self.printExposureRange) },
             printExposureMidtones: printExposureMidtones.map { bound($0, Self.printExposureRange) },
             printExposureShadows: printExposureShadows.map { bound($0, Self.printExposureRange) },
-            deepShadowAmount: bound(deepShadowAmount, Self.deepShadowAmountRange),
+            // Disabled: retain the Codable field for legacy recipes, but never activate it.
+            deepShadowAmount: 0,
 
             printContrast: bound(printContrast, 0...100, 50),
             printIlluminant: printIlluminant, viewIlluminant: viewIlluminant,

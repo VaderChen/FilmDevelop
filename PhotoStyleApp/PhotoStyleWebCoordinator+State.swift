@@ -96,6 +96,7 @@ extension PhotoStyleWebCoordinator {
             "computationCompletedItems": computationCompletedItemCount,
             "isSavingImage": isSavingImage,
             "savingStep": savingStep,
+            "batchExport": batchExportProgress?.payload as Any? ?? NSNull(),
             "expandAdjustments": consumeExpandAdjustmentsAfterComputation(),
             "subjectMask": [
                 "available": renderer.canDetectSubjectMask,
@@ -188,7 +189,6 @@ extension PhotoStyleWebCoordinator {
             "printExposureHighlights": adjustment.filmEffects.printExposureHighlights ?? adjustment.filmEffects.printExposure,
             "printExposureMidtones": adjustment.filmEffects.printExposureMidtones ?? adjustment.filmEffects.printExposure,
             "printExposureShadows": adjustment.filmEffects.printExposureShadows ?? adjustment.filmEffects.printExposure,
-            "deepShadowAmount": adjustment.filmEffects.deepShadowAmount,
 
             "printContrast": adjustment.filmEffects.printContrast,
             "developmentAmount": adjustment.filmEffects.developmentAmount,

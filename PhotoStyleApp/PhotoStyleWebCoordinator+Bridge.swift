@@ -7,6 +7,10 @@ extension PhotoStyleWebCoordinator {
             return
         }
 
+        if bridgeMessage.action == .acknowledgeUpdateNotice {
+            appUpdater.acknowledgeUpdateNotice(bridgeMessage.payload)
+            return
+        }
         // Read-only hover requests quietly ignore busy/stale photos, and cancellation
         // always works even when another operation has just started.
         if bridgeMessage.action == .previewFilmHover {
@@ -36,7 +40,7 @@ extension PhotoStyleWebCoordinator {
         // Commit pending Web edits together before the command takes its snapshot.
         // Pending portrait edits are explicit edits too. AI obtains its own mask;
         // export waits for this preview, while a new photo discards stale results.
-        if [.saveCustomFilm, .deleteCustomFilm, .undoEdit, .redoEdit, .importColorCalibration, .clearColorCalibration, .applyStyle, .saveImage, .browseFiles, .browsePhotoDirectory, .selectDirectoryPhoto, .setStyle].contains(bridgeMessage.action),
+        if [.saveCustomFilm, .deleteCustomFilm, .undoEdit, .redoEdit, .importColorCalibration, .clearColorCalibration, .applyStyle, .saveImage, .browseFiles, .browsePhotoDirectory, .selectDirectoryPhoto, .showPreviewMenu, .setStyle].contains(bridgeMessage.action),
            let adjustments = bridgeMessage.payload["adjustments"] as? [[String: Any]] {
             updateAdjustments(adjustments, detectSubjectMask: bridgeMessage.action != .applyStyle)
         }
@@ -51,6 +55,8 @@ extension PhotoStyleWebCoordinator {
         case .cancelRepairBrush:
             cancelRepairBrush()
         case .previewFilmHover, .cancelFilmHover:
+            break
+        case .acknowledgeUpdateNotice:
             break
         case .checkAppUpdate:
             Task { @MainActor in appUpdater.check() }

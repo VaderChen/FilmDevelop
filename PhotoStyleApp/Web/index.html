@@ -13,12 +13,17 @@
   <main id="app" class="app"></main>
   <div id="toast" class="toast" hidden></div>
   <div id="busyDialog" class="busy-dialog" role="dialog" aria-modal="true" aria-labelledby="busyTitle" hidden>
-    <div class="busy-panel">
+    <div class="busy-panel" tabindex="-1">
       <div class="spinner"></div>
       <div id="busyTitle" class="busy-title">AI 正在重新計算中</div>
       <div id="busyStep" class="busy-step" hidden></div>
       <progress id="repairDownloadProgress" class="repair-download-progress" max="1" hidden></progress>
       <div id="repairDownloadBytes" class="busy-step" role="status" hidden></div>
+      <div id="batchExportDetails" class="batch-export-details" hidden>
+        <div id="batchExportFilename" class="batch-export-filename"></div>
+        <progress id="batchExportProgress" max="1" value="0"></progress>
+        <div id="batchExportCount" class="busy-step" role="status" aria-live="polite"></div>
+      </div>
       <ul id="busyItems" class="busy-items" data-l10n-aria="AI 計算項目" aria-label="AI 計算項目" hidden></ul>
       <div id="busyTime" class="busy-time"><span id="busySeconds">0</span> <span data-l10n="秒">秒</span></div>
       <button id="busyCancel" class="busy-cancel" type="button" hidden>取消</button>

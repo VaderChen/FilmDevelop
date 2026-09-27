@@ -46,9 +46,9 @@ enum PhotoStyleProcessor {
         let geometry = (adjustment.cropRect(in: source.extent, verticalAxisInverted: true),
                         PhotoCropCalculator.rotationTransform(in: source.extent, clockwiseDegrees: adjustment.cropRotation))
         let stages = ["physical-input", "input-calibration", "subject-mask", "skin-mask",
-                      "skin-white-balance", "white-balance", "luminance-exposure", "light-scatter", "emulsion",
+                      "skin-white-balance", "white-balance", "sensor-denoise", "digital-exposure", "luminance-exposure", "light-scatter", "emulsion",
                       "development", "developer-chemistry", "raw-display-mapping", "film-look", "skin-enhancement", "tone",
-                      "tone-zones", "hdr", "crop-vignette", "depth-blur", "monochrome", "scanner"]
+                      "tone-zones", "hdr", "crop-vignette", "depth-blur", "monochrome", "output-tone", "scanner"]
         let pipeline = PhotoProcessingPipeline(source: source,
             colorSpace: image.cgImage?.colorSpace ?? CGColorSpace(name: CGColorSpace.extendedLinearSRGB)!,
             progress: progress.map { report in
@@ -104,6 +104,18 @@ enum PhotoStyleProcessor {
                 applyWhiteBalanceAdjustment(to: $0, warmth: adjustment.whiteBalanceWarmth * strength,
                                             tint: adjustment.whiteBalanceTint * strength)
             }
+            try pipeline.process("sensor-denoise") {
+                applyDenoise(to: $0, amount: adjustment.denoise / 100 * strength)
+            }
+            // User EV acts on scene light, before film curves or SDR companding.
+            // All four digital exposure controls share a chromaticity-preserving gain.
+            try pipeline.process("digital-exposure") { input in
+                let global = applyExposure(to: input, amount: adjustment.exposure * strength, renderContext: pipeline.context)
+                return PhotoExposureProcessor.apply(to: global,
+                    highlightsEV: PhotoExposureScale.ev(fromSlider: adjustment.highlightExposure * strength),
+                    midtonesEV: PhotoExposureScale.ev(fromSlider: adjustment.midtoneExposure * strength),
+                    shadowsEV: PhotoExposureScale.ev(fromSlider: adjustment.shadowExposure * strength))
+            }
             try pipeline.process("luminance-exposure") {
                 PhotoFilmEffectsProcessor.applyExposure(to: $0, effects: effects, renderContext: pipeline.context)
             }
@@ -137,8 +149,8 @@ enum PhotoStyleProcessor {
                 }
             }
             try pipeline.process("tone") {
-                let planned = applyPlanToneSemantics(to: applyDenoise(to: $0, amount: adjustment.denoise / 100 * strength), style: style, toneZones: adjustment.sourceToneZones, strength: strength)
-                let toned = applyGlobalToneAdjustment(to: applyExposure(to: planned, amount: adjustment.exposure * strength, renderContext: pipeline.context),
+                let planned = applyPlanToneSemantics(to: $0, style: style, toneZones: adjustment.sourceToneZones, strength: strength)
+                let toned = applyGlobalToneAdjustment(to: planned,
                                                  adjustment: adjustment, strength: strength, renderContext: pipeline.context)
                 return PhotoLabAdjustmentProcessor.apply(to: toned, vibrance: adjustment.vibrance, saturation: adjustment.saturation)
             }
@@ -167,6 +179,13 @@ enum PhotoStyleProcessor {
             }
             if style.isMonochrome {
                 try pipeline.process("monochrome") { PhotoImageEffectsProcessor.monochrome($0, profile: .desaturate) }
+            }
+            try pipeline.process("output-tone") {
+                // Original RAW has no film/camera display curve. Map its retained
+                // headroom once, after every exposure adjustment and before the
+                // SDR scanner grade can collapse colored HDR pixels to gray.
+                image.requiresRAWDisplayMapping && style == .original
+                    ? PhotoRAWDynamicRangeProcessor.prepareForDisplayAdjustments($0) : $0
             }
             if style.filmStock != nil || style == .original {
                 try pipeline.process("scanner") { input in
@@ -523,8 +542,7 @@ enum PhotoStyleProcessor {
     }
 
     private static func applyExposure(to image: CIImage, amount: Double, renderContext: CIContext? = nil) -> CIImage {
-        PhotoLabAdjustmentProcessor.replacingLightness(of: image, with:
-            PhotoToneProcessor.applyExposure(to: image, ev: PhotoExposureScale.ev(fromSlider: amount), renderContext: renderContext))
+        PhotoToneProcessor.applyExposure(to: image, ev: PhotoExposureScale.ev(fromSlider: amount), renderContext: renderContext)
     }
 
     private static func applyGlobalToneAdjustment(
@@ -605,7 +623,6 @@ enum PhotoStyleProcessor {
             to: image,
             style: style,
             region: .shadows,
-            exposure: adjustment.shadowExposure * strength,
             intensity: adjustment.shadowIntensity * strength,
             warmth: adjustment.shadowWarmth * warmthScale
         )
@@ -613,7 +630,6 @@ enum PhotoStyleProcessor {
             to: image,
             style: style,
             region: .midtones,
-            exposure: adjustment.midtoneExposure * strength,
             intensity: adjustment.midtoneIntensity * strength,
             warmth: adjustment.midtoneWarmth * warmthScale
         )
@@ -621,7 +637,6 @@ enum PhotoStyleProcessor {
             to: image,
             style: style,
             region: .highlights,
-            exposure: adjustment.highlightExposure * strength,
             intensity: adjustment.highlightIntensity * strength,
             warmth: adjustment.highlightWarmth * warmthScale
         )
@@ -639,17 +654,15 @@ enum PhotoStyleProcessor {
         to image: CIImage,
         style: PhotoStyle,
         region: ToneRegion,
-        exposure: Double,
         intensity: Double,
         warmth: Double
     ) -> CIImage {
         let intensity = intensity.clamped(to: 0...100)
-        guard abs(exposure) > 0.001 || intensity > 0.001 || abs(warmth) > 0.001 else {
+        guard intensity > 0.001 || abs(warmth) > 0.001 else {
             return image
         }
 
-        var adjusted = applyExposure(to: image, amount: exposure)
-        adjusted = applyWhiteBalanceAdjustment(to: adjusted, warmth: warmth, tint: 0)
+        var adjusted = applyWhiteBalanceAdjustment(to: image, warmth: warmth, tint: 0)
         adjusted = applyToneRegionColorMapping(to: adjusted, style: style, region: region, intensity: intensity)
         return adjusted
     }

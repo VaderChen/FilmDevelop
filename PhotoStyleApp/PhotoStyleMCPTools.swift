@@ -17,7 +17,6 @@ enum PhotoStyleMCPTools {
         ranges["printExposureHighlights"] = PhotoFilmEffects.printExposureRange
         ranges["printExposureMidtones"] = PhotoFilmEffects.printExposureRange
         ranges["printExposureShadows"] = PhotoFilmEffects.printExposureRange
-        ranges["deepShadowAmount"] = PhotoFilmEffects.deepShadowAmountRange
 
         ranges["developmentDiffusion"] = 0.02...1
         ranges["grainSize"] = 0.5...4
@@ -78,11 +77,10 @@ enum PhotoStyleMCPTools {
             "scanMidtoneWarmth": "底掃中調冷暖，正暖負冷，0 保留所選底掃風格。",
             "scanHighlightWarmth": "底掃亮部冷暖，正暖負冷，純白附近減弱染色。",
             "filmColorModel": "固定 spectral：LHTSS 光譜重建、多波段染料透射與獨立印片流程；只對底片款式生效。",
-            "printExposureHighlights": "亮部曝光補償 EV，-16 至 +16；與相鄰明暗區域平滑混合，缺值時沿用原曝光補償。",
-            "printExposureMidtones": "中調曝光補償 EV，-16 至 +16；與相鄰明暗區域平滑混合，缺值時沿用原曝光補償。",
-            "deepShadowAmount": "極暗曝光補償（實驗功能）的增強融合比例，0 至 100%，預設 0；LYT-Net 預測亮度，依提亮幅度重建色彩並抑制色噪。",
-            "printExposureShadows": "暗部曝光補償 EV，-16 至 +16；與相鄰明暗區域平滑混合，缺值時沿用原曝光補償。",
-            "printExposure": "全區連動曝光補償 EV，-16 至 +16，預設 0；以 EV 差值同時移動三區，保留三區差距，任一區到達範圍界限時整組停止；先分離亮度與色度，只調整亮度並重建原色，再套用乳劑、顯影與底片色彩。正值變亮、負值變暗。",
+            "printExposureHighlights": "亮部曝光補償 EV，-16 至 +16；以保留反差的平滑曲線調整，允許相鄰明暗區域柔和連動；缺值時沿用全區曝光。",
+            "printExposureMidtones": "中調曝光補償 EV，-16 至 +16；以保留反差的平滑曲線調整，允許相鄰明暗區域柔和連動；缺值時沿用全區曝光。",
+            "printExposureShadows": "暗部曝光補償 EV，-16 至 +16；以保留反差的平滑曲線調整，允許相鄰明暗區域柔和連動；缺值時沿用全區曝光。",
+            "printExposure": "全區連動曝光補償 EV，-16 至 +16，預設 0；以 EV 差值同時移動三區，保留三區差距，任一區到達範圍界限時整組停止；先在線性 RGB 套用共同曝光增益，再套用乳劑、顯影與底片色彩；高光保護另加柔和肩部。正值變亮、負值變暗。",
             "printIlluminant": "印相光源：\(illuminants)。一般風格與負片皆可使用，正片略過此光源。",
             "viewIlluminant": "觀看光源：\(illuminants)。風格與底片皆可使用，黑白維持灰階。",
             "printContrast": "風格與底片皆可調整的印相反差，50 保留原有基準；反轉片調整觀看密度反差。",

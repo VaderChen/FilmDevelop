@@ -6,6 +6,7 @@ enum PhotoStyleWebBridgeAction: String {
     case cancelRepairBrush
     case previewFilmHover
     case cancelFilmHover
+    case acknowledgeUpdateNotice
     case checkAppUpdate
     case importColorCalibration
     case clearColorCalibration
