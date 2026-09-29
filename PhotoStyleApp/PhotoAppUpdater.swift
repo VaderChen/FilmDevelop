@@ -130,6 +130,7 @@ final class PhotoAppUpdater {
     // since the immediately preceding published release; never append historical highlights.
     // Current comparison baseline: v1.26.0927-build-2327.
     static let releaseHighlights = [
+        "修正 RAW 套用底片普遍偏暗：保留解碼器提供的基準曝光補償，預覽與匯出共用；原片顯影與白平衡不變。",
         "新增複製照片並套用目前調整，完成後立即選取複本；統一選單名稱為「匯出照片」。",
         "新增複製與批次套用調整參數；套用選項固定顯示，處理進度視窗避免少量照片時一閃而過。",
         "複選照片時，恢復預設值會將所有選取照片恢復為原片。",

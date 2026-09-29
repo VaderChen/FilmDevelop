@@ -24,7 +24,9 @@ public enum PhotoRAWDecoder {
         filter.scaleFactor = 1
         filter.isDraftModeEnabled = false
         filter.exposure = 0
-        filter.baselineExposure = 0
+        // 保留解碼器依 RAW 設定的基準曝光補償，讓底片從校正後的曝光開始。
+        // 它是線性曝光增益，與下方停用的顯影曲線及局部色調映射不同。
+        // 強制歸零會讓需要正補償的照片在所有底片中一致偏暗。
         // shadowBias subtracts from shadows; it is not a measured sensor black
         // level or an EV value. Leaving the camera default here can erase the
         // low-light signal before the app's exposure adjustment sees it.

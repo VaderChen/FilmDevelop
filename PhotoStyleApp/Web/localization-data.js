@@ -1,4 +1,6 @@
 window.PhotoLocalizationData = {
+  "修正 RAW 套用底片普遍偏暗：保留解碼器提供的基準曝光補償，預覽與匯出共用；原片顯影與白平衡不變。": ["Fixed RAW film presets appearing too dark by preserving the decoder’s baseline exposure compensation in previews and exports. Original rendering and white balance are unchanged.", "RAW にフィルムを適用すると暗くなる問題を修正しました。プレビューと書き出しでデコーダーの基準露出補正を保持します。オリジナルの現像とホワイトバランスは変更しません。", "RAW에 필름을 적용할 때 어두워지는 문제를 수정했습니다. 미리보기와 내보내기에서 디코더의 기준 노출 보정을 유지하며 원본 현상과 화이트 밸런스는 변경하지 않습니다."],
+
   "新增複製照片並套用目前調整，完成後立即選取複本；統一選單名稱為「匯出照片」。": ["Duplicate photos with their current adjustments and select the copy immediately; export menus now use “Export Photo”.", "現在の調整を保った写真の複製に対応し、完了後は複製を選択します。書き出しメニュー名を統一しました。", "현재 조정을 유지한 사진 복제를 지원하며 완료 후 복사본을 선택합니다. 내보내기 메뉴 이름을 통일했습니다."],
   "新增複製與批次套用調整參數；套用選項固定顯示，處理進度視窗避免少量照片時一閃而過。": ["Copy adjustment parameters and apply them to selected photos in a batch. Apply remains visible, and the progress dialog avoids flashing for small batches.", "調整パラメータのコピーと選択写真への一括適用に対応しました。適用項目を常に表示し、少数枚でも進捗画面が瞬時に消えないようにしました。", "조정 매개변수를 복사하여 선택한 사진에 일괄 적용할 수 있습니다. 적용 메뉴는 항상 표시되며 적은 사진 처리 시에도 진행 창이 잠깐 깜박이지 않습니다."],
   "複選照片時，恢復預設值會將所有選取照片恢復為原片。": ["Resetting defaults with multiple photos selected restores every selected photo to Original.", "複数選択時の初期値への復元は、選択したすべての写真をオリジナルに戻します。", "사진을 여러 장 선택한 상태에서 기본값을 복원하면 선택한 모든 사진이 원본 상태로 돌아갑니다."],

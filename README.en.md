@@ -31,8 +31,11 @@ Film recipes now combine layer response, tone curves, hue-selective saturation a
 
 Cross Process, Kodak Gold 200, CineStill 800T and Polaroid SX-70 retain their current rendering. Digital simulations and the original receive no film-specific grading. Scanner device labels use simulation; legacy off becomes neutral. Paper controls are hidden for film scanning. UI help describes controls and their visual effects. Processing uses Metal point operations without CPU image readback.
 
-## Latest changes — 1.26.0929 build 1659
+## Latest changes — 1.26.0929 build 1812
 
+Combines and replaces `1.26.0929 build 1659`; changes below are relative to `1.26.0927 build 2327`.
+
+- Fixed RAW film presets appearing too dark by preserving the decoder’s baseline exposure compensation in previews and exports. Original rendering and white balance are unchanged.
 - Duplicate photos with their current adjustments and select the copy immediately; export menus now use “Export Photo”.
 - Copy adjustment parameters and apply them to selected photos in a batch. Apply remains visible, and the progress dialog avoids flashing for small batches.
 - Resetting defaults with multiple photos selected restores every selected photo to Original.
