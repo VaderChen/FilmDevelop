@@ -45,6 +45,67 @@ enum PhotoStyleProcessor {
         isPreview: Bool = false,
         progress: (@Sendable (Double) -> Void)? = nil
     ) -> PhotoImage {
+        let defaultIntensity = StyleAdjustment.default(for: style).intensity
+        guard style.filmStock != nil, adjustment.intensity < defaultIntensity else {
+            return applyPipeline(style: style, adjustment: adjustment, to: image,
+                subjectMask: subjectMask, shouldDetectSubjectMask: shouldDetectSubjectMask,
+                repairPatches: repairPatches, isPreview: isPreview, progress: progress)
+        }
+
+        // Re-anchor only the lower half of film strength. The established default
+        // and every value above it still run the identical pipeline below.
+        let amount = max(0, adjustment.intensity) / defaultIntensity
+        var originalAdjustment = StyleAdjustment.default(for: .original)
+        originalAdjustment.cropAspectRatio = adjustment.cropAspectRatio
+        originalAdjustment.cropRotation = adjustment.cropRotation
+        originalAdjustment.cropScale = adjustment.cropScale
+        originalAdjustment.cropWidth = adjustment.cropWidth
+        originalAdjustment.cropHeight = adjustment.cropHeight
+        originalAdjustment.cropHorizontalPosition = adjustment.cropHorizontalPosition
+        originalAdjustment.cropVerticalPosition = adjustment.cropVerticalPosition
+        originalAdjustment.frameEnabled = false
+        originalAdjustment.dateEnabled = false
+        let original = applyPipeline(style: .original, adjustment: originalAdjustment, to: image,
+            subjectMask: subjectMask, shouldDetectSubjectMask: false,
+            repairPatches: repairPatches, isPreview: isPreview,
+            progress: progress.map { report in { report($0 * (amount > 0 ? 0.15 : 0.99)) } })
+        guard amount > 0 else {
+            let output = renderDecorations(on: original, adjustment: adjustment)
+            progress?(1)
+            return output
+        }
+
+        var filmAdjustment = adjustment
+        filmAdjustment.intensity = defaultIntensity
+        filmAdjustment.frameEnabled = false
+        filmAdjustment.dateEnabled = false
+        let film = applyPipeline(style: style, adjustment: filmAdjustment, to: image,
+            subjectMask: subjectMask, shouldDetectSubjectMask: shouldDetectSubjectMask,
+            repairPatches: repairPatches, isPreview: isPreview,
+            progress: progress.map { report in { report(0.15 + $0 * 0.84) } })
+        guard let originalCI = CIImage(image: original), let filmCI = CIImage(image: film),
+              let mixed = PhotoImageRenderPrecision.renderedImage(
+                from: originalCI.applyingFilter("CIDissolveTransition", parameters: [
+                    kCIInputTargetImageKey: filmCI, kCIInputTimeKey: amount
+                ]).cropped(to: filmCI.extent), context: context,
+                highPrecision: false, colorSpace: film.cgImage?.colorSpace, deferred: false) else { return renderDecorations(on: film, adjustment: adjustment) }
+        // Both renders share original-image crop/repair coordinates. Decorations
+        // are applied once after blending so the frame and date do not fade.
+        let output = renderDecorations(on: mixed, adjustment: adjustment)
+        progress?(1)
+        return output
+    }
+
+    private static func applyPipeline(
+        style: PhotoStyle,
+        adjustment: StyleAdjustment,
+        to image: PhotoImage,
+        subjectMask: CIImage? = nil,
+        shouldDetectSubjectMask: Bool = true,
+        repairPatches: [PhotoRepairPatch] = [],
+        isPreview: Bool = false,
+        progress: (@Sendable (Double) -> Void)? = nil
+    ) -> PhotoImage {
         // 原片使用解碼器預設顯影；底片仍取線性 RAW。後續調整與匯出共用此入口。
         let image = style == .original ? image.originalRendering : image
         guard let ciImage = CIImage(image: image) else { return image }

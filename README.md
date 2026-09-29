@@ -48,18 +48,15 @@
 
 片種資料：[Portra / Ektar](https://www.kodak.com/global/plugins/acrobat/en/professional/products/films/2012Brochure.pdf)、[VISION3 50D](https://www.kodak.com/en/motion/product/camera-films/50d-5203-7203/resources/)、[E100](https://www.kodakprofessional.com/sites/default/files/wysiwyg/E100%20FAQs%20PDF%202024.pdf)、[Provia 100F](https://www.fujifilm.com/us/en/business/professional-photography/film/provia-100f)、[Velvia](https://www.fujifilm.com/jp/ja/consumer/films/negative-and-reversal/velvia)。
 
-## 本版更新 — 1.26.0929 build 1812
+## 本版更新 — 1.26.0929 build 2113
 
-合併並取代 `1.26.0929 build 1659`；以下為相較 `1.26.0927 build 2327` 的變更。
+相較上一版正式 Release `v1.26.0929-build-1812` 的變更。
 
-- 修正 RAW 套用底片普遍偏暗：保留解碼器提供的基準曝光補償，預覽與匯出共用；原片顯影與白平衡不變。
-- 新增複製照片並套用目前調整，完成後立即選取複本；統一選單名稱為「匯出照片」。
-- 新增複製與批次套用調整參數；套用選項固定顯示，處理進度視窗避免少量照片時一閃而過。
-- 複選照片時，恢復預設值會將所有選取照片恢復為原片。
-- RAW 原片保留系統解碼器的預設曝光與白平衡；切換照片時直接從縮圖顯示完成顯影或已調整的影像，減少畫面跳變。
-- 自訂底片右鍵提供修改名稱、拷貝副本與刪除；拷貝後立即選取使用。
-- 「選取目錄」右鍵可開啟最近使用的十個目錄。
-- 合併重複 EXIF 欄位，停用網頁預設右鍵選單，並修正篩選下複本聚焦與右鍵操作前調整值提交。
+- 底片強度 0 現在與原片一致；0～50 平順混合至既有底片效果。
+- 底片預設強度 50、50 以上的成像與所有預設參數維持不變。
+- 強度調整保留裁切、旋轉與修復；外框和日期保持完整，預覽與匯出使用相同流程。
+
+彩色與黑白底片均以原片作為強度 0 的起點；本次僅調整低於 50 的混合方式，不重寫已存配方或照片。
 
 ## 功能特色
 

@@ -128,16 +128,11 @@ final class PhotoAppUpdater {
 
     // Bundled for offline use. Replace this list for each release with user-facing changes
     // since the immediately preceding published release; never append historical highlights.
-    // Current comparison baseline: v1.26.0927-build-2327.
+    // Current comparison baseline: v1.26.0929-build-1812.
     static let releaseHighlights = [
-        "修正 RAW 套用底片普遍偏暗：保留解碼器提供的基準曝光補償，預覽與匯出共用；原片顯影與白平衡不變。",
-        "新增複製照片並套用目前調整，完成後立即選取複本；統一選單名稱為「匯出照片」。",
-        "新增複製與批次套用調整參數；套用選項固定顯示，處理進度視窗避免少量照片時一閃而過。",
-        "複選照片時，恢復預設值會將所有選取照片恢復為原片。",
-        "RAW 原片保留系統解碼器的預設曝光與白平衡；切換照片時直接從縮圖顯示完成顯影或已調整的影像，減少畫面跳變。",
-        "自訂底片右鍵提供修改名稱、拷貝副本與刪除；拷貝後立即選取使用。",
-        "「選取目錄」右鍵可開啟最近使用的十個目錄。",
-        "合併重複 EXIF 欄位，停用網頁預設右鍵選單，並修正篩選下複本聚焦與右鍵操作前調整值提交。"
+        "底片強度 0 現在與原片一致；0～50 平順混合至既有底片效果。",
+        "底片預設強度 50、50 以上的成像與所有預設參數維持不變。",
+        "強度調整保留裁切、旋轉與修復；外框和日期保持完整，預覽與匯出使用相同流程。"
     ]
 
     private func presentUpdateNoticeIfNeeded() async throws {

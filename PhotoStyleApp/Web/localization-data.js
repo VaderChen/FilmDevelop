@@ -1,4 +1,8 @@
 window.PhotoLocalizationData = {
+  "底片強度 0 現在與原片一致；0～50 平順混合至既有底片效果。": ["Film strength 0 now matches Original; values from 0 to 50 smoothly blend into the existing film look.", "フィルム強度 0 はオリジナルと一致し、0～50 で従来のフィルム効果へ滑らかに変化します。", "필름 강도 0은 원본과 일치하며 0~50에서 기존 필름 효과로 부드럽게 전환됩니다."],
+  "底片預設強度 50、50 以上的成像與所有預設參數維持不變。": ["The default film strength of 50, rendering above 50 and all preset parameters remain unchanged.", "初期強度 50 とそれ以上の描画、およびすべてのプリセット値は変更しません。", "기본 필름 강도 50, 50 이상의 렌더링 및 모든 기본 매개변수는 유지됩니다."],
+  "強度調整保留裁切、旋轉與修復；外框和日期保持完整，預覽與匯出使用相同流程。": ["Strength adjustments retain cropping, rotation and repairs. Frames and dates remain fully visible, with the same pipeline for previews and exports.", "強度を変更しても切り抜き・回転・修復を保持し、フレームと日付は薄くなりません。プレビューと書き出しは同じ処理を使います。", "강도를 변경해도 자르기, 회전 및 복구를 유지합니다. 프레임과 날짜는 흐려지지 않으며 미리보기와 내보내기에 같은 처리를 사용합니다."],
+
   "修正 RAW 套用底片普遍偏暗：保留解碼器提供的基準曝光補償，預覽與匯出共用；原片顯影與白平衡不變。": ["Fixed RAW film presets appearing too dark by preserving the decoder’s baseline exposure compensation in previews and exports. Original rendering and white balance are unchanged.", "RAW にフィルムを適用すると暗くなる問題を修正しました。プレビューと書き出しでデコーダーの基準露出補正を保持します。オリジナルの現像とホワイトバランスは変更しません。", "RAW에 필름을 적용할 때 어두워지는 문제를 수정했습니다. 미리보기와 내보내기에서 디코더의 기준 노출 보정을 유지하며 원본 현상과 화이트 밸런스는 변경하지 않습니다."],
 
   "新增複製照片並套用目前調整，完成後立即選取複本；統一選單名稱為「匯出照片」。": ["Duplicate photos with their current adjustments and select the copy immediately; export menus now use “Export Photo”.", "現在の調整を保った写真の複製に対応し、完了後は複製を選択します。書き出しメニュー名を統一しました。", "현재 조정을 유지한 사진 복제를 지원하며 완료 후 복사본을 선택합니다. 내보내기 메뉴 이름을 통일했습니다."],

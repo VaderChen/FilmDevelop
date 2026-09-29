@@ -31,18 +31,15 @@ Film recipes now combine layer response, tone curves, hue-selective saturation a
 
 Cross Process, Kodak Gold 200, CineStill 800T and Polaroid SX-70 retain their current rendering. Digital simulations and the original receive no film-specific grading. Scanner device labels use simulation; legacy off becomes neutral. Paper controls are hidden for film scanning. UI help describes controls and their visual effects. Processing uses Metal point operations without CPU image readback.
 
-## Latest changes — 1.26.0929 build 1812
+## Latest changes — 1.26.0929 build 2113
 
-Combines and replaces `1.26.0929 build 1659`; changes below are relative to `1.26.0927 build 2327`.
+Changes since the previous release, `v1.26.0929-build-1812`.
 
-- Fixed RAW film presets appearing too dark by preserving the decoder’s baseline exposure compensation in previews and exports. Original rendering and white balance are unchanged.
-- Duplicate photos with their current adjustments and select the copy immediately; export menus now use “Export Photo”.
-- Copy adjustment parameters and apply them to selected photos in a batch. Apply remains visible, and the progress dialog avoids flashing for small batches.
-- Resetting defaults with multiple photos selected restores every selected photo to Original.
-- RAW Original uses the system decoder’s default exposure and white balance. Loading proceeds from the thumbnail to the developed or edited image, reducing visual jumps.
-- Custom film context menus offer Rename, Duplicate and Delete; duplicates are selected and applied immediately.
-- Right-click Choose Folder to open one of the ten most recent folders.
-- Deduplicated EXIF fields, disabled the default browser context menu, and fixed copy focus under filters and pending edits before context-menu actions.
+- Film strength 0 now matches Original; values from 0 to 50 smoothly blend into the existing film look.
+- The default film strength of 50, rendering above 50 and all preset parameters remain unchanged.
+- Strength adjustments retain cropping, rotation and repairs. Frames and dates remain fully visible, with the same pipeline for previews and exports.
+
+Color and black-and-white films both start from Original at strength 0. This update changes only blending below 50 and does not rewrite saved recipes or photos.
 
 ## Download and languages
 
