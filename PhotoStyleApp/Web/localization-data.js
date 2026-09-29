@@ -1,4 +1,12 @@
 window.PhotoLocalizationData = {
+  "新增複製照片並套用目前調整，完成後立即選取複本；統一選單名稱為「匯出照片」。": ["Duplicate photos with their current adjustments and select the copy immediately; export menus now use “Export Photo”.", "現在の調整を保った写真の複製に対応し、完了後は複製を選択します。書き出しメニュー名を統一しました。", "현재 조정을 유지한 사진 복제를 지원하며 완료 후 복사본을 선택합니다. 내보내기 메뉴 이름을 통일했습니다."],
+  "新增複製與批次套用調整參數；套用選項固定顯示，處理進度視窗避免少量照片時一閃而過。": ["Copy adjustment parameters and apply them to selected photos in a batch. Apply remains visible, and the progress dialog avoids flashing for small batches.", "調整パラメータのコピーと選択写真への一括適用に対応しました。適用項目を常に表示し、少数枚でも進捗画面が瞬時に消えないようにしました。", "조정 매개변수를 복사하여 선택한 사진에 일괄 적용할 수 있습니다. 적용 메뉴는 항상 표시되며 적은 사진 처리 시에도 진행 창이 잠깐 깜박이지 않습니다."],
+  "複選照片時，恢復預設值會將所有選取照片恢復為原片。": ["Resetting defaults with multiple photos selected restores every selected photo to Original.", "複数選択時の初期値への復元は、選択したすべての写真をオリジナルに戻します。", "사진을 여러 장 선택한 상태에서 기본값을 복원하면 선택한 모든 사진이 원본 상태로 돌아갑니다."],
+  "RAW 原片保留系統解碼器的預設曝光與白平衡；切換照片時直接從縮圖顯示完成顯影或已調整的影像，減少畫面跳變。": ["RAW Original uses the system decoder’s default exposure and white balance. Loading proceeds from the thumbnail to the developed or edited image, reducing visual jumps.", "RAW のオリジナル表示にシステムデコーダーの標準露出とホワイトバランスを使用します。サムネイルから現像済みまたは調整済み画像へ切り替え、表示の変動を抑えます。", "RAW 원본에 시스템 디코더의 기본 노출과 화이트 밸런스를 사용합니다. 썸네일에서 현상 또는 조정된 이미지로 전환하여 화면 변화를 줄였습니다."],
+  "自訂底片右鍵提供修改名稱、拷貝副本與刪除；拷貝後立即選取使用。": ["Custom film context menus offer Rename, Duplicate and Delete; duplicates are selected and applied immediately.", "カスタムフィルムの右クリックで名前変更、複製、削除ができます。複製後はすぐに選択して適用します。", "사용자 지정 필름의 오른쪽 클릭 메뉴에서 이름 변경, 복제, 삭제를 지원하며 복제 후 즉시 선택하여 적용합니다."],
+  "「選取目錄」右鍵可開啟最近使用的十個目錄。": ["Right-click Choose Folder to open one of the ten most recent folders.", "フォルダー選択を右クリックすると、最近使用した最大10個のフォルダーを開けます。", "폴더 선택을 오른쪽 클릭하면 최근 사용한 폴더를 최대 10개까지 열 수 있습니다."],
+  "合併重複 EXIF 欄位，停用網頁預設右鍵選單，並修正篩選下複本聚焦與右鍵操作前調整值提交。": ["Deduplicated EXIF fields, disabled the default browser context menu, and fixed copy focus under filters and pending edits before context-menu actions.", "重複する EXIF 項目を整理し、ブラウザー標準の右クリックメニューを無効化しました。絞り込み中の複製へのフォーカスと、右クリック操作前の調整確定を修正しました。", "중복 EXIF 항목을 정리하고 브라우저 기본 오른쪽 클릭 메뉴를 비활성화했습니다. 필터 적용 중 복사본 포커스와 메뉴 작업 전 조정값 반영을 수정했습니다."],
+
   "裁切與修復筆刷改用目前調色後的影像供操作；座標與修復仍作用於原圖，完成後重新套用完整處理流程。": ["Crop and repair tools now display the current edited look. Coordinates and repairs still apply to the original image, followed by the full processing pipeline.", "切り抜きと修復ブラシでは現在の色調整後の画像を表示します。座標と修復は元画像に適用し、その後に全処理を再適用します。", "자르기와 복구 브러시에 현재 색 보정된 이미지를 표시합니다. 좌표와 복구는 원본에 적용한 뒤 전체 처리 과정을 다시 적용합니다."],
 
   "新增「設定 → 輸出」，集中設定輸出目錄、格式、尺寸與各格式參數。": ["Added Settings → Export for the output folder, format, size and format-specific options.", "「設定 → 書き出し」を追加し、保存先・形式・サイズ・形式別の設定をまとめました。", "설정 → 내보내기를 추가해 폴더, 형식, 크기와 형식별 옵션을 한곳에 모았습니다."],
@@ -98,6 +106,13 @@ window.PhotoLocalizationData = {
   "調整此色層在亮部與暗部的反應差異；0 保留原有色彩。": ["Adjust this color layer’s response between highlights and shadows; 0 keeps existing color.", "この感色層の明部と暗部の応答差を調整します。0 は元の色を保持します。", "이 감색층의 밝은 영역과 어두운 영역 사이 반응 차이를 조정합니다. 0은 기존 색을 유지합니다."],
 
   "相機與鏡頭": ["Camera and lens", "カメラとレンズ", "카메라와 렌즈"],
+  "複製照片": ["Duplicate photo", "写真を複製", "사진 복제"],
+  "修改名稱": ["Rename", "名前を変更", "이름 변경"],
+  "尚無最近開啟的目錄": ["No recent folders", "最近開いたフォルダはありません", "최근 폴더 없음"],
+  "無法開啟目錄": ["Unable to open folder", "フォルダを開けません", "폴더를 열 수 없습니다"],
+  "拷貝副本": ["Duplicate", "複製", "복제"],
+  "複製調整參數": ["Copy adjustments", "調整パラメータをコピー", "조정 매개변수 복사"],
+  "套用調整參數": ["Apply adjustments", "調整パラメータを適用", "조정 매개변수 적용"],
   "拍攝設定": ["Capture settings", "撮影設定", "촬영 설정"],
   "日期與時間": ["Date and time", "日時", "날짜와 시간"],
   "影像資訊": ["Image information", "画像情報", "이미지 정보"],

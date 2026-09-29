@@ -4,6 +4,64 @@ import UniformTypeIdentifiers
 import PhotoStyleShared
 
 extension PhotoStyleWebCoordinator {
+    func makeCustomFilmMenu(id: String) -> NSMenu {
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        for (title, command) in [("修改名稱", "rename"), ("拷貝副本", "duplicate"), ("", ""), ("刪除", "delete")] {
+            if title.isEmpty { menu.addItem(.separator()); continue }
+            let item = NSMenuItem(title: PhotoL10n.text(title), action: #selector(performCustomFilmMenu(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = ["id": id, "command": command]
+            item.isEnabled = canImport && customFilmStore.film(id: id) != nil
+            menu.addItem(item)
+        }
+        return menu
+    }
+
+    func showCustomFilmMenu(_ payload: [String: Any]) {
+        guard canImport, let id = payload["id"] as? String, customFilmStore.film(id: id) != nil else { return }
+        filmHoverPreview.cancel(clearCache: true)
+        makeCustomFilmMenu(id: id).popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
+    }
+
+    @objc func performCustomFilmMenu(_ item: NSMenuItem) {
+        guard canImport, let payload = item.representedObject as? [String: String],
+              let id = payload["id"], customFilmStore.film(id: id) != nil else { return }
+        switch payload["command"] {
+        case "rename": promptToRenameCustomFilm(id: id)
+        case "duplicate":
+            do {
+                let copy = try customFilmStore.duplicate(id: id)
+                filmHoverPreview.cancel(clearCache: true)
+                applyCustomFilm(copy)
+            } catch { sendToast(error.localizedDescription) }
+        case "delete": promptToDeleteCustomFilm(["id": id])
+        default: break
+        }
+    }
+
+    func promptToRenameCustomFilm(id: String) {
+        guard canImport, let film = customFilmStore.film(id: id),
+              let window = webView?.window, window.attachedSheet == nil else { return }
+        let alert = NSAlert()
+        alert.messageText = PhotoL10n.text("修改名稱")
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 300, height: 26))
+        field.stringValue = film.name
+        field.placeholderString = PhotoL10n.text("底片名稱")
+        alert.accessoryView = field
+        alert.addButton(withTitle: PhotoL10n.text("儲存"))
+        alert.addButton(withTitle: PhotoL10n.text("取消"))
+        alert.window.initialFirstResponder = field
+        alert.beginSheetModal(for: window) { [weak self] response in
+            guard response == .alertFirstButtonReturn, let self, self.canImport else { return }
+            do {
+                _ = try self.customFilmStore.rename(id: id, name: field.stringValue)
+                self.filmHoverPreview.cancel(clearCache: true)
+                self.sendState(includeImages: false)
+            } catch { self.sendToast(error.localizedDescription) }
+        }
+    }
+
     func promptToSaveCustomFilm(name: String = "") {
         guard sourceImage != nil, canImport, let window = webView?.window, window.attachedSheet == nil else { return }
         let generation = photoGeneration
@@ -249,6 +307,19 @@ extension PhotoStyleWebCoordinator {
         guard sourceImage != nil, !isTerminating, !isLoadingImage, !isComputing,
               !isSavingImage, !isMCPMutating, !isDetectingSubjectMask, !isRepairingImage,
               payload["style"] as? String == selectedStyle.rawValue else { return }
+        if let ids = payload["ids"] as? [String], Set(ids).count > 1 {
+            guard photoRecipeTask == nil else { return }
+            let selected = Set(ids)
+            let urls = photoDirectoryStore.items.filter { selected.contains($0.id) }
+                .compactMap { photoDirectoryStore.url(for: $0.id) }
+            guard !urls.isEmpty else { return }
+            photoRecipeTask = Task { @MainActor [weak self] in
+                guard let self else { return }
+                _ = await self.performPhotoRecipeOperation(.reset, urls: urls)
+                self.photoRecipeTask = nil
+            }
+            return
+        }
         if !repairPatches.isEmpty {
             repairPatches.removeAll()
             sourceSubjectMask = nil

@@ -41,6 +41,7 @@ extension PhotoStyleWebCoordinator {
                 var loadedImageData: Data?
                 var loadedImageBookmark: Data?
                 var loadedImageIdentifier: String?
+                var preparedThumbnailPayload: String?
                 var loadingError: Error?
                 var coordinatorError: NSError?
                 let coordinator = NSFileCoordinator(filePresenter: nil)
@@ -49,6 +50,7 @@ extension PhotoStyleWebCoordinator {
                     do {
                         let data = try Data(contentsOf: readableURL)
                         if let quickPreview = loadingPreviewDataURL(from: data) {
+                            preparedThumbnailPayload = quickPreview
                             DispatchQueue.main.async { [weak self] in
                                 guard let self, self.isLoadingImage, cancellation?.isCancelled != true else { return }
                                 self.loadingPreviewImagePayload = quickPreview
@@ -72,7 +74,7 @@ extension PhotoStyleWebCoordinator {
 
                 let preparedProcessingImage = cancellation?.isCancelled == true ? nil : loadedImage?.resizedForWebPreview(maxPixel: Self.processingPreviewMaxPixel)
                 let preparedPreview = cancellation?.isCancelled == true ? nil : loadedImage?.resizedForWebPreview(maxPixel: PhotoImage.previewMaxPixel)
-                let preparedPreviewPayload = preparedPreview.flatMap { imageDataURL($0) }
+                let preparedPreviewPayload = preparedPreview.flatMap { imageDataURL($0.originalRendering) }
                 Task { @MainActor in
                     guard let self else { return }
                     self.isLoadingImage = false
@@ -88,6 +90,7 @@ extension PhotoStyleWebCoordinator {
                             preparedPreview: preparedPreview,
                             preparedProcessingImage: preparedProcessingImage,
                             preparedPreviewPayload: preparedPreviewPayload,
+                            preparedThumbnailPayload: preparedThumbnailPayload,
                             persistenceData: loadedImageData,
                             persistenceFileExtension: url.pathExtension,
                             sourceIdentifier: loadedImageIdentifier,
@@ -211,7 +214,7 @@ extension PhotoStyleWebCoordinator {
         let colorSpaceName = profileName?.localizedCaseInsensitiveContains("P3") == true
             ? CGColorSpace.extendedLinearDisplayP3
             : CGColorSpace.extendedLinearSRGB
-        guard let decoded = PhotoImageRenderPrecision.renderedImage(
+        guard var decoded = PhotoImageRenderPrecision.renderedImage(
             from: output,
             context: Self.imageDecodeContext,
             highPrecision: true,
@@ -230,6 +233,16 @@ extension PhotoStyleWebCoordinator {
            bitmap.width >= 1024, bitmap.height >= 1024 {
             let fallback = PhotoImage(cgImage: bitmap, usesEmbeddedRAWPreview: true)
             if Self.rawPreviewHasVisibleContent(fallback) { return fallback }
+        }
+        // 另存預設 RAW 顯影，保留每張照片的基準曝光、色調增強與白平衡。
+        // 不使用內嵌 JPEG 代替 RAW，也不把顯示曲線灌入底片的線性輸入。
+        if let cameraFilter = CIRAWFilter(imageData: data, identifierHint: identifierHint),
+           let cameraOutput = cameraFilter.outputImage,
+           cameraOutput.extent == output.extent,
+           let cameraImage = PhotoImageRenderPrecision.renderedImage(
+               from: cameraOutput, context: Self.imageDecodeContext, highPrecision: false,
+               colorSpace: CGColorSpace(name: colorSpaceName), scale: 1, deferred: false) {
+            decoded.cameraOriginal = cameraImage.cgImage
         }
         return decoded
     }

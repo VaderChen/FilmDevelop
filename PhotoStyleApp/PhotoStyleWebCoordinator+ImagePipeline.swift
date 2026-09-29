@@ -32,6 +32,7 @@ extension PhotoStyleWebCoordinator {
         preparedPreview: PhotoImage? = nil,
         preparedProcessingImage: PhotoImage? = nil,
         preparedPreviewPayload: String? = nil,
+        preparedThumbnailPayload: String? = nil,
         persistenceData: Data? = nil,
         persistenceFileExtension: String? = nil,
         sourceIdentifier: String? = nil,
@@ -67,7 +68,9 @@ extension PhotoStyleWebCoordinator {
         sourceFileURL = sourceURL
         previewImage = preparedPreview
         previewImagePayload = [:]
-        loadingPreviewImagePayload = preparedPreviewPayload
+        let hasSavedEdits = photoEditStore.shouldRestoreEdits(loaded.record, at: sourceURL)
+        // 已修改照片保留相機縮圖直到成品就緒，不先插入未套用修改的原片。
+        loadingPreviewImagePayload = hasSavedEdits ? preparedThumbnailPayload : preparedPreviewPayload
         outputImage = nil
         let defaults = UserDefaults.standard
         let previousSourceIdentifier = hadSourceImage ? currentSourceIdentifier : (
@@ -85,7 +88,6 @@ extension PhotoStyleWebCoordinator {
         repairPatches = []
         // Merely viewing a photo can create a cache record. Only an actual edit
         // record may restore a look; never inherit the outgoing photo's recipe.
-        let hasSavedEdits = photoEditStore.shouldRestoreEdits(loaded.record, at: sourceURL)
         if hasSavedEdits, let url = sourceURL { photoEditStore.markEdited(at: url) }
         if hasSavedEdits, let record = loaded.record,
            let restoredStyle = PhotoStyle(rawValue: record.selectedStyle) {
@@ -98,7 +100,12 @@ extension PhotoStyleWebCoordinator {
             adjustmentStore.restorePhotoAdjustments(record.adjustments)
         } else {
             manualAdjustments = PhotoManualAdjustments(hasCompleteHistory: true)
-            adjustmentStore.startNewPhoto()
+            if let url = sourceURL, loaded.record != nil, photoEditStore.hasRecordedEditState(at: url) {
+                // 已記錄為未編輯的照片使用預設值，不繼承上一張的外框或日期設定。
+                adjustmentStore.restorePhotoAdjustments([:])
+            } else {
+                adjustmentStore.startNewPhoto()
+            }
             selectedCustomFilmID = nil
             customFilmBaseAdjustment = nil
             selectedStyle = .original
@@ -149,7 +156,8 @@ extension PhotoStyleWebCoordinator {
 
                 let preparedProcessingImage = restoredImage?.image.resizedForWebPreview(maxPixel: Self.processingPreviewMaxPixel)
                 let preparedPreview = restoredImage?.image.resizedForWebPreview(maxPixel: PhotoImage.previewMaxPixel)
-                let preparedPreviewPayload = preparedPreview.flatMap { imageDataURL($0) }
+                let preparedPreviewPayload = preparedPreview.flatMap { imageDataURL($0.originalRendering) }
+                let preparedThumbnailPayload = restoredImage.flatMap { loadingPreviewDataURL(from: $0.data) }
                 Task { @MainActor in
                     self.isLoadingImage = false
                     if let restoredImage {
@@ -158,6 +166,7 @@ extension PhotoStyleWebCoordinator {
                             preparedPreview: preparedPreview,
                             preparedProcessingImage: preparedProcessingImage,
                             preparedPreviewPayload: preparedPreviewPayload,
+                            preparedThumbnailPayload: preparedThumbnailPayload,
                             persistenceData: restoredImage.needsPersistence ? restoredImage.data : nil,
                             persistenceFileExtension: restoredImage.fileExtension,
                             sourceIdentifier: restoredImage.sourceIdentifier,
@@ -198,9 +207,11 @@ extension PhotoStyleWebCoordinator {
            let cgImage = image.cgImage {
             // Older caches recorded false when ImageIO returned a RAW thumbnail.
             // A freshly decoded sensor image must keep its required display mapping.
+            let cameraOriginal = image.cameraOriginal
             image = PhotoImage(cgImage: cgImage,
                                requiresRAWDisplayMapping: !image.usesEmbeddedRAWPreview && (image.requiresRAWDisplayMapping || requiresMapping),
                                usesEmbeddedRAWPreview: image.usesEmbeddedRAWPreview)
+            image.cameraOriginal = cameraOriginal
         }
         return RestoredSourceImage(
             image: image,
@@ -424,7 +435,7 @@ extension PhotoStyleWebCoordinator {
         return normalized
     }
 
-    static func sourceImageIdentifier(for data: Data) -> String {
+    nonisolated static func sourceImageIdentifier(for data: Data) -> String {
         let digest = SHA256.hash(data: data)
         return "sha256:" + digest.map { String(format: "%02x", $0) }.joined()
     }

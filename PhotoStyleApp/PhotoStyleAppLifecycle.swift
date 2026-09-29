@@ -38,6 +38,8 @@ extension PhotoStyleWebCoordinator {
         activeRepair?.cancel()
         await activeRepair?.value
         updateActionAvailability()
+        // 已建立的照片副本與配方必須完成儲存，才可結束程式。
+        await photoRecipeTask?.value
         mcpServer.stop()
         // Do not use the UI's cancel guard: it intentionally disables cancellation
         // during the last preview, but quitting must still drain that task.

@@ -40,7 +40,7 @@ extension PhotoStyleWebCoordinator {
         // Commit pending Web edits together before the command takes its snapshot.
         // Pending portrait edits are explicit edits too. AI obtains its own mask;
         // export waits for this preview, while a new photo discards stale results.
-        if [.saveCustomFilm, .deleteCustomFilm, .undoEdit, .redoEdit, .importColorCalibration, .clearColorCalibration, .applyStyle, .saveImage, .browseFiles, .browsePhotoDirectory, .selectDirectoryPhoto, .showPreviewMenu, .setStyle].contains(bridgeMessage.action),
+        if [.saveCustomFilm, .deleteCustomFilm, .showCustomFilmMenu, .showRecentPhotoDirectories, .undoEdit, .redoEdit, .importColorCalibration, .clearColorCalibration, .applyStyle, .saveImage, .browseFiles, .browsePhotoDirectory, .selectDirectoryPhoto, .showPreviewMenu, .setStyle].contains(bridgeMessage.action),
            let adjustments = bridgeMessage.payload["adjustments"] as? [[String: Any]] {
             updateAdjustments(adjustments, detectSubjectMask: bridgeMessage.action != .applyStyle, userInitiated: true)
         }
@@ -89,12 +89,16 @@ extension PhotoStyleWebCoordinator {
             promptToSaveCustomFilm()
         case .deleteCustomFilm:
             promptToDeleteCustomFilm(bridgeMessage.payload)
+        case .showCustomFilmMenu:
+            showCustomFilmMenu(bridgeMessage.payload)
         case .sampleWhiteBalance:
             sampleWhiteBalance(bridgeMessage.payload)
         case .showPreviewMenu:
             showPreviewMenu(bridgeMessage.payload)
         case .browsePhotoDirectory:
             openPhotoDirectoryPicker()
+        case .showRecentPhotoDirectories:
+            showRecentPhotoDirectories()
         case .selectDirectoryPhoto:
             selectDirectoryPhoto(bridgeMessage.payload)
         case .requestPhotoThumbnails:

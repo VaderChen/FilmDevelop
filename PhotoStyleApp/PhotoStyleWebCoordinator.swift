@@ -172,6 +172,8 @@ final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMe
     var computationCompletedItemCount = 0
     var isSavingImage = false
     var batchExportProgress: PhotoBatchExportProgress?
+    var copiedPhotoRecipe: PhotoEditRecord?
+    var photoRecipeTask: Task<Void, Never>?
     var exportWorker: Task<CGSize, Error>?
     var savingStep = ""
     var shouldExpandAdjustmentsAfterComputation = false

@@ -13,7 +13,11 @@ enum PhotoStyleProcessor {
     static func repairedSource(_ image: PhotoImage, patches: [PhotoRepairPatch]) -> PhotoImage {
         guard !patches.isEmpty, let ci = CIImage(image: image) else { return image }
         let output = PhotoRepairPatch.applying(patches, to: ci.oriented(forExifOrientation: image.cgImageOrientation))
-        return PhotoImageRenderPrecision.renderedImage(from: output, context: context, preserving: image) ?? image
+        var result = PhotoImageRenderPrecision.renderedImage(from: output, context: context, preserving: image) ?? image
+        if image.cameraOriginal != nil {
+            result.cameraOriginal = repairedSource(image.originalRendering, patches: patches).cgImage
+        }
+        return result
     }
 
     static var canDetectSubjectMask: Bool {
@@ -41,6 +45,8 @@ enum PhotoStyleProcessor {
         isPreview: Bool = false,
         progress: (@Sendable (Double) -> Void)? = nil
     ) -> PhotoImage {
+        // 原片使用解碼器預設顯影；底片仍取線性 RAW。後續調整與匯出共用此入口。
+        let image = style == .original ? image.originalRendering : image
         guard let ciImage = CIImage(image: image) else { return image }
         let source = ciImage.oriented(forExifOrientation: image.cgImageOrientation)
         let geometry = (adjustment.cropRect(in: source.extent, verticalAxisInverted: true),

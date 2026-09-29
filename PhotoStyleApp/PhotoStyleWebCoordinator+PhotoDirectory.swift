@@ -1,10 +1,72 @@
 import AppKit
 import ImageIO
 
+struct PhotoRecentDirectory: Codable {
+    let path: String
+    let bookmark: Data?
+}
+
 extension PhotoStyleWebCoordinator {
+    static let recentPhotoDirectoriesKey = "recentPhotoDirectories.v1"
+
+    func recentPhotoDirectories() -> [PhotoRecentDirectory] {
+        let defaults = UserDefaults.standard
+        if let data = defaults.data(forKey: Self.recentPhotoDirectoriesKey),
+           let entries = try? JSONDecoder().decode([PhotoRecentDirectory].self, from: data) {
+            return Array(entries.prefix(10))
+        }
+        guard let path = defaults.string(forKey: Self.lastPhotoDirectoryPathDefaultsKey), !path.isEmpty else { return [] }
+        return [.init(path: path, bookmark: defaults.data(forKey: Self.lastPhotoDirectoryBookmarkDefaultsKey))]
+    }
+
+    func makeRecentPhotoDirectoryMenu() -> NSMenu {
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        let entries = recentPhotoDirectories()
+        if entries.isEmpty {
+            let item = NSMenuItem(title: PhotoL10n.text("尚無最近開啟的目錄"), action: nil, keyEquivalent: "")
+            item.isEnabled = false
+            menu.addItem(item)
+        }
+        for entry in entries {
+            let item = NSMenuItem(title: (entry.path as NSString).abbreviatingWithTildeInPath,
+                                 action: #selector(openRecentPhotoDirectory(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = entry
+            item.isEnabled = canImport
+            item.state = photoDirectoryStore.directoryURL?.standardizedFileURL.resolvingSymlinksInPath().path == entry.path ? .on : .off
+            menu.addItem(item)
+        }
+        return menu
+    }
+
+    func showRecentPhotoDirectories() {
+        guard canImport else { return }
+        makeRecentPhotoDirectoryMenu().popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
+    }
+
+    @objc func openRecentPhotoDirectory(_ item: NSMenuItem) {
+        guard canImport, let entry = item.representedObject as? PhotoRecentDirectory else { return }
+        var stale = false
+        let resolved = entry.bookmark.flatMap {
+            try? URL(resolvingBookmarkData: $0, options: [.withSecurityScope], relativeTo: nil, bookmarkDataIsStale: &stale)
+        }
+        let url = resolved ?? URL(fileURLWithPath: entry.path, isDirectory: true)
+        let access = url.startAccessingSecurityScopedResource()
+        defer { if access { url.stopAccessingSecurityScopedResource() } }
+        guard (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true else {
+            sendToast(PhotoL10n.text("無法開啟目錄") + "：" + entry.path)
+            return
+        }
+        selectNewPhotoDirectory(url)
+        rememberPhotoDirectory(forceBookmark: true)
+    }
+
     func rememberPhotoDirectory(forceBookmark: Bool = false) {
         guard let url = photoDirectoryStore.directoryURL else { return }
         let defaults = UserDefaults.standard
+        // 先讀取舊值，讓升級前最後開啟的目錄也能保留在歷史中。
+        let recent = recentPhotoDirectories()
         if forceBookmark || defaults.string(forKey: Self.lastPhotoDirectoryPathDefaultsKey) != url.path {
             defaults.set(url.path, forKey: Self.lastPhotoDirectoryPathDefaultsKey)
             defaults.removeObject(forKey: Self.lastPhotoDirectoryBookmarkDefaultsKey)
@@ -12,6 +74,15 @@ extension PhotoStyleWebCoordinator {
                                                    includingResourceValuesForKeys: nil, relativeTo: nil) {
                 defaults.set(bookmark, forKey: Self.lastPhotoDirectoryBookmarkDefaultsKey)
             }
+        }
+        let path = url.standardizedFileURL.resolvingSymlinksInPath().path
+        let bookmark = defaults.data(forKey: Self.lastPhotoDirectoryBookmarkDefaultsKey)
+        guard recent.first?.path != path || recent.first?.bookmark != bookmark else { return }
+        let next = [PhotoRecentDirectory(path: path, bookmark: bookmark)] + recent.filter {
+            URL(fileURLWithPath: $0.path).standardizedFileURL.resolvingSymlinksInPath().path != path
+        }
+        if let data = try? JSONEncoder().encode(Array(next.prefix(10))) {
+            defaults.set(data, forKey: Self.recentPhotoDirectoriesKey)
         }
     }
 
@@ -146,7 +217,8 @@ extension PhotoStyleWebCoordinator {
                 menu.addItem(.separator())
             }
             addThumbnailOrganizationMenus(to: menu, ids: ids)
-            for (title, action) in [("輸出", #selector(performThumbnailExport(_:))),
+            addThumbnailRecipeMenus(to: menu, ids: ids)
+            for (title, action) in [("匯出照片", #selector(performThumbnailExport(_:))),
                                     ("刪除", #selector(performThumbnailDelete(_:)))] {
                 let item = NSMenuItem(title: PhotoL10n.text(title), action: action, keyEquivalent: "")
                 item.target = self
@@ -157,6 +229,11 @@ extension PhotoStyleWebCoordinator {
             return
         }
         guard sourceImage != nil, canImport else { return }
+        let menu = makePreviewPhotoMenu()
+        menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
+    }
+
+    func makePreviewPhotoMenu() -> NSMenu {
         let menu = NSMenu()
         menu.autoenablesItems = false
         let entries: [(String, String, Bool)] = [
@@ -167,19 +244,22 @@ extension PhotoStyleWebCoordinator {
             ("顯示 EXIF", "exif", sourceFileURL != nil),
             ("", "", false), ("[裁切] 原始比例", "source", true),
             ("[裁切] 自由調整", "free", true),
-            ("", "", false), ("匯出檔案", "saveImage", canExport && !isDetectingSubjectMask),
+            ("", "", false), ("匯出照片", "saveImage", canExport && !isDetectingSubjectMask),
             ("", "", false), ("顯示在 Finder", "reveal", sourceFileURL != nil),
             ("刪除檔案", "trash", sourceFileURL != nil)
         ]
         for (title, command, enabled) in entries {
             if title.isEmpty { menu.addItem(.separator()); continue }
+            if command == "saveImage" {
+                addPhotoRecipeMenus(to: menu, urls: sourceFileURL.map { [$0] } ?? [], singlePhoto: true)
+            }
             let item = NSMenuItem(title: PhotoL10n.text(title), action: #selector(performPreviewMenu(_:)), keyEquivalent: "")
             item.target = self
             item.representedObject = command
             item.isEnabled = enabled
             menu.addItem(item)
         }
-        menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
+        return menu
     }
 
     @objc func performPreviewMenu(_ item: NSMenuItem) {
@@ -317,7 +397,12 @@ enum PhotoEXIFMetadata {
         defer { if access { url.stopAccessingSecurityScopedResource() } }
         guard let source = CGImageSourceCreateWithURL(url as CFURL, [kCGImageSourceShouldCache: false] as CFDictionary),
               let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any] else { return nil }
+        return rows(from: properties)
+    }
+
+    static func rows(from properties: [String: Any]) -> [Row] {
         var rows: [Row] = []
+        var seenValues: [String: [NSObject]] = [:]
         if let width = properties[kCGImagePropertyPixelWidth as String] as? NSNumber,
            let height = properties[kCGImagePropertyPixelHeight as String] as? NSNumber {
             rows.append(Row(category: "影像資訊", label: "影像尺寸", value: "\(width) × \(height) px"))
@@ -333,10 +418,13 @@ enum PhotoEXIFMetadata {
                       "BrightnessValue": "亮度值", "FocalLenIn35mmFilm": "35mm 等效焦距"]
         let groups = [(kCGImagePropertyTIFFDictionary, "TIFF"), (kCGImagePropertyExifDictionary, "EXIF"),
                       (kCGImagePropertyExifAuxDictionary, "EXIF Aux"), (kCGImagePropertyGPSDictionary, "GPS")]
+        // EXIF Aux 使用的同義欄位統一成標準 EXIF 名稱，讓標籤與去重共用同一身分。
+        let auxiliaryAliases = ["LensInfo": "LensSpecification", "SerialNumber": "BodySerialNumber"]
         for (group, name) in groups {
             guard let fields = properties[group as String] as? [String: Any] else { continue }
-            for key in fields.keys.sorted() {
-                guard let value = fields[key], !(value is Data), !(value is [String: Any]) else { continue }
+            for sourceKey in fields.keys.sorted() {
+                guard let value = fields[sourceKey], !(value is Data), !(value is [String: Any]) else { continue }
+                let key = name == "EXIF Aux" ? auxiliaryAliases[sourceKey] ?? sourceKey : sourceKey
                 let formatted: String
                 if let n = value as? NSNumber, key == "ExposureTime", n.doubleValue > 0 {
                     formatted = n.doubleValue < 1 ? String(format: "1/%.0f s", 1/n.doubleValue) : "\(formatNumber(n)) s"
@@ -346,6 +434,12 @@ enum PhotoEXIFMetadata {
                 else if let text = value as? String { formatted = String(text.prefix(4096)) }
                 else if let n = value as? NSNumber { formatted = formatNumber(n) }
                 else { continue }
+                // GPS 保持獨立命名空間；比較原始值，避免四捨五入或截斷後誤合併不同內容。
+                let identity = "\(name == "GPS" ? "GPS" : "EXIF"):\(key)"
+                if let rawValue = value as? NSObject {
+                    if seenValues[identity, default: []].contains(where: { $0.isEqual(rawValue) }) { continue }
+                    seenValues[identity, default: []].append(rawValue)
+                }
                 rows.append(Row(category: category(for: key, group: name), label: labels[key] ?? key, value: formatted))
             }
         }

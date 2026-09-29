@@ -7,6 +7,7 @@ import UniformTypeIdentifiers
 struct PhotoBatchExportProgress {
     let id = UUID().uuidString
     let total: Int
+    var title = "正在批次輸出照片"
     var index = 0
     var succeeded = 0
     var failed = 0
@@ -15,7 +16,7 @@ struct PhotoBatchExportProgress {
     var fraction = 0.0
 
     var payload: [String: Any] {
-        ["id": id, "total": total, "current": index + 1, "succeeded": succeeded,
+        ["id": id, "title": title, "total": total, "current": index + 1, "succeeded": succeeded,
          "failed": failed, "filename": filename, "stage": stage,
          "progress": min(1, (Double(index) + fraction) / Double(max(1, total)))]
     }
@@ -49,7 +50,7 @@ extension PhotoStyleWebCoordinator {
     func chooseThumbnailExportDirectory(urls: [URL]) {
         guard !urls.isEmpty, canImport, let window = webView?.window, window.attachedSheet == nil else { return }
         let panel = NSOpenPanel()
-        panel.title = PhotoL10n.text("輸出")
+        panel.title = PhotoL10n.text("匯出照片")
         panel.prompt = PhotoL10n.text("選擇目錄")
         panel.canChooseFiles = false
         panel.canChooseDirectories = true

@@ -128,16 +128,15 @@ final class PhotoAppUpdater {
 
     // Bundled for offline use. Replace this list for each release with user-facing changes
     // since the immediately preceding published release; never append historical highlights.
-    // Current comparison baseline: v1.26.0927-build-1906.
+    // Current comparison baseline: v1.26.0927-build-2327.
     static let releaseHighlights = [
-        "裁切與修復筆刷改用目前調色後的影像供操作；座標與修復仍作用於原圖，完成後重新套用完整處理流程。",
-        "新增「設定 → 輸出」，集中設定輸出目錄、格式、尺寸與各格式參數。",
-        "輸出預設使用 sRGB，支援 Adobe RGB (1998) 與 Display P3，並轉換色彩及嵌入 ICC 描述檔。",
-        "最大輸出尺寸修改後自動取最接近的 8 倍數；0 表示原始尺寸，只縮小、不放大。",
-        "只顯示所選格式的參數，統一選項外觀並以說明泡泡呈現提示；單張與批次輸出共用設定。",
-        "修正切換照片時載入預覽的黑邊與尺寸跳動，減少載入完成後突然放大的感覺。",
-        "記錄照片的手動曝光與印相反差調整來源；本版維持原有配方套用流程。",
-        "修正反差、HDR 與局部明暗處理的階調銜接及透明度計算，改善極端調整的穩定性。"
+        "新增複製照片並套用目前調整，完成後立即選取複本；統一選單名稱為「匯出照片」。",
+        "新增複製與批次套用調整參數；套用選項固定顯示，處理進度視窗避免少量照片時一閃而過。",
+        "複選照片時，恢復預設值會將所有選取照片恢復為原片。",
+        "RAW 原片保留系統解碼器的預設曝光與白平衡；切換照片時直接從縮圖顯示完成顯影或已調整的影像，減少畫面跳變。",
+        "自訂底片右鍵提供修改名稱、拷貝副本與刪除；拷貝後立即選取使用。",
+        "「選取目錄」右鍵可開啟最近使用的十個目錄。",
+        "合併重複 EXIF 欄位，停用網頁預設右鍵選單，並修正篩選下複本聚焦與右鍵操作前調整值提交。"
     ]
 
     private func presentUpdateNoticeIfNeeded() async throws {

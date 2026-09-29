@@ -213,4 +213,15 @@ final class PhotoEditStore {
     @MainActor func flush() async {
         await withCheckedContinuation { continuation in queue.async { continuation.resume() } }
     }
+
+    /// 批次作業需確認落盤成功，避免把僅留在記憶體的配方計為成功。
+    func saveConfirmed(_ record: PhotoEditRecord, for key: String) async throws {
+        save(record, mask: nil, for: key)
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            queue.async { [self] in
+                if failedWrites.contains(key) { continuation.resume(throwing: CocoaError(.fileWriteUnknown)) }
+                else { continuation.resume() }
+            }
+        }
+    }
 }

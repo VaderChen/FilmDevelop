@@ -1,5 +1,9 @@
 (function () {
   "use strict";
+  // 全頁停用 WebKit 預設右鍵選單，事件仍繼續傳遞給照片的自訂選單。
+  document.addEventListener("contextmenu", function (event) {
+    event.preventDefault();
+  }, { capture: true, passive: false });
   var L = window.PhotoL10n;
 
   // 發表日期依原始模型公告，來源與格式查核記錄見 docs/AI_MODELS.md。
@@ -284,6 +288,40 @@
       thumbnailObserver = new IntersectionObserver(scheduleThumbnailRequest, { root: list, threshold: 0.01 });
       list.querySelectorAll("[data-directory-photo]").forEach(function (node) { thumbnailObserver.observe(node); });
     }
+    focusPendingDirectoryPhoto();
+    scheduleThumbnailRequest();
+  }
+
+  var pendingDirectoryFocus = null;
+  window.handleFocusDirectoryPhoto = function (payload) {
+    pendingDirectoryFocus = payload;
+    focusPendingDirectoryPhoto();
+  };
+
+  function focusPendingDirectoryPhoto() {
+    var request = pendingDirectoryFocus, directory = state.photoDirectory || {};
+    if (!request) return;
+    if (directory.path !== request.path) { pendingDirectoryFocus = null; return; }
+    if (directory.isScanning || photoIsBusy(state)) return;
+    var item = (directory.items || []).find(function (photo) { return photo.name === request.name; });
+    // 複本沒有原照片的分類；必要時解除篩選，讓新照片可見並取得焦點。
+    if (item && photoDisplayMode.indexOf('tag:') === 0 &&
+        (item.tags || []).indexOf(photoDisplayMode.slice(4)) < 0) {
+      photoDisplayMode = 'standard';
+      localStorage.setItem('photoStyle.photoDisplayMode', photoDisplayMode);
+      window.handlePhotoDirectoryState(directory);
+      return;
+    }
+    var node = item && document.getElementById('photo-choice-' + item.id);
+    var list = node && node.closest('.photo-thumbnail-list');
+    if (!list || node.disabled) return;
+    directorySelection.ids = new Set([item.id]);
+    directorySelection.anchor = item.id;
+    updateThumbnailSelection();
+    list.scrollLeft = Math.max(0, node.offsetLeft - list.offsetLeft - (list.clientWidth - node.offsetWidth) / 2);
+    node.focus({ preventScroll: true });
+    pendingDirectoryFocus = null;
+    rememberThumbnailViewport();
     scheduleThumbnailRequest();
   }
 
@@ -2199,6 +2237,15 @@
   }
 
   function bindPhotoDirectoryEvents() {
+    app.querySelectorAll('[data-action="browsePhotoDirectory"]').forEach(function (button) {
+      if (button._recentDirectoryMenuBound) return;
+      button._recentDirectoryMenuBound = true;
+      button.addEventListener('contextmenu', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!photoIsBusy(state)) flushPhotoEdits('showRecentPhotoDirectories');
+      });
+    });
     var displaySelect = app.querySelector('#photoDisplayMode');
     if (displaySelect) displaySelect.addEventListener('change', function () {
       photoDisplayMode = displaySelect.value;
@@ -2356,7 +2403,11 @@
           if (!state.hasImage || photoIsBusy(state)) return;
           discardPendingPhotoEdits();
           state.cropEditing = false;
-          post("resetAdjustments", { style: state.selectedStyle });
+          syncDirectorySelection();
+          var resetIDs = visibleDirectoryPhotos().filter(function (item) {
+            return directorySelection.ids.has(item.id);
+          }).map(function (item) { return item.id; });
+          post("resetAdjustments", { style: state.selectedStyle, ids: resetIDs });
           render();
           return;
         }
@@ -2510,6 +2561,16 @@
       });
     });
 
+    app.querySelectorAll("[data-select-style], [data-film-stock]").forEach(function (button) {
+      button.addEventListener("contextmenu", function (event) {
+        var id = button.dataset.selectStyle || button.dataset.filmStock;
+        var film = (state.styles || []).find(function (style) { return style.id === id; });
+        if (!film || !film.isCustom) return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (!photoIsBusy(state)) flushPhotoEdits("showCustomFilmMenu", { id: id });
+      });
+    });
     app.querySelectorAll("[data-select-style]").forEach(function (button) {
       button.addEventListener("click", function () {
         if (photoIsBusy(state)) return;
@@ -3951,7 +4012,7 @@
       if (!computeTimer) computeTimer = setInterval(updateBusySeconds, 250);
     } else if (state.isSavingImage) {
       computeStartedAt = null;
-      busyTitle.textContent = L.text(batch ? "正在批次輸出照片" : "正在輸出照片");
+      busyTitle.textContent = L.text(batch ? (batch.title || "正在批次輸出照片") : "正在輸出照片");
       setBusyStep(batch ? batch.stage : (state.savingStep || L.text("準備輸出")));
       setBusyItems([]);
       busyTime.hidden = true;
@@ -3961,7 +4022,7 @@
         var progress = clamp(Number(batch.progress) || 0, 0, 1);
         var bar = document.getElementById('batchExportProgress');
         bar.value = progress;
-        bar.setAttribute('aria-label', L.text('批次輸出進度'));
+        bar.setAttribute('aria-label', busyTitle.textContent);
         document.getElementById('batchExportFilename').textContent = batch.filename || '';
         document.getElementById('batchExportCount').textContent = Math.floor(progress * 100) + '% · ' +
           L.text('第 ' + batch.current + ' 張／共 ' + batch.total + ' 張') + ' · ' +

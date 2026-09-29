@@ -167,7 +167,7 @@ extension PhotoStyleWebCoordinator {
                     let a = job.request.adjustment
                     let crop = "\(a.cropAspectRatio):\(a.cropRotation):\(a.cropScale):\(a.cropWidth):\(a.cropHeight):\(a.cropHorizontalPosition):\(a.cropVerticalPosition)"
                     images["sourceImage"] = sourceCache.value(for: job.request.image, variant: "comparison:" + crop) {
-                        imageDataURL(croppedImage(job.request.image, adjustment: a), maxPixel: Self.processingPreviewMaxPixel)
+                        imageDataURL(croppedImage(job.request.image.originalRendering, adjustment: a), maxPixel: Self.processingPreviewMaxPixel)
                     }
                     images["outputImage"] = imageDataURL(output, maxPixel: Self.processingPreviewMaxPixel)
                     return (output, images, subjectMask)

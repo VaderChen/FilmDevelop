@@ -63,20 +63,58 @@ final class CustomFilmStore {
 
     func film(id: String?) -> CustomFilm? { films.first { $0.id == id } }
 
-    @discardableResult
-    func save(name: String, baseStyle: PhotoStyle, adjustment: StyleAdjustment, sourceID: String? = nil) throws -> CustomFilm {
-        if let loadingError { throw loadingError }
-        let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+    private func validatedName(_ value: String, excluding id: String?) throws -> String {
+        let name = value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty, name.count <= 80,
               !name.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains) else {
             throw Self.failure("請輸入 1～80 個字的底片名稱。")
         }
+        guard !films.contains(where: { $0.id != id && $0.name.compare(name, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame }) else {
+            throw Self.failure("已有同名的自訂底片，請使用其他名稱。")
+        }
+        return name
+    }
+
+    @discardableResult
+    func rename(id: String, name: String) throws -> CustomFilm {
+        if let loadingError { throw loadingError }
+        guard let index = films.firstIndex(where: { $0.id == id }) else { throw Self.failure("自訂底片資料無法讀取。") }
+        let original = films[index]
+        let renamed = CustomFilm(id: id, name: try validatedName(name, excluding: id),
+                                 baseStyle: original.baseStyle, adjustment: original.adjustment)
+        var next = films
+        next[index] = renamed
+        if let fileURL {
+            try FileManager.default.createDirectory(at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try JSONEncoder().encode(next).write(to: fileURL, options: .atomic)
+        }
+        films = next
+        return renamed
+    }
+
+    @discardableResult
+    func duplicate(id: String) throws -> CustomFilm {
+        guard let original = film(id: id), let base = PhotoStyle(rawValue: original.baseStyle) else {
+            throw Self.failure("自訂底片資料無法讀取。")
+        }
+        var number = 1
+        var name: String
+        repeat {
+            let suffix = number == 1 ? " 副本" : " 副本 (\(number))"
+            name = String(original.name.prefix(80 - suffix.count)) + suffix
+            number += 1
+        } while films.contains { $0.name.compare(name, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame }
+        return try save(name: name, baseStyle: base, adjustment: original.adjustment)
+    }
+
+    @discardableResult
+    func save(name: String, baseStyle: PhotoStyle, adjustment: StyleAdjustment, sourceID: String? = nil) throws -> CustomFilm {
+        if let loadingError { throw loadingError }
+        let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         // Only an unchanged name from the selected recipe authorizes replacement.
         let original = film(id: sourceID)
         let replacementID = original?.name == name ? original?.id : nil
-        guard !films.contains(where: { $0.id != replacementID && $0.name.compare(name, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame }) else {
-            throw Self.failure("已有同名的自訂底片，請使用其他名稱。")
-        }
+        _ = try validatedName(name, excluding: replacementID)
         let film = CustomFilm(id: replacementID ?? "custom-" + UUID().uuidString, name: name,
                               baseStyle: baseStyle.rawValue, adjustment: adjustment)
         var next = films

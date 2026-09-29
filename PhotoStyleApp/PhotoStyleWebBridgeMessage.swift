@@ -19,9 +19,11 @@ enum PhotoStyleWebBridgeAction: String {
     case exportCustomFilm
     case saveCustomFilm
     case deleteCustomFilm
+    case showCustomFilmMenu
     case sampleWhiteBalance
     case showPreviewMenu
     case browsePhotoDirectory
+    case showRecentPhotoDirectories
     case selectDirectoryPhoto
     case requestPhotoThumbnails
     case openCustomModel

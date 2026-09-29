@@ -45,6 +45,12 @@ struct PhotoImage {
     let requiresRAWDisplayMapping: Bool
     /// The sensor decoder failed; editing/export uses the camera JPEG instead.
     let usesEmbeddedRAWPreview: Bool
+    /// 相同 RAW 的解碼器預設顯影；與供底片運算的線性像素分開保存。
+    var cameraOriginal: CGImage?
+    var originalRendering: PhotoImage {
+        guard let cameraOriginal else { return self }
+        return PhotoImage(cgImage: cameraOriginal)
+    }
     var scale: CGFloat { 1 }
     var imageOrientation: CGImagePropertyOrientation { .up }
     var size: CGSize {
@@ -175,12 +181,16 @@ struct PhotoImage {
         let source = CIImage(cgImage: cgImage)
         let transform = PhotoCropCalculator.rotationTransform(in: source.extent, clockwiseDegrees: degrees)
         let rotated = source.transformed(by: transform).cropped(to: source.extent)
-        return PhotoImageRenderPrecision.renderedImage(from: rotated, context: Self.context, preserving: self) ?? self
+        var result = PhotoImageRenderPrecision.renderedImage(from: rotated, context: Self.context, preserving: self) ?? self
+        if cameraOriginal != nil { result.cameraOriginal = originalRendering.rotatedForCrop(degrees: degrees).cgImage }
+        return result
     }
 
     func cropped(to rect: CGRect) -> PhotoImage {
         guard let image = cgImage?.cropping(to: rect.integral) else { return self }
-        return PhotoImage(cgImage: image, requiresRAWDisplayMapping: requiresRAWDisplayMapping, usesEmbeddedRAWPreview: usesEmbeddedRAWPreview)
+        var result = PhotoImage(cgImage: image, requiresRAWDisplayMapping: requiresRAWDisplayMapping, usesEmbeddedRAWPreview: usesEmbeddedRAWPreview)
+        result.cameraOriginal = cameraOriginal?.cropping(to: rect.integral)
+        return result
     }
 
     func resized(to target: CGSize) -> PhotoImage {
@@ -191,10 +201,12 @@ struct PhotoImage {
         ))
         // A cached preview must own only its resized pixels. A deferred CGImage
         // retains the complete source bitmap/graph, defeating preview cache costs.
-        return PhotoImageRenderPrecision.renderedImage(
+        var result = PhotoImageRenderPrecision.renderedImage(
             from: image, context: Self.context, highPrecision: requiresRAWDisplayMapping,
             colorSpace: cgImage.colorSpace, deferred: false, usesEmbeddedRAWPreview: usesEmbeddedRAWPreview
         ) ?? self
+        if cameraOriginal != nil { result.cameraOriginal = originalRendering.resized(to: target).cgImage }
+        return result
     }
 
     func resizedForWebPreview(maxPixel: CGFloat) -> PhotoImage {
