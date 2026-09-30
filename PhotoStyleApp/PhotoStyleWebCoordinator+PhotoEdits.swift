@@ -243,7 +243,7 @@ extension PhotoStyleWebCoordinator {
         encoder.outputFormatting = .sortedKeys
         guard let data = try? encoder.encode(request.adjustment) else { return nil }
         let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
-        return "\(request.adjustment.filmEffects.modernFilmExposureEnabled):\(request.adjustment.filmEffects.highlightProtectionEnabled):\(repairRevision):\(key):\(request.style.rawValue):\(request.image.size):\(request.image.requiresRAWDisplayMapping):\(digest)"
+        return "\(sourceImage?.rawDecoderBackend?.rawValue ?? "image"):\(request.adjustment.filmEffects.modernFilmExposureEnabled):\(request.adjustment.filmEffects.highlightProtectionEnabled):\(repairRevision):\(key):\(request.style.rawValue):\(request.image.size):\(request.image.requiresRAWDisplayMapping):\(digest)"
     }
 }
 

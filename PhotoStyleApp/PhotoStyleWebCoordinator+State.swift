@@ -58,6 +58,7 @@ extension PhotoStyleWebCoordinator {
             "highlightProtectionEnabled": highlightProtectionEnabled,
             "modernFilmExposureEnabled": modernFilmExposureEnabled,
             "hdrFeatureEnabled": hdrFeatureEnabled,
+            "rawDecoderBackend": rawDecoderBackend.rawValue,
             "originalResolutionEditing": originalResolutionEditing,
             "defaultExportDirectory": exportDirectoryPreference.path,
             "exportSettings": PhotoExportSettings().payload,

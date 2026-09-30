@@ -46,7 +46,7 @@ extension PhotoStyleWebCoordinator {
         let restoreID = UUID(), previousGeneration = photoGeneration
         sourceRestoreID = restoreID
         isLoadingImage = true
-        let preparedPreview = preparedPreview ?? image.resizedForWebPreview(maxPixel: PhotoImage.previewMaxPixel)
+        let preparedPreview = preparedPreview ?? image.editingWebPreview()
         let loaded = await photoEditStore.load(identifier: sourceIdentifier, url: sourceURL, maskSize: preparedPreview.size)
         guard sourceRestoreID == restoreID else { return false }
         isLoadingImage = false
@@ -61,6 +61,7 @@ extension PhotoStyleWebCoordinator {
         let hadSourceImage = sourceImage != nil
         let previousPreviewSize = previewImage?.size
         sourceImage = image
+        sourceRAWData = image.rawDecoderBackend != nil ? persistenceData : nil
         if image.usesEmbeddedRAWPreview {
             sendToast("RAW 解碼異常，已改用相機內嵌 JPEG 編輯與匯出；曝光調整空間較小，原始檔案未變更。")
         }
@@ -154,8 +155,8 @@ extension PhotoStyleWebCoordinator {
                 let restoredImage = self.restorePrivateSourceImage(from: privateImageURL)
                     ?? importedImageURL.flatMap { self.restoreImportedSourceImage(from: $0) }
 
-                let preparedProcessingImage = restoredImage?.image.resizedForWebPreview(maxPixel: Self.processingPreviewMaxPixel)
-                let preparedPreview = restoredImage?.image.resizedForWebPreview(maxPixel: PhotoImage.previewMaxPixel)
+                let preparedProcessingImage = restoredImage?.image.processingPreview(maxPixel: Self.processingPreviewMaxPixel)
+                let preparedPreview = restoredImage?.image.editingWebPreview()
                 let preparedPreviewPayload = preparedPreview.flatMap { imageDataURL($0.originalRendering) }
                 let preparedThumbnailPayload = restoredImage.flatMap { loadingPreviewDataURL(from: $0.data) }
                 Task { @MainActor in
@@ -167,7 +168,7 @@ extension PhotoStyleWebCoordinator {
                             preparedProcessingImage: preparedProcessingImage,
                             preparedPreviewPayload: preparedPreviewPayload,
                             preparedThumbnailPayload: preparedThumbnailPayload,
-                            persistenceData: restoredImage.needsPersistence ? restoredImage.data : nil,
+                            persistenceData: restoredImage.data,
                             persistenceFileExtension: restoredImage.fileExtension,
                             sourceIdentifier: restoredImage.sourceIdentifier,
                             sourceURL: importedImageURL,
@@ -201,7 +202,8 @@ extension PhotoStyleWebCoordinator {
             return nil
         }
         let identifier = Self.sourceImageIdentifier(for: data)
-        if let metadata = UserDefaults.standard.dictionary(forKey: Self.sourceRenderingMetadataDefaultsKey),
+        if image.rawDecoderBackend == nil,
+           let metadata = UserDefaults.standard.dictionary(forKey: Self.sourceRenderingMetadataDefaultsKey),
            metadata["identifier"] as? String == identifier,
            let requiresMapping = metadata["requiresRAWDisplayMapping"] as? Bool,
            let cgImage = image.cgImage {

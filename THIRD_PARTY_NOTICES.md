@@ -6,6 +6,7 @@ FilmDevelop 的[原始碼公開・禁止商業販售授權](LICENSE.md) 適用�
 | --- | --- | --- |
 | llama.cpp | MIT | [隨附 LICENSE](aiTest2/ThirdParty/llama.cpp/LICENSE)；[上游](https://github.com/ggml-org/llama.cpp) |
 | stable-diffusion.cpp | MIT | [隨附 LICENSE](aiTest/ThirdParty/stable-diffusion.cpp/LICENSE)；[上游](https://github.com/leejet/stable-diffusion.cpp) |
+| LibRaw 0.22.2 | CDDL-1.0（上游另提供 LGPL-2.1 選項） | [上游固定版本](https://github.com/LibRaw/LibRaw/tree/0.22.2)；建置時附上 COPYRIGHT、LICENSE.CDDL、LICENSE.LGPL 及來源網址至 App 的 RAWLicenses |
 | libwebp | BSD-3-Clause，另附專利授權 | [COPYING](Vendor/libwebp/macos/WebPLicenses/COPYING)、[PATENTS](Vendor/libwebp/macos/WebPLicenses/PATENTS)、[AUTHORS](Vendor/libwebp/macos/WebPLicenses/AUTHORS) |
 | mlx-swift 0.31.6 | MIT | [上游 LICENSE](https://github.com/ml-explore/mlx-swift/blob/0.31.6/LICENSE) |
 | mlx-swift-lm 3.31.4 | MIT | [上游 LICENSE](https://github.com/ml-explore/mlx-swift-lm/blob/3.31.4/LICENSE) |

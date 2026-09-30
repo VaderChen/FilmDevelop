@@ -1,0 +1,38 @@
+{
+  "status": "accepted_with_deferred_exceptions",
+  "target": "apple-default",
+  "metric": "CIE76 Lab D65; flat unclipped midtones after analysis registration",
+  "criterion": "Every development/heldout image median < 2; explicitly listed additional failures deferred; not an all-pixel or all-scene guarantee",
+  "minimum_independent_images_per_model": 3,
+  "independent_counts": {
+    "canon-eos-5d-mark-iii": 3,
+    "fujifilm-x-t3": 3,
+    "leica-q-typ-116": 3,
+    "nikon-z-6": 3,
+    "panasonic-dc-g9": 3,
+    "ricoh-gr-iii": 3,
+    "sony-ilce-7m3": 3,
+    "olympus-e-m1markii": 3,
+    "pentax-k-3": 3,
+    "canon-eos-r6": 3,
+    "sigma-fp": 3
+  },
+  "scope": "Calibration acceptance covers mapped RGB8 Original only; not scene-linear/HDR or half-size detail equivalence.",
+  "deferred": [
+    {
+      "camera": "Pentax K-3",
+      "ISO": 12800,
+      "masked_delta_e76_median": 3.996846
+    },
+    {
+      "camera": "Pentax K-3",
+      "ISO": 25600,
+      "masked_delta_e76_median": 8.789408
+    },
+    {
+      "camera": "Pentax K-3",
+      "ISO": 51200,
+      "masked_delta_e76_median": 13.598125
+    }
+  ]
+}

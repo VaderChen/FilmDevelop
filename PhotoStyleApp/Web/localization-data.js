@@ -1,4 +1,13 @@
 window.PhotoLocalizationData = {
+  "加速": ["Acceleration", "高速化", "가속"],
+  "RAW 加速": ["RAW acceleration", "RAW 高速化", "RAW 가속"],
+  "系統原生解析": ["System native decoder", "システム標準デコーダー", "시스템 기본 디코더"],
+  "內建軟體解析": ["Built-in software decoder", "内蔵ソフトウェアデコーダー", "내장 소프트웨어 디코더"],
+  "切換後重新解析目前的 RAW，並保留調整。內建軟體解析使用 CPU；編輯採半尺寸，匯出採全尺寸。高光範圍與細節可能不同，建議先使用系統原生解析。": ["Switching decodes the current RAW again and retains edits. The built-in decoder uses the CPU, half-size editing and full-size export. Highlight range and detail may differ; the system decoder is recommended initially.", "切り替えると現在の RAW を再デコードし、編集を保持します。内蔵デコーダーは CPU を使用し、編集は半分のサイズ、書き出しはフルサイズです。ハイライト範囲や細部が異なるため、最初はシステム標準を推奨します。", "전환하면 현재 RAW를 다시 디코딩하고 편집을 유지합니다. 내장 디코더는 CPU를 사용하며 편집은 절반 크기, 내보내기는 전체 크기입니다. 하이라이트 범위와 디테일이 다를 수 있어 우선 시스템 디코더를 권장합니다."],
+  "預設關閉；內建軟體解析的 RAW 使用半尺寸處理，其他圖片使用最長邊 2048 px。開啟後使用原檔，匯出皆使用全尺寸。": ["Off by default. Software-decoded RAW uses half-size processing; other images use a 2048 px longest edge. Enable to edit at original size. Exports always use full size.", "初期値はオフ。内蔵デコーダーの RAW は半分のサイズ、他の画像は長辺 2048 px で処理します。オンで原寸編集。書き出しは常にフルサイズです。", "기본값은 꺼짐입니다. 소프트웨어 디코딩 RAW는 절반 크기, 다른 이미지는 긴 변 2048 px로 처리합니다. 켜면 원래 크기로 편집합니다. 내보내기는 항상 전체 크기입니다."],
+  "無法重新讀取目前的 RAW，請重新開啟照片後再切換。": ["Cannot reread the current RAW. Reopen the photo before switching.", "現在の RAW を再読み込みできません。写真を開き直してから切り替えてください。", "현재 RAW를 다시 읽을 수 없습니다. 사진을 다시 연 후 전환하세요."],
+  "RAW 解析失敗，已保留原本的解析方式與照片。": ["RAW decoding failed. The previous decoder and photo have been retained.", "RAW のデコードに失敗しました。元のデコーダーと写真を保持しました。", "RAW 디코딩에 실패했습니다. 이전 디코더와 사진을 유지했습니다."],
+
   "底片強度 0 現在與原片一致；0～50 平順混合至既有底片效果。": ["Film strength 0 now matches Original; values from 0 to 50 smoothly blend into the existing film look.", "フィルム強度 0 はオリジナルと一致し、0～50 で従来のフィルム効果へ滑らかに変化します。", "필름 강도 0은 원본과 일치하며 0~50에서 기존 필름 효과로 부드럽게 전환됩니다."],
   "底片預設強度 50、50 以上的成像與所有預設參數維持不變。": ["The default film strength of 50, rendering above 50 and all preset parameters remain unchanged.", "初期強度 50 とそれ以上の描画、およびすべてのプリセット値は変更しません。", "기본 필름 강도 50, 50 이상의 렌더링 및 모든 기본 매개변수는 유지됩니다."],
   "強度調整保留裁切、旋轉與修復；外框和日期保持完整，預覽與匯出使用相同流程。": ["Strength adjustments retain cropping, rotation and repairs. Frames and dates remain fully visible, with the same pipeline for previews and exports.", "強度を変更しても切り抜き・回転・修復を保持し、フレームと日付は薄くなりません。プレビューと書き出しは同じ処理を使います。", "강도를 변경해도 자르기, 회전 및 복구를 유지합니다. 프레임과 날짜는 흐려지지 않으며 미리보기와 내보내기에 같은 처리를 사용합니다."],

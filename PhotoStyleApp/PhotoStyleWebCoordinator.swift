@@ -114,13 +114,15 @@ final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMe
         }
         return defaults.bool(forKey: "hdrFeatureEnabled.v1")
     }()
+    var rawDecoderBackend = PhotoRAWBackend.preference()
+    var sourceRAWData: Data?
     var originalResolutionEditing = UserDefaults.standard.object(forKey: originalResolutionEditingDefaultsKey) as? Bool ?? false
     var processingImage: PhotoImage?
     var editingImage: PhotoImage? {
         guard let sourceImage else { return nil }
         if originalResolutionEditing { return sourceImage }
         if processingImage == nil {
-            processingImage = sourceImage.resizedForWebPreview(maxPixel: Self.processingPreviewMaxPixel)
+            processingImage = sourceImage.processingPreview(maxPixel: Self.processingPreviewMaxPixel)
         }
         return processingImage
     }
@@ -133,6 +135,7 @@ final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMe
     var photoGeneration = UUID()
     var sourceImage: PhotoImage? {
         didSet {
+            if sourceImage?.rawDecoderBackend == nil { sourceRAWData = nil }
             processingImage = nil
             photoGeneration = UUID()
             cancelAdjustmentPreview()

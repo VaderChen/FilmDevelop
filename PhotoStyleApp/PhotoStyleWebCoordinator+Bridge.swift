@@ -136,6 +136,8 @@ extension PhotoStyleWebCoordinator {
             setStyle(bridgeMessage.payload)
         case .setLanguage:
             setLanguage(bridgeMessage.payload)
+        case .setRAWDecoderBackend:
+            setRAWDecoderBackend(bridgeMessage.payload)
         case .setOriginalResolutionEditing:
             setOriginalResolutionEditing(bridgeMessage.payload)
         case .setShowAllFilms:

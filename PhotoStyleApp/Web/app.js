@@ -40,6 +40,7 @@
     modernFilmExposureEnabled: false,
     hdrFeatureEnabled: true,
     originalResolutionEditing: false,
+    rawDecoderBackend: "system",
     mcp: { enabled: true, running: false, status: "啟動中", endpoint: "http://127.0.0.1:8765/mcp", connectionFile: "" },
     selectedCustomFilmID: null,
     selectedStyle: localStorage.getItem("photoStyle.selectedStyle") || "original",
@@ -1982,9 +1983,9 @@
     var modernFilmExposureHelp = L.text("使用更強的高光抑制並保留色彩；EV 值過高時，容易使畫面扁平、缺乏層次。");
     var highlightProtectionHelp = L.text("預設開啟，提高曝光時柔和壓縮高光。關閉後不再壓縮高光；降低曝光皆依 2^EV 計算，不自動補亮暗部。");
     var hdrFeatureHelp = L.text("預設開啟，可在全域調整中設定 HDR 模擬強度。關閉後隱藏該滑桿，預覽與匯出皆不套用 HDR 模擬；原有強度設定會保留。");
-    var originalResolutionHelp = L.text("預設關閉，使用最長邊 2048 px 的處理縮圖；開啟後使用原檔。若設備效能不足，建議關閉以加快操作。");
+    var originalResolutionHelp = state.rawDecoderBackend === "software" ? L.text("預設關閉；內建軟體解析的 RAW 使用半尺寸處理，其他圖片使用最長邊 2048 px。開啟後使用原檔，匯出皆使用全尺寸。") : L.text("預設關閉，使用最長邊 2048 px 的處理縮圖；開啟後使用原檔。若設備效能不足，建議關閉以加快操作。");
     var version = window.__appInfo ? window.__appInfo.version + " build " + window.__appInfo.build : "—";
-    var categories = [["general", "一般"], ["develop", "顯影"], ["export", "輸出"], ["mcp", "MCP"], ["about", "關於"]];
+    var categories = [["general", "一般"], ["develop", "顯影"], ["acceleration", "加速"], ["export", "輸出"], ["mcp", "MCP"], ["about", "關於"]];
     var panels = {
       general: [
       '<div class="settings-row"><span>' + renderHelp(adjustmentHelp("language"), L.text("語言")) + '</span><select id="languageSelect">',
@@ -2000,6 +2001,13 @@
       option("dark", L.text("暗色"), state.appearance),
       "</select></div>",
       '<div class="settings-row"><span>' + renderHelp(adjustmentHelp("showHelp"), L.text("自動顯示功能說明")) + '</span><button id="showHelpToggle" class="switch ' + (state.showHelp ? 'on' : '') + L.html('" type="button" role="switch" aria-label="自動顯示功能說明" aria-checked="') + state.showHelp + '"></button></div>',
+      ].join(""),
+      acceleration: [
+      '<div class="settings-row"><span id="rawAccelerationLabel">' + renderHelp(L.text("切換後重新解析目前的 RAW，並保留調整。內建軟體解析使用 CPU；編輯採半尺寸，匯出採全尺寸。高光範圍與細節可能不同，建議先使用系統原生解析。"), L.text("RAW 加速")) + '</span>',
+      '<select id="rawDecoderSelect" aria-labelledby="rawAccelerationLabel"' + (photoIsBusy(state) ? ' disabled' : '') + '>',
+      option("system", L.text("系統原生解析"), state.rawDecoderBackend),
+      option("software", L.text("內建軟體解析"), state.rawDecoderBackend),
+      '</select></div>'
       ].join(""),
       export: [
       '<div class="settings-row export-directory-row"><span>' + L.text("預設輸出目錄") + '</span><div class="export-directory-control">',
@@ -2799,6 +2807,12 @@
         render();
       });
     }
+
+    var rawDecoderSelect = document.getElementById("rawDecoderSelect");
+    if (rawDecoderSelect) rawDecoderSelect.addEventListener("change", function () {
+      rawDecoderSelect.disabled = true;
+      post("setRAWDecoderBackend", { backend: rawDecoderSelect.value });
+    });
 
     var languageSelect = document.getElementById("languageSelect");
     if (languageSelect) {

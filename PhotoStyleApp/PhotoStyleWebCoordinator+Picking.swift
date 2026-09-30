@@ -72,8 +72,8 @@ extension PhotoStyleWebCoordinator {
                     }
                 }
 
-                let preparedProcessingImage = cancellation?.isCancelled == true ? nil : loadedImage?.resizedForWebPreview(maxPixel: Self.processingPreviewMaxPixel)
-                let preparedPreview = cancellation?.isCancelled == true ? nil : loadedImage?.resizedForWebPreview(maxPixel: PhotoImage.previewMaxPixel)
+                let preparedProcessingImage = cancellation?.isCancelled == true ? nil : loadedImage?.processingPreview(maxPixel: Self.processingPreviewMaxPixel)
+                let preparedPreview = cancellation?.isCancelled == true ? nil : loadedImage?.editingWebPreview()
                 let preparedPreviewPayload = preparedPreview.flatMap { imageDataURL($0.originalRendering) }
                 Task { @MainActor in
                     guard let self else { return }
@@ -148,21 +148,25 @@ extension PhotoStyleWebCoordinator {
         return URL(fileURLWithPath: path, isDirectory: true)
     }
 
-    func decodePickedImage(data: Data, url: URL) -> PhotoImage? {
+    func decodePickedImage(data: Data, url: URL, backend: PhotoRAWBackend? = nil) -> PhotoImage? {
+        let selectedBackend = backend ?? rawDecoderBackend
         if let source = CGImageSourceCreateWithData(data as CFData, nil) {
             // Nikon NEF can be reported as public.tiff with a tiny embedded JPEG
             // at index zero. Decode camera RAW before accepting that raster image.
             let isRAWFile = UTType(filenameExtension: url.pathExtension)?.conforms(to: .rawImage) == true
-            if sourceContainsRAWData(source) || isRAWFile,
-               let image = decodeRAWImage(data: data, url: url) {
-                return image
+            if sourceContainsRAWData(source) || isRAWFile {
+                if selectedBackend == .software { return decodeSoftwareRAWImage(data: data) }
+                if let image = decodeRAWImage(data: data, url: url) { return image }
             }
             if let image = decodeImageSource(source) {
                 return image
             }
         }
 
-        if let image = decodeRAWImage(data: data, url: url) {
+        if selectedBackend == .software {
+            if let image = decodeSoftwareRAWImage(data: data) { return image }
+            if UTType(filenameExtension: url.pathExtension)?.conforms(to: .rawImage) == true { return nil }
+        } else if let image = decodeRAWImage(data: data, url: url) {
             return image
         }
 
@@ -180,6 +184,14 @@ extension PhotoStyleWebCoordinator {
             highPrecision: false,
             scale: 1
         )
+    }
+
+    private func decodeSoftwareRAWImage(data: Data) -> PhotoImage? {
+        guard var full = PhotoSoftwareRAWDecoder.decode(data: data, halfSize: false),
+              let half = PhotoSoftwareRAWDecoder.decode(data: data, halfSize: true),
+              let linear = half.cgImage, let display = half.cameraOriginal else { return nil }
+        full.softwareRAWPreview = (linear, display)
+        return full
     }
 
     private func sourceContainsRAWData(_ source: CGImageSource) -> Bool {
@@ -231,7 +243,8 @@ extension PhotoStyleWebCoordinator {
         if Self.rawBitmapIsCollapsed(decoded),
            let bitmap = PhotoRAWThumbnail.make(from: data, maxPixel: Int(max(output.extent.width, output.extent.height))),
            bitmap.width >= 1024, bitmap.height >= 1024 {
-            let fallback = PhotoImage(cgImage: bitmap, usesEmbeddedRAWPreview: true)
+            var fallback = PhotoImage(cgImage: bitmap, usesEmbeddedRAWPreview: true)
+            fallback.rawDecoderBackend = .system
             if Self.rawPreviewHasVisibleContent(fallback) { return fallback }
         }
         // 另存預設 RAW 顯影，保留每張照片的基準曝光、色調增強與白平衡。
@@ -244,6 +257,7 @@ extension PhotoStyleWebCoordinator {
                colorSpace: CGColorSpace(name: colorSpaceName), scale: 1, deferred: false) {
             decoded.cameraOriginal = cameraImage.cgImage
         }
+        decoded.rawDecoderBackend = .system
         return decoded
     }
 

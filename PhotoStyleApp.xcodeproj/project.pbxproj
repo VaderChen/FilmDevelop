@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FA3000010000000000000004 /* RAWLicenses in Resources */ = {isa = PBXBuildFile; fileRef = FA3000020000000000000004 /* RAWLicenses */; };
+		FA3000010000000000000003 /* RAWMapping in Resources */ = {isa = PBXBuildFile; fileRef = FA3000020000000000000003 /* RAWMapping */; };
+		FA3000010000000000000002 /* PhotoStyleWebCoordinator+Acceleration.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA3000020000000000000002 /* PhotoStyleWebCoordinator+Acceleration.swift */; };
+		FA3000010000000000000001 /* PhotoSoftwareRAWDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA3000020000000000000001 /* PhotoSoftwareRAWDecoder.swift */; };
 		FA2700010000000000000002 /* PhotoStyleWebCoordinator+Organization.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA2700020000000000000002 /* PhotoStyleWebCoordinator+Organization.swift */; };
 		FA2700010000000000000001 /* PhotoOrganizationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA2700020000000000000001 /* PhotoOrganizationStore.swift */; };
 		F92700010000000000000002 /* PhotoPreviewWorkGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F92700020000000000000002 /* PhotoPreviewWorkGate.swift */; };
@@ -85,6 +89,10 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		FA3000020000000000000004 /* RAWLicenses */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Vendor/PhotoRAW/macos/RAWLicenses"; sourceTree = SOURCE_ROOT; };
+		FA3000020000000000000003 /* RAWMapping */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Vendor/PhotoRAW/macos/RAWMapping"; sourceTree = SOURCE_ROOT; };
+		FA3000020000000000000002 /* PhotoStyleWebCoordinator+Acceleration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleWebCoordinator+Acceleration.swift"; sourceTree = "<group>"; };
+		FA3000020000000000000001 /* PhotoSoftwareRAWDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoSoftwareRAWDecoder.swift"; sourceTree = "<group>"; };
 		FA2700020000000000000002 /* PhotoStyleWebCoordinator+Organization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleWebCoordinator+Organization.swift"; sourceTree = "<group>"; };
 		FA2700020000000000000001 /* PhotoOrganizationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoOrganizationStore.swift"; sourceTree = "<group>"; };
 		F92700020000000000000002 /* PhotoPreviewWorkGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoPreviewWorkGate.swift"; sourceTree = "<group>"; };
@@ -217,6 +225,10 @@
 		DD1901052C00100100000001 /* CustomFilmStore.swift */,
 				DD1201062C00100100000001 /* PhotoDateStampRenderer.swift */,
 				DD1201032C00100100000001 /* PhotoStyleAppLifecycle.swift */,
+				FA3000020000000000000001 /* PhotoSoftwareRAWDecoder.swift */,
+				FA3000020000000000000002 /* PhotoStyleWebCoordinator+Acceleration.swift */,
+				FA3000020000000000000003 /* RAWMapping */,
+				FA3000020000000000000004 /* RAWLicenses */,
 				44F8E51D2C00100100000001 /* PhotoStyleWebCoordinator.swift */,
 				44F8E52C2C00100100000001 /* PhotoStyleWebCoordinator+Preview.swift */,
 				44F8E52B2C00100100000001 /* PhotoStyleWebCoordinator+MCP.swift */,
@@ -280,6 +292,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 44F8EA012C00100100000001 /* Build configuration list for PBXNativeTarget "PhotoStyleApp" */;
 				buildPhases = (
+					FA3000030000000000000001 /* Build RAW */,
 					46A100052C00100100000001 /* Build WebP */,
 					44F8E8012C00100100000001 /* Sources */,
 					44F8E3012C00100100000001 /* Frameworks */,
@@ -347,6 +360,8 @@
 				BC2401012C00100100000001 /* zh-Hant.lproj in Resources */,
 				BC2401022C00100100000001 /* ja.lproj in Resources */,
 				BC2401032C00100100000001 /* ko.lproj in Resources */,
+				FA3000010000000000000003 /* RAWMapping in Resources */,
+				FA3000010000000000000004 /* RAWLicenses in Resources */,
 				44F8E60A2C00100100000001 /* Web in Resources */,
 				AD2302042C00100100000001 /* Updater in Resources */,
 				44F8E60B2C00100100000001 /* Assets.xcassets in Resources */,
@@ -361,6 +376,19 @@
 
 
 /* Begin PBXShellScriptBuildPhase section */
+        FA3000030000000000000001 /* Build RAW */ = {
+            isa = PBXShellScriptBuildPhase;
+            alwaysOutOfDate = 1;
+            buildActionMask = 2147483647;
+            files = ();
+            inputPaths = ();
+            name = "Build RAW";
+            outputPaths = ("$(PROJECT_DIR)/Vendor/PhotoRAW/macos/lib/libphotoraw.a", "$(PROJECT_DIR)/Vendor/PhotoRAW/macos/include/module.modulemap", "$(PROJECT_DIR)/Vendor/PhotoRAW/macos/RAWMapping", "$(PROJECT_DIR)/Vendor/PhotoRAW/macos/RAWLicenses");
+            runOnlyForDeploymentPostprocessing = 0;
+            shellPath = /bin/bash;
+            shellScript = "\"$PROJECT_DIR/scripts/build-raw-macos.sh\"";
+        };
+
         46A100052C00100100000001 /* Build WebP */ = {
             isa = PBXShellScriptBuildPhase;
             alwaysOutOfDate = 1;
@@ -430,6 +458,8 @@
 		DD1902052C00100100000001 /* CustomFilmStore.swift in Sources */,
 				DD1202062C00100100000001 /* PhotoDateStampRenderer.swift in Sources */,
 				DD1202032C00100100000001 /* PhotoStyleAppLifecycle.swift in Sources */,
+				FA3000010000000000000001 /* PhotoSoftwareRAWDecoder.swift in Sources */,
+				FA3000010000000000000002 /* PhotoStyleWebCoordinator+Acceleration.swift in Sources */,
 				44F8E61C2C00100100000001 /* PhotoStyleWebCoordinator.swift in Sources */,
 				44F8E62C2C00100100000001 /* PhotoStyleWebCoordinator+Preview.swift in Sources */,
 				44F8E62B2C00100100000001 /* PhotoStyleWebCoordinator+MCP.swift in Sources */,
@@ -600,10 +630,10 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.26.0924;
-				OTHER_LDFLAGS = ("$(inherited)", "-lllama", "-lphotowebp", "-lc++", "-framework", Accelerate, "-framework", Metal, "-framework", MetalKit);
-                SWIFT_INCLUDE_PATHS = ("$(PROJECT_DIR)/Vendor/llama.cpp/macos/include", "$(PROJECT_DIR)/Vendor/libwebp/macos/include");
+				OTHER_LDFLAGS = ("$(inherited)", "-lllama", "-lphotowebp", "-lphotoraw", "-lz", "-lc++", "-framework", Accelerate, "-framework", Metal, "-framework", MetalKit);
+                SWIFT_INCLUDE_PATHS = ("$(PROJECT_DIR)/Vendor/llama.cpp/macos/include", "$(PROJECT_DIR)/Vendor/libwebp/macos/include", "$(PROJECT_DIR)/Vendor/PhotoRAW/macos/include");
                 ENABLE_USER_SCRIPT_SANDBOXING = NO;
-                LIBRARY_SEARCH_PATHS = ("$(inherited)", "$(PROJECT_DIR)/Vendor/llama.cpp/macos/lib", "$(PROJECT_DIR)/Vendor/libwebp/macos/lib");
+                LIBRARY_SEARCH_PATHS = ("$(inherited)", "$(PROJECT_DIR)/Vendor/llama.cpp/macos/lib", "$(PROJECT_DIR)/Vendor/libwebp/macos/lib", "$(PROJECT_DIR)/Vendor/PhotoRAW/macos/lib");
                 ENABLE_HARDENED_RUNTIME = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = person.vader.PhotoStyleApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -632,10 +662,10 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.26.0924;
-				OTHER_LDFLAGS = ("$(inherited)", "-lllama", "-lphotowebp", "-lc++", "-framework", Accelerate, "-framework", Metal, "-framework", MetalKit);
-                SWIFT_INCLUDE_PATHS = ("$(PROJECT_DIR)/Vendor/llama.cpp/macos/include", "$(PROJECT_DIR)/Vendor/libwebp/macos/include");
+				OTHER_LDFLAGS = ("$(inherited)", "-lllama", "-lphotowebp", "-lphotoraw", "-lz", "-lc++", "-framework", Accelerate, "-framework", Metal, "-framework", MetalKit);
+                SWIFT_INCLUDE_PATHS = ("$(PROJECT_DIR)/Vendor/llama.cpp/macos/include", "$(PROJECT_DIR)/Vendor/libwebp/macos/include", "$(PROJECT_DIR)/Vendor/PhotoRAW/macos/include");
                 ENABLE_USER_SCRIPT_SANDBOXING = NO;
-                LIBRARY_SEARCH_PATHS = ("$(inherited)", "$(PROJECT_DIR)/Vendor/llama.cpp/macos/lib", "$(PROJECT_DIR)/Vendor/libwebp/macos/lib");
+                LIBRARY_SEARCH_PATHS = ("$(inherited)", "$(PROJECT_DIR)/Vendor/llama.cpp/macos/lib", "$(PROJECT_DIR)/Vendor/libwebp/macos/lib", "$(PROJECT_DIR)/Vendor/PhotoRAW/macos/lib");
                 ENABLE_HARDENED_RUNTIME = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = person.vader.PhotoStyleApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";

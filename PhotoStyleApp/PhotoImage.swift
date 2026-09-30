@@ -5,6 +5,14 @@ import ImageIO
 import Metal
 import UniformTypeIdentifiers
 
+enum PhotoRAWBackend: String {
+    case system, software
+    static let defaultsKey = "rawDecoderBackend.v1"
+    static func preference(defaults: UserDefaults = .standard) -> Self {
+        defaults.string(forKey: defaultsKey).flatMap(Self.init(rawValue:)) ?? .system
+    }
+}
+
 enum PhotoExportColorSpace: String, CaseIterable {
     case sRGB, adobeRGB, displayP3
     var cgColorSpace: CGColorSpace {
@@ -47,6 +55,21 @@ struct PhotoImage {
     let usesEmbeddedRAWPreview: Bool
     /// 相同 RAW 的解碼器預設顯影；與供底片運算的線性像素分開保存。
     var cameraOriginal: CGImage?
+    var rawDecoderBackend: PhotoRAWBackend?
+    var softwareRAWPreview: (linear: CGImage, display: CGImage)?
+
+    func processingPreview(maxPixel: CGFloat) -> PhotoImage {
+        guard let preview = softwareRAWPreview else { return resizedForWebPreview(maxPixel: maxPixel) }
+        var result = PhotoImage(cgImage: preview.linear)
+        result.cameraOriginal = preview.display
+        result.rawDecoderBackend = .software
+        return result
+    }
+    func editingWebPreview() -> PhotoImage {
+        let input = softwareRAWPreview == nil ? self : processingPreview(maxPixel: Self.previewMaxPixel)
+        return input.resizedForWebPreview(maxPixel: Self.previewMaxPixel)
+    }
+
     var originalRendering: PhotoImage {
         guard let cameraOriginal else { return self }
         return PhotoImage(cgImage: cameraOriginal)
