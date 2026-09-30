@@ -15,6 +15,8 @@ Requires macOS 14 or later. AI features require a compatible local model, downlo
 
 Use **System native decoding** for RAW and **System native acceleration** for computation. Built-in software decoding and Vulkan are testing modes in preparation for Windows; this release does not include a Windows installer. The two settings are independent and apply to previews and exports.
 
+Enable lens correction is on by default for RAW. System-supplied corrections apply to previews and exports for supported RAW files.
+
 ## Export settings
 
 In Settings → Export, choose the default folder, format and color space. sRGB is the default; Adobe RGB (1998) and Display P3 are also available. Pixels are converted and the corresponding ICC profile is embedded.
@@ -34,19 +36,6 @@ Positive size entries have a minimum of 8 px and round to the nearest multiple o
 Film recipes now combine layer response, tone curves, hue-selective saturation and shadow/highlight color. Portra emphasizes skin tones, Ektar vivid color, and VISION3 tonal latitude; E100, Velvia and Provia receive distinct rendering. Digital grading is part of each film look and follows style intensity. Black-and-white stocks retain distinct sensitivity, tone and grain.
 
 Cross Process, Kodak Gold 200, CineStill 800T and Polaroid SX-70 retain their current rendering. Digital simulations and the original receive no film-specific grading. Scanner device labels use simulation; legacy off becomes neutral. Paper controls are hidden for film scanning. UI help describes controls and their visual effects. Processing uses Metal point operations without CPU image readback.
-
-## Latest changes — 1.26.0930 build 1745
-
-Changes since the previous release, `v1.26.0929-build-2113`.
-
-- For acceleration settings, use System native decoding and System native acceleration. Built-in software decoding and Vulkan are testing modes in preparation for Windows.
-- Added separate RAW decoding and compute acceleration settings, shared by previews and single or batch exports.
-- Added Enable lens correction for RAW, on by default, using system-supplied corrections in previews and exports.
-- Consecutive Vulkan film, development and strength-blending stages now keep images on the GPU, reducing transfers. Scanning retains its original processing order.
-- Corrected C++/Vulkan development sampling on large images to improve agreement with native output.
-- Improved resource cleanup when switching backends, finishing processing and handling errors; fixed auxiliary-file handling in the built-in RAW build.
-
-This release is for Apple Silicon macOS; no Windows installer is available yet.
 
 ## Download and languages
 
