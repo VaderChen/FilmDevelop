@@ -36,6 +36,7 @@ enum PhotoStyle: String, CaseIterable, Identifiable {
     case filmPolaroidSX70
     case filmDelta3200
     case gr3Negative = "gr3-negative"
+    case gr3SkyOrange = "gr3-sky-orange"
     case gr3HardMono = "gr3-hardmono"
     case gr4Yellow = "gr4-yellow"
     case gr4Green = "gr4-green"
@@ -53,7 +54,10 @@ enum PhotoStyle: String, CaseIterable, Identifiable {
         }
     }
 
-    static var catalogCases: [PhotoStyle] { allCases.filter { $0.mergedInto == nil } }
+    /// 暫停提供的配方仍可還原舊照片，僅從選用入口隱藏。
+    var isHiddenFromCatalog: Bool { self == .gr3SkyOrange }
+
+    static var catalogCases: [PhotoStyle] { allCases.filter { $0.mergedInto == nil && !$0.isHiddenFromCatalog } }
 
     var cameraProfile: PhotoCameraProfile? { PhotoCameraProfile.profile(id: rawValue) }
     var isLibraryLook: Bool { filmStock != nil || cameraProfile != nil }

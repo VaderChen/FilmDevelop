@@ -127,6 +127,7 @@ extension PhotoStyleWebCoordinator {
         var payload = stylePayload(base)
         // Custom recipes keep their own identity even when their base film was merged.
         payload["mergedInto"] = ""
+        payload["isHiddenFromCatalog"] = false
         payload["id"] = film.id
         payload["title"] = film.name
         payload["subtitle"] = "以「\(base.title)」為基礎儲存的自訂參數。"
@@ -140,6 +141,7 @@ extension PhotoStyleWebCoordinator {
         [
             "id": style.rawValue,
             "mergedInto": style.mergedInto?.rawValue ?? "",
+            "isHiddenFromCatalog": style.isHiddenFromCatalog,
             "title": style.title,
             "subtitle": style.subtitle,
             "isMonochrome": style.isMonochrome,

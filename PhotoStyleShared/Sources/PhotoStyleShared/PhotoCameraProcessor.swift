@@ -15,12 +15,16 @@ public struct PhotoCameraProfile: Sendable {
     let protection: Double
     public var palette: [String] {
         if isMonochrome { return ["#202322", "#797e79", "#dfdfd7"] }
+        if id == "gr3-sky-orange" { return ["#168aa6", "#ce864c", "#ece5d8"] }
         return split[2] < 0 && split[3] > 0.04 ? ["#47585d", "#a89b58", "#dfc879"] :
             split[0] < -0.03 ? ["#34594d", "#728b79", "#a8b9bf"] : ["#75958e", "#c6b39a", "#e1cbac"]
     }
     public static func profile(id: String) -> PhotoCameraProfile? { all.first { $0.id == id } }
     public static let all: [PhotoCameraProfile] = [
         .init(id: "gr3-negative", title: "GR III・負片", subtitle: "柔和反差、略浮黑位、褪色印相與暖亮部", isMonochrome: false, tone: [0.9, 0.6, 0.05, 0.97], saturation: 0.84, hueGain: [0.04, -0.02, -0.12, -0.04], hueShift: [3, -5, 8, -4], split: [-0.009, -0.009, 0.014, 0.018], protection: 0.55),
+        // Inspired by a finished daylight reference, not a recovered GR camera recipe.
+        // Anchor black at zero; separate cyan blues and warm oranges without lifting all shadows.
+        .init(id: "gr3-sky-orange", title: "GR III・晴空暖橙", subtitle: "青藍天空、暖橙色與柔白，保留深黑與中調反差", isMonochrome: false, tone: [1.08, 0.38, 0.0, 0.985], saturation: 0.94, hueGain: [0.12, -0.03, -0.10, 0.06], hueShift: [2, -3, 5, -18], split: [-0.005, -0.006, 0.003, 0.008], protection: 0.45),
         .init(id: "gr3-hardmono", title: "GR III・高反差黑白", subtitle: "深黑與亮白、強化明暗幾何；強度 50 仍維持黑白", isMonochrome: true, tone: [1.95, 0.6, 0.0, 1.0], saturation: 0, hueGain: [0, 0, 0, 0], hueShift: [0, 0, 0, 0], split: [0, 0, 0, 0], protection: 0),
         .init(id: "gr4-yellow", title: "GR IV・Cinema Yellow", subtitle: "黃色亮部、冷陰影、收斂彩度的電影反差", isMonochrome: false, tone: [1.5, 0.6, 0.012, 0.985], saturation: 0.76, hueGain: [0.08, -0.03, -0.18, -0.2], hueShift: [-2, -10, -12, -12], split: [-0.018, -0.012, -0.007, 0.065], protection: 0.7),
         .init(id: "gr4-green", title: "GR IV・Cinema Green", subtitle: "偏綠陰影、偏冷亮部與低彩度都市色調", isMonochrome: false, tone: [1.32, 0.62, 0.015, 0.985], saturation: 0.72, hueGain: [0.05, -0.08, -0.06, -0.05], hueShift: [2, 2, -12, -18], split: [-0.047, 0.02, -0.004, -0.01], protection: 0.84),
