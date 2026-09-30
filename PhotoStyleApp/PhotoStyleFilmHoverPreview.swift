@@ -92,7 +92,7 @@ final class PhotoStyleFilmHoverPreview {
         coordinator.previewRenderQueue.async { [weak self] in
             let result: (String?, CGSize) = workGate.withEditorWork {
                 autoreleasepool {
-                    let output = renderer.render(job.request)
+                    guard let output = try? renderer.renderChecked(job.request) else { return (nil, .zero) }
                     return (imageDataURL(output, maxPixel: PhotoImage.previewMaxPixel), output.size)
                 }
             }

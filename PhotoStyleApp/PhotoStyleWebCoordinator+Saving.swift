@@ -160,8 +160,8 @@ extension PhotoStyleWebCoordinator {
                     let mask = needsMask && renderer.canDetectSubjectMask
                         ? renderer.detectSubjectMask(for: PhotoStyleProcessor.repairedSource(image, patches: patches)) : nil
                     report("正在處理照片", 0.15)
-                    let output = autoreleasepool {
-                        renderer.render(.init(style: style, adjustment: adjustment, image: image,
+                    let output = try autoreleasepool {
+                        try renderer.renderChecked(.init(style: style, adjustment: adjustment, image: image,
                             subjectMask: mask ?? fallbackMask, shouldDetectSubjectMask: false, repairPatches: patches,
                             progress: { report("正在處理照片", 0.15 + min(1, max(0, $0)) * 0.65) }))
                     }
@@ -335,8 +335,8 @@ extension PhotoStyleWebCoordinator {
                 try Task.checkCancellation()
                 recordTiming("subject-mask")
                 reportStage("render", 0)
-                let output = autoreleasepool {
-                    renderer.render(.init(style: style, adjustment: adjustment, image: sourceImage,
+                let output = try autoreleasepool {
+                    try renderer.renderChecked(.init(style: style, adjustment: adjustment, image: sourceImage,
                         subjectMask: mask, shouldDetectSubjectMask: false, repairPatches: patches,
                         progress: { reportStage("render", $0) }))
                 }

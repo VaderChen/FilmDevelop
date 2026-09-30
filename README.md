@@ -11,6 +11,14 @@
 支援 macOS 14 以上；AI 功能需另備相容的本機模型。
 
 
+## 加速設定
+
+**加速設定請使用系統原生：RAW 選「系統原生解析」，計算選「系統原生加速」。內建軟體解析與 Vulkan 加速是為 Windows 平台做準備，目前供測試使用。尚未提供 Windows 安裝版。**
+
+「設定 → 加速」分別提供 RAW 解析與計算後端選擇。新增的「計算加速」可選「系統原生加速」或「Vulkan 加速」，預設系統原生；切換後會儲存偏好並重新產生目前照片的預覽。
+
+Vulkan 已接入底片、顯影與掃描，其他效果仍依原順序使用系統處理，套用於預覽及單張／批次匯出。macOS 使用隨 App 打包的 MoltenVK；目前不保證比原生更快。RAW 解析保留獨立設定，與計算後端共用中介層路由。架構、部署與 Windows 後續邊界見 [影像後端中介層](Vendor/PhotoCompute/README.md)。
+
 ## 輸出設定
 
 在「設定 → 輸出」選擇預設輸出目錄、格式與色彩空間。預設 sRGB，也可選 Adobe RGB (1998) 或 Display P3；輸出會實際轉換色彩並嵌入 ICC 描述檔。
@@ -48,15 +56,18 @@
 
 片種資料：[Portra / Ektar](https://www.kodak.com/global/plugins/acrobat/en/professional/products/films/2012Brochure.pdf)、[VISION3 50D](https://www.kodak.com/en/motion/product/camera-films/50d-5203-7203/resources/)、[E100](https://www.kodakprofessional.com/sites/default/files/wysiwyg/E100%20FAQs%20PDF%202024.pdf)、[Provia 100F](https://www.fujifilm.com/us/en/business/professional-photography/film/provia-100f)、[Velvia](https://www.fujifilm.com/jp/ja/consumer/films/negative-and-reversal/velvia)。
 
-## 本版更新 — 1.26.0929 build 2113
+## 本版更新 — 1.26.0930 build 1745
 
-相較上一版正式 Release `v1.26.0929-build-1812` 的變更。
+相較上一版正式 Release `v1.26.0929-build-2113` 的變更。
 
-- 底片強度 0 現在與原片一致；0～50 平順混合至既有底片效果。
-- 底片預設強度 50、50 以上的成像與所有預設參數維持不變。
-- 強度調整保留裁切、旋轉與修復；外框和日期保持完整，預覽與匯出使用相同流程。
+- 加速設定請使用「系統原生解析」與「系統原生加速」；內建軟體解析與 Vulkan 模式是為 Windows 平台做準備，目前供測試使用。
+- 新增獨立的 RAW 解析與計算加速選項，透過共用後端套用於預覽及單張、批次匯出。
+- 新增 RAW「啟用鏡頭修正」，預設開啟，使用系統提供的校正並同步套用於預覽與匯出。
+- Vulkan 的連續底片、顯影與強度混合保留在 GPU，減少階段間重複傳輸；掃描依原有處理順序執行。
+- 修正 C++／Vulkan 在大尺寸影像的顯影取樣差異，改善與系統原生成品的一致性。
+- 改善切換後端、結束處理與錯誤時的資源釋放，並修正內建 RAW 建置的附加檔案判斷。
 
-彩色與黑白底片均以原片作為強度 0 的起點；本次僅調整低於 50 的混合方式，不重寫已存配方或照片。
+目前發布版本為 Apple Silicon macOS；尚未提供 Windows 安裝版。
 
 ## 功能特色
 
@@ -174,13 +185,13 @@ cd FilmDevelop
 ./run.command
 ```
 
-需要完整 Xcode；首次準備可能需下載建置相依項目。也可以在 Finder 雙擊 `run.command`。使用 App 內的更新功能時會自動重新開啟；從原始碼重新建置後，請先結束舊版 App。
+需要完整 Xcode，以及 CMake、glslang、Vulkan headers／loader、MoltenVK（可由 Homebrew 安裝 `cmake glslang vulkan-headers vulkan-loader molten-vk`）。首次準備可能需下載建置相依項目。已安裝的 App 不需要上述開發工具。也可以在 Finder 雙擊 `run.command`。使用 App 內的更新功能時會自動重新開啟；從原始碼重新建置後，請先結束舊版 App。
 
 ## 補充說明
 
 底片與掃描外觀是模擬，並非特定掃描器或每款底片的原廠量測重現。
 
-測試、研究文件（`doc/`、`docs/`）及建置／暫存產物只保留於開發者本機，不包含在公開版本中。正式建置所需的第三方子模組仍隨版本庫記錄，建置產物由 `run.command` 呼叫的腳本產生。
+本機照片樣本、`Tests/` 測試、研究文件（`doc/`、`docs/`）及建置／暫存產物只保留於開發者本機，不包含在公開版本中。`experiments/PhotoCoreCpp` 已包含 App 所需的 C++／Vulkan 原始碼、共用資料與可重現的核心驗證工具，隨版本庫提供。正式建置所需的第三方子模組仍隨版本庫記錄，建置產物由 `run.command` 呼叫的腳本產生。
 
 最新修正與驗證摘要見[更新紀錄](CHANGELOG.md)。已在 macOS 27.0 驗證 Canon EOS 5D Mark IV 的 CR2、EOS R 的 CR3，以及 Sony α7 III 壓縮／未壓縮 ARW 的完整解碼、預覽與匯出；其他相機與系統版本仍依 macOS RAW 支援情況而定。
 

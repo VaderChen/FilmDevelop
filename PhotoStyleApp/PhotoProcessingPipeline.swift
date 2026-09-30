@@ -30,14 +30,14 @@ final class PhotoProcessingPipeline {
         return source
     }
 
-    func process(_ name: String, _ transform: (CIImage) -> CIImage) throws {
+    func process(_ name: String, _ transform: (CIImage) throws -> CIImage) throws {
         try Task.checkCancellation()
         memory(name + ".begin")
         progress?(name, 0)
         let start = ProcessInfo.processInfo.systemUptime
         let result: Buffer? = try autoreleasepool {
             let input = try inputImage()
-            let graph = transform(input)
+            let graph = try transform(input)
             guard graph !== input else { return nil }
             let bounds = graph.extent.integral
             // A returned CGImage retains its provider's Buffer. Reuse storage

@@ -56,6 +56,7 @@ extension PhotoStyleWebCoordinator {
         await withCheckedContinuation { continuation in
             previewRenderQueue.async { continuation.resume() }
         }
+        PhotoBackendRouter.releaseIdleComputeResources()
         persistCurrentPhotoEdits()
         await waitForSourcePersistence()
     }

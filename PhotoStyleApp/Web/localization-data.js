@@ -1,5 +1,24 @@
 window.PhotoLocalizationData = {
+  "加速設定請使用「系統原生解析」與「系統原生加速」；內建軟體解析與 Vulkan 模式是為 Windows 平台做準備，目前供測試使用。": ["For acceleration settings, use System native decoding and System native acceleration. Built-in software decoding and Vulkan are testing modes in preparation for Windows.", "高速化設定では「システム標準の解析」と「システム標準の高速化」を使用してください。内蔵ソフトウェア解析と Vulkan は Windows 対応の準備用で、現在はテスト向けです。", "가속 설정은 시스템 기본 디코딩과 시스템 기본 가속을 사용하세요. 내장 소프트웨어 디코딩과 Vulkan은 Windows 지원을 준비하는 테스트 모드입니다."],
+  "新增獨立的 RAW 解析與計算加速選項，透過共用後端套用於預覽及單張、批次匯出。": ["Added separate RAW decoding and compute acceleration settings, shared by previews and single or batch exports.", "RAW 解析と演算の高速化を個別に選択でき、プレビューと一枚・一括書き出しで共用します。", "RAW 디코딩과 연산 가속을 각각 선택할 수 있으며 미리보기와 단일·일괄 내보내기에 공통으로 적용합니다."],
+  "新增 RAW「啟用鏡頭修正」，預設開啟，使用系統提供的校正並同步套用於預覽與匯出。": ["Added Enable lens correction for RAW, on by default, using system-supplied corrections in previews and exports.", "RAW の「レンズ補正を有効にする」を追加。初期値はオンで、システムの補正をプレビューと書き出しに適用します。", "RAW 렌즈 보정 옵션을 추가했습니다. 기본값은 켜짐이며 시스템 보정을 미리보기와 내보내기에 적용합니다."],
+  "Vulkan 的連續底片、顯影與強度混合保留在 GPU，減少階段間重複傳輸；掃描依原有處理順序執行。": ["Consecutive Vulkan film, development and strength-blending stages now keep images on the GPU, reducing transfers. Scanning retains its original processing order.", "連続する Vulkan のフィルム・現像・強度合成を GPU 上に保持し、転送を削減しました。スキャンの処理順序は維持します。", "연속된 Vulkan 필름·현상·강도 혼합 단계에서 이미지를 GPU에 유지하여 전송을 줄였습니다. 스캔은 기존 처리 순서를 유지합니다."],
+  "修正 C++／Vulkan 在大尺寸影像的顯影取樣差異，改善與系統原生成品的一致性。": ["Corrected C++/Vulkan development sampling on large images to improve agreement with native output.", "大きな画像での C++／Vulkan 現像サンプリングを修正し、システム標準の出力との一致を改善しました。", "대형 이미지의 C++/Vulkan 현상 샘플링을 수정하여 시스템 기본 결과와의 일치도를 높였습니다."],
+  "改善切換後端、結束處理與錯誤時的資源釋放，並修正內建 RAW 建置的附加檔案判斷。": ["Improved resource cleanup when switching backends, finishing processing and handling errors; fixed auxiliary-file handling in the built-in RAW build.", "方式切り替え、処理終了、エラー時のリソース解放を改善し、内蔵 RAW ビルドの付随ファイル判定を修正しました。", "백엔드 전환, 처리 종료 및 오류 시 리소스 해제를 개선하고 내장 RAW 빌드의 보조 파일 처리를 수정했습니다."],
+
+  "啟用鏡頭修正": ["Enable lens correction", "レンズ補正を有効にする", "렌즈 보정 활성화"],
+  "預設開啟，使用系統 RAW 解析器提供的鏡頭校正，預覽與匯出同步套用。僅適用支援校正的 RAW；內建軟體解析、內嵌 JPEG 與一般圖片不套用。": ["On by default. Uses lens correction supplied by the system RAW decoder for previews and exports. Only supported RAW files are corrected; software decoding, embedded JPEGs and regular images are unaffected.", "初期値はオン。対応する RAW にシステムのレンズ補正を適用し、プレビューと書き出しに反映します。内蔵ソフトウェア解析、埋め込み JPEG、通常の画像には適用しません。", "기본값은 켜짐입니다. 지원되는 RAW에 시스템 렌즈 보정을 적용하며 미리보기와 내보내기에 반영합니다. 내장 소프트웨어 디코딩, 내장 JPEG 및 일반 이미지에는 적용하지 않습니다."],
+
+  "內建軟體解析 (測試中)": ["Built-in software decoding (testing)", "内蔵ソフトウェア解析（テスト中）", "내장 소프트웨어 디코딩 (테스트 중)"],
+
+  "內建解析器無法解析這張 RAW，已改用系統原生解析；其他照片仍優先使用內建軟體解析。": ["The built-in decoder could not decode this RAW. System decoding is used for this photo; other photos still prefer the built-in decoder.", "内蔵デコーダーでこの RAW を解析できないため、この写真はシステム標準で解析します。他の写真は引き続き内蔵解析を優先します。", "내장 디코더가 이 RAW를 처리할 수 없어 이 사진은 시스템 디코더를 사용합니다. 다른 사진은 계속 내장 디코더를 우선 사용합니다."],
+  "目前照片使用系統原生解析，內建解析器無法解析此檔案。": ["This photo uses system decoding because the built-in decoder cannot decode this file.", "このファイルを内蔵デコーダーで解析できないため、現在の写真はシステム標準で解析しています。", "내장 디코더가 이 파일을 처리할 수 없어 현재 사진은 시스템 디코더를 사용합니다."],
+
   "加速": ["Acceleration", "高速化", "가속"],
+  "計算加速": ["Compute acceleration", "演算の高速化", "연산 가속"],
+  "系統原生加速": ["System native acceleration", "システム標準の高速化", "시스템 기본 가속"],
+  "Vulkan 加速": ["Vulkan acceleration", "Vulkan 高速化", "Vulkan 가속"],
+  "選擇影像計算後端，套用於預覽與匯出。Vulkan 處理底片、顯影與掃描，其他效果保留系統原生處理。": ["Choose the image compute backend for previews and exports. Vulkan processes film, development and scanning; other effects use native processing.", "プレビューと書き出しに使う演算方式を選択します。Vulkan はフィルム・現像・スキャンを処理し、その他の効果は標準処理を使用します。", "미리보기와 내보내기에 사용할 연산 방식을 선택합니다. Vulkan은 필름, 현상, 스캔을 처리하고 다른 효과는 기본 처리를 사용합니다."],
   "RAW 加速": ["RAW acceleration", "RAW 高速化", "RAW 가속"],
   "系統原生解析": ["System native decoder", "システム標準デコーダー", "시스템 기본 디코더"],
   "內建軟體解析": ["Built-in software decoder", "内蔵ソフトウェアデコーダー", "내장 소프트웨어 디코더"],

@@ -128,11 +128,14 @@ final class PhotoAppUpdater {
 
     // Bundled for offline use. Replace this list for each release with user-facing changes
     // since the immediately preceding published release; never append historical highlights.
-    // Current comparison baseline: v1.26.0929-build-1812.
+    // Current comparison baseline: v1.26.0929-build-2113.
     static let releaseHighlights = [
-        "底片強度 0 現在與原片一致；0～50 平順混合至既有底片效果。",
-        "底片預設強度 50、50 以上的成像與所有預設參數維持不變。",
-        "強度調整保留裁切、旋轉與修復；外框和日期保持完整，預覽與匯出使用相同流程。"
+        "加速設定請使用「系統原生解析」與「系統原生加速」；內建軟體解析與 Vulkan 模式是為 Windows 平台做準備，目前供測試使用。",
+        "新增獨立的 RAW 解析與計算加速選項，透過共用後端套用於預覽及單張、批次匯出。",
+        "新增 RAW「啟用鏡頭修正」，預設開啟，使用系統提供的校正並同步套用於預覽與匯出。",
+        "Vulkan 的連續底片、顯影與強度混合保留在 GPU，減少階段間重複傳輸；掃描依原有處理順序執行。",
+        "修正 C++／Vulkan 在大尺寸影像的顯影取樣差異，改善與系統原生成品的一致性。",
+        "改善切換後端、結束處理與錯誤時的資源釋放，並修正內建 RAW 建置的附加檔案判斷。"
     ]
 
     private func presentUpdateNoticeIfNeeded() async throws {

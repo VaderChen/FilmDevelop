@@ -136,6 +136,8 @@ extension PhotoStyleWebCoordinator {
             setStyle(bridgeMessage.payload)
         case .setLanguage:
             setLanguage(bridgeMessage.payload)
+        case .setComputeBackend:
+            setComputeBackend(bridgeMessage.payload)
         case .setRAWDecoderBackend:
             setRAWDecoderBackend(bridgeMessage.payload)
         case .setOriginalResolutionEditing:
@@ -148,6 +150,8 @@ extension PhotoStyleWebCoordinator {
             setModernFilmExposureEnabled(bridgeMessage.payload)
         case .setHighlightProtectionEnabled:
             setHighlightProtectionEnabled(bridgeMessage.payload)
+        case .setLensCorrectionEnabled:
+            setLensCorrectionEnabled(bridgeMessage.payload)
         case .setHDRFeatureEnabled:
             setHDRFeatureEnabled(bridgeMessage.payload)
         case .beginAdjustmentPreview:

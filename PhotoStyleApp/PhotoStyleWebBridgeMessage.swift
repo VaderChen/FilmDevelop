@@ -38,12 +38,14 @@ enum PhotoStyleWebBridgeAction: String {
     case downloadModelRepository
     case setStyle
     case setLanguage
+    case setComputeBackend
     case setRAWDecoderBackend
     case setOriginalResolutionEditing
     case setShowAllFilms
     case setExposureExpansionEnabled
     case setModernFilmExposureEnabled
     case setHighlightProtectionEnabled
+    case setLensCorrectionEnabled
     case setHDRFeatureEnabled
     case beginAdjustmentPreview
     case endAdjustmentPreview

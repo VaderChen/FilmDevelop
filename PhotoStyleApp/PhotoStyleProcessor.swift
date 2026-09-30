@@ -45,11 +45,27 @@ enum PhotoStyleProcessor {
         isPreview: Bool = false,
         progress: (@Sendable (Double) -> Void)? = nil
     ) -> PhotoImage {
+        (try? render(style: style, adjustment: adjustment, to: image, subjectMask: subjectMask,
+            shouldDetectSubjectMask: shouldDetectSubjectMask, repairPatches: repairPatches,
+            isPreview: isPreview, progress: progress, compute: PhotoNativeComputeProvider())) ?? image
+    }
+
+    static func render(
+        style: PhotoStyle,
+        adjustment: StyleAdjustment,
+        to image: PhotoImage,
+        subjectMask: CIImage? = nil,
+        shouldDetectSubjectMask: Bool = true,
+        repairPatches: [PhotoRepairPatch] = [],
+        isPreview: Bool = false,
+        progress: (@Sendable (Double) -> Void)? = nil,
+        compute: any PhotoComputeProvider
+    ) throws -> PhotoImage {
         let defaultIntensity = StyleAdjustment.default(for: style).intensity
         guard style.filmStock != nil, adjustment.intensity < defaultIntensity else {
-            return applyPipeline(style: style, adjustment: adjustment, to: image,
+            return try applyPipeline(style: style, adjustment: adjustment, to: image,
                 subjectMask: subjectMask, shouldDetectSubjectMask: shouldDetectSubjectMask,
-                repairPatches: repairPatches, isPreview: isPreview, progress: progress)
+                repairPatches: repairPatches, isPreview: isPreview, progress: progress, compute: compute)
         }
 
         // Re-anchor only the lower half of film strength. The established default
@@ -65,10 +81,10 @@ enum PhotoStyleProcessor {
         originalAdjustment.cropVerticalPosition = adjustment.cropVerticalPosition
         originalAdjustment.frameEnabled = false
         originalAdjustment.dateEnabled = false
-        let original = applyPipeline(style: .original, adjustment: originalAdjustment, to: image,
+        let original = try applyPipeline(style: .original, adjustment: originalAdjustment, to: image,
             subjectMask: subjectMask, shouldDetectSubjectMask: false,
             repairPatches: repairPatches, isPreview: isPreview,
-            progress: progress.map { report in { report($0 * (amount > 0 ? 0.15 : 0.99)) } })
+            progress: progress.map { report in { report($0 * (amount > 0 ? 0.15 : 0.99)) } }, compute: compute)
         guard amount > 0 else {
             let output = renderDecorations(on: original, adjustment: adjustment)
             progress?(1)
@@ -79,10 +95,10 @@ enum PhotoStyleProcessor {
         filmAdjustment.intensity = defaultIntensity
         filmAdjustment.frameEnabled = false
         filmAdjustment.dateEnabled = false
-        let film = applyPipeline(style: style, adjustment: filmAdjustment, to: image,
+        let film = try applyPipeline(style: style, adjustment: filmAdjustment, to: image,
             subjectMask: subjectMask, shouldDetectSubjectMask: shouldDetectSubjectMask,
             repairPatches: repairPatches, isPreview: isPreview,
-            progress: progress.map { report in { report(0.15 + $0 * 0.84) } })
+            progress: progress.map { report in { report(0.15 + $0 * 0.84) } }, compute: compute)
         guard let originalCI = CIImage(image: original), let filmCI = CIImage(image: film),
               let mixed = PhotoImageRenderPrecision.renderedImage(
                 from: originalCI.applyingFilter("CIDissolveTransition", parameters: [
@@ -104,8 +120,9 @@ enum PhotoStyleProcessor {
         shouldDetectSubjectMask: Bool = true,
         repairPatches: [PhotoRepairPatch] = [],
         isPreview: Bool = false,
-        progress: (@Sendable (Double) -> Void)? = nil
-    ) -> PhotoImage {
+        progress: (@Sendable (Double) -> Void)? = nil,
+        compute: any PhotoComputeProvider
+    ) throws -> PhotoImage {
         // 原片使用解碼器預設顯影；底片仍取線性 RAW。後續調整與匯出共用此入口。
         let image = style == .original ? image.originalRendering : image
         guard let ciImage = CIImage(image: image) else { return image }
@@ -194,20 +211,63 @@ enum PhotoStyleProcessor {
                     strength: strength, monochrome: style.isMonochrome, renderContext: pipeline.context,
                     sampling: isPreview ? .preview : .reference)
             }
-            try pipeline.process("development") {
-                PhotoFilmDevelopmentProcessor.apply(to: $0, effects: effects, strength: strength)
-            }
-            try pipeline.process("developer-chemistry") {
-                style.filmStock != nil || style == .original
-                    ? PhotoDeveloperChemistryProcessor.apply(to: $0, settings: effects.developerChemistry,
-                                                            strength: strength, monochrome: style.isMonochrome) : $0
+            if compute.supportsResidentPlan {
+                try pipeline.process("development") { input in
+                    var plan = PhotoComputePlan()
+                    let origin = input.extent.integral.origin
+                    var current = plan.append(.development, source: 0, effects: effects,
+                        strength: strength, monochrome: style.isMonochrome, stock: style.filmStock, origin: origin)
+                    if style.filmStock != nil || style == .original {
+                        current = plan.append(.chemistry, source: current, effects: effects,
+                            strength: strength, monochrome: style.isMonochrome, stock: style.filmStock, origin: origin)
+                    }
+                    if let stock = style.filmStock {
+                        let base = current
+                        var filmEffects = effects
+                        filmEffects.clearPrintExposure()
+                        // 曝光已由共用階段完成，清除後為精確 identity。
+                        filmEffects.modernFilmExposureEnabled = false
+                        if filmEffects.scannerProfile == .off { filmEffects.scannerProfile = .neutral }
+                        current = plan.append(.spectral, source: current, effects: filmEffects,
+                            strength: strength, monochrome: style.isMonochrome, stock: stock, origin: origin)
+                        current = plan.append(.character, source: current, effects: filmEffects,
+                            strength: strength, monochrome: style.isMonochrome, stock: stock, origin: origin)
+                        if strength < 1 {
+                            var neutral = base
+                            if image.requiresRAWDisplayMapping { neutral = plan.append(.rawMapping, source: neutral) }
+                            if style.isMonochrome { neutral = plan.append(.monochrome, source: neutral) }
+                            plan.append(.blend, source: neutral, secondary: current, strength: strength)
+                        }
+                    }
+                    return try compute.apply(plan, to: input)
+                }
+            } else {
+                try pipeline.process("development") { input in
+                    try compute.apply(.development, to: input, effects: effects, strength: strength,
+                        monochrome: style.isMonochrome, stock: style.filmStock) {
+                        PhotoFilmDevelopmentProcessor.apply(to: input, effects: effects, strength: strength)
+                    }
+                }
+                try pipeline.process("developer-chemistry") { input in
+                    guard style.filmStock != nil || style == .original else { return input }
+                    return try compute.apply(.chemistry, to: input, effects: effects, strength: strength,
+                        monochrome: style.isMonochrome, stock: style.filmStock) {
+                        PhotoDeveloperChemistryProcessor.apply(to: input, settings: effects.developerChemistry,
+                            strength: strength, monochrome: style.isMonochrome)
+                    }
+                }
             }
             try pipeline.process("raw-display-mapping") {
                 image.requiresRAWDisplayMapping && style.filmStock == nil && style != .original
                     ? PhotoRAWDynamicRangeProcessor.prepareForDisplayAdjustments($0) : $0
             }
             try pipeline.process("film-look") {
-                applyLook(to: $0, style: style, adjustment: adjustment, strength: strength, isRAW: image.requiresRAWDisplayMapping)
+                if compute.supportsResidentPlan && style.filmStock != nil {
+                    // 底片與強度混合已在 GPU 圖完成；此處只執行尚未移植的輸出校色。
+                    return PhotoColorCalibrationProcessor.apply(to: $0,
+                        calibration: adjustment.colorCalibration?.stage == .output ? adjustment.colorCalibration : nil)
+                }
+                return try applyLook(to: $0, style: style, adjustment: adjustment, strength: strength, isRAW: image.requiresRAWDisplayMapping, compute: compute)
             }
             if adjustsSkin, let skinMask {
                 try pipeline.process("skin-enhancement") {
@@ -262,7 +322,10 @@ enum PhotoStyleProcessor {
                     if let stock = style.filmStock, scanning.scannerSource == .film || stock.family == "reversal" {
                         scanning.scanFlare = 0
                     }
-                    let scanned = PhotoPositiveScannerProcessor.apply(to: input, effects: scanning)
+                    let scanned = try compute.apply(.scanner, to: input, effects: scanning, strength: strength,
+                        monochrome: false, stock: style.filmStock) {
+                        PhotoPositiveScannerProcessor.apply(to: input, effects: scanning)
+                    }
                     let toned = style.isMonochrome ? PhotoImageEffectsProcessor.monochrome(scanned, profile: .desaturate) : scanned
                     return blend(toned, with: input, intensity: strength)
                 }
@@ -271,13 +334,14 @@ enum PhotoStyleProcessor {
             progress?(1)
             return output
         } catch {
-            // The caller checks cancellation before publishing or encoding.
-            return image
+            // 失敗必須傳回呼叫端；預覽保留上一張成品，匯出不得誤存原片。
+            throw error
         }
     }
 
     private static func applyLook(to correctedBaseImage: CIImage, style: PhotoStyle,
-                                  adjustment: StyleAdjustment, strength: Double, isRAW: Bool) -> CIImage {
+                                  adjustment: StyleAdjustment, strength: Double, isRAW: Bool,
+                                  compute: any PhotoComputeProvider) throws -> CIImage {
         // 曝光已在底片前的亮度階段套用，所有底片／相機／原片分支皆避免重複曝光。
         var adjustment = adjustment
         adjustment.filmEffects.clearPrintExposure()
@@ -352,9 +416,15 @@ enum PhotoStyleProcessor {
         default:
             if let stock = style.filmStock {
                 // Sensitivity weights must see RGB before any grayscale conversion.
-                let developed = PhotoFilmStockProcessor.apply(to: monochromeSource, stock: stock,
-                                                             effects: adjustment.filmEffects, strength: strength, deferScannerRendering: true)
-                filtered = PhotoFilmCharacterProcessor.apply(to: developed, stock: stock)
+                let developed = try compute.apply(.spectral, to: monochromeSource, effects: adjustment.filmEffects,
+                    strength: strength, monochrome: style.isMonochrome, stock: stock) {
+                    PhotoFilmStockProcessor.apply(to: monochromeSource, stock: stock,
+                        effects: adjustment.filmEffects, strength: strength, deferScannerRendering: true)
+                }
+                filtered = try compute.apply(.character, to: developed, effects: adjustment.filmEffects,
+                    strength: strength, monochrome: style.isMonochrome, stock: stock) {
+                    PhotoFilmCharacterProcessor.apply(to: developed, stock: stock)
+                }
             } else if let camera = style.cameraProfile {
                 filtered = PhotoCameraProcessor.apply(to: monochromeSource, profile: camera)
             } else {

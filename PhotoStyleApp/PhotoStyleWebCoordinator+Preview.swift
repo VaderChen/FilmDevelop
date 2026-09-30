@@ -132,10 +132,11 @@ extension PhotoStyleWebCoordinator {
                         self.sendState(includeImages: true)
                     }
                 }
-                let (output, images, subjectMask) = autoreleasepool {
+                do {
+                let (output, images, subjectMask) = try autoreleasepool {
                     let subjectMask = job.request.subjectMask ?? (job.request.shouldDetectSubjectMask
                         ? renderer.detectSubjectMask(for: PhotoStyleProcessor.repairedSource(job.maskDetectionImage, patches: job.request.repairPatches)) : nil)
-                    let output = renderer.render(.init(
+                    let output = try renderer.renderChecked(.init(
                         style: job.request.style, adjustment: job.request.adjustment,
                         image: job.request.image, subjectMask: subjectMask, shouldDetectSubjectMask: false, repairPatches: job.request.repairPatches, isPreview: true
                     )).resizedForWebPreview(maxPixel: Self.processingPreviewMaxPixel)
@@ -152,9 +153,9 @@ extension PhotoStyleWebCoordinator {
                         let encoder = JSONEncoder()
                         encoder.outputFormatting = [.sortedKeys]
                         let settings = (try? encoder.encode(editorAdjustment)).map { $0.base64EncodedString() } ?? UUID().uuidString
-                        editorPayload = sourceCache.value(for: job.request.image,
+                        editorPayload = try sourceCache.value(for: job.request.image,
                             variant: "editor:" + job.request.style.rawValue + ":" + repairs + ":" + maskIdentity + ":" + settings) {
-                            let editorImage = renderer.render(.init(
+                            let editorImage = try renderer.renderChecked(.init(
                                 style: job.request.style, adjustment: editorAdjustment,
                                 image: job.request.image, subjectMask: subjectMask,
                                 shouldDetectSubjectMask: false, repairPatches: job.request.repairPatches, isPreview: true
@@ -209,6 +210,19 @@ extension PhotoStyleWebCoordinator {
                     } else {
                         self.sendState(includeImages: true)
                         self.finishPreviewWaiters()
+                    }
+                }
+                } catch {
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self else { return }
+                        self.previewRenderRunning = false
+                        if job.revision == self.previewRevision {
+                            self.outputImage = nil
+                            self.sendToast(error.localizedDescription)
+                        }
+                        self.startNextPreviewRender()
+                        self.sendState(includeImages: false)
+                        if !self.isRenderingPreview { self.finishPreviewWaiters() }
                     }
                 }
             }
@@ -267,15 +281,15 @@ final class PhotoPreviewSourcePayloadCache {
         entries.removeAll()
     }
 
-    func value(for image: PhotoImage, variant: String, create: () -> String?) -> String? {
-        guard let bitmap = image.cgImage else { return create() }
+    func value(for image: PhotoImage, variant: String, create: () throws -> String?) rethrows -> String? {
+        guard let bitmap = image.cgImage else { return try create() }
         if let index = entries.firstIndex(where: { $0.image === bitmap && $0.variant == variant }) {
             let entry = entries.remove(at: index)
             entries.append(entry)
             return entry.payload
         }
         encodingCount += 1
-        guard let payload = create() else { return nil }
+        guard let payload = try create() else { return nil }
         entries.append(Entry(image: bitmap, variant: variant, payload: payload))
         while entries.count > 6 || entries.reduce(0, { $0 + $1.payload.utf8.count }) > 16 * 1024 * 1024 {
             entries.removeFirst()

@@ -15,14 +15,17 @@ with (build / 'build.lock').open('w') as lock:
     sdk = subprocess.check_output(['xcrun', '--sdk', 'macosx', '--show-sdk-path'], text=True).strip()
     clang = subprocess.check_output(['xcrun', '--find', 'clang++'], text=True).strip()
     digest.update((sdk + subprocess.check_output([clang, '--version'], text=True)).encode())
-    inputs = [root / 'scripts/build-raw-macos.sh'] + sorted(p for d in ('src', 'Mapping') for p in (vendor/d).rglob('*') if p.is_file() and not p.name.startswith('.'))
+    inputs = [root / 'scripts/build-raw-macos.sh'] + sorted(p for d in ('src', 'Mapping') for p in (vendor/d).rglob('*') if p.is_file() and not p.name.startswith('.') and not p.name.endswith('.bak'))
     for p in inputs:
         digest.update(str(p.relative_to(root)).encode()); digest.update(p.read_bytes())
     fingerprint = digest.hexdigest()
     archive = output / 'lib/libphotoraw.a'
     stamp = output / 'build.sha256'
+    # macOS AppleDouble 附加資訊不是色彩對照表，不參與建置或快取檢查。
+    mappings = {name: sha for name, sha in json.loads((vendor/'Mapping/sha256.json').read_text()).items()
+                if not name.startswith('._')}
     expected = [output/'include/module.modulemap', output/'RAWMapping/index.tsv', output/'RAWLicenses/LICENSE.CDDL']
-    expected += [output/'RAWMapping'/name for name in json.loads((vendor/'Mapping/sha256.json').read_text())]
+    expected += [output/'RAWMapping'/name for name in mappings]
     if archive.is_file() and stamp.is_file() and stamp.read_text().strip() == fingerprint and all(p.is_file() for p in expected):
         sys.exit(0)
     source_archive = build/'libraw-0.22.2.tar.gz'
@@ -61,7 +64,7 @@ with (build / 'build.lock').open('w') as lock:
     shutil.copyfile(vendor/'src/PhotoRAW.h',output/'include/PhotoRAW.h')
     (output/'include/module.modulemap').write_text('module PhotoRAW {\n header "PhotoRAW.h"\n link "photoraw"\n link "c++"\n link "z"\n export *\n}\n')
     (output/'RAWMapping').mkdir(exist_ok=True)
-    for name,expected_sha in json.loads((vendor/'Mapping/sha256.json').read_text()).items():
+    for name,expected_sha in mappings.items():
         data=gzip.decompress((vendor/'Mapping'/(name+'.gz')).read_bytes())
         if hashlib.sha256(data).hexdigest()!=expected_sha: raise SystemExit('Mapping checksum mismatch: '+name)
         (output/'RAWMapping'/name).write_bytes(data)

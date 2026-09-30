@@ -39,8 +39,10 @@
     highlightProtectionEnabled: true,
     modernFilmExposureEnabled: false,
     hdrFeatureEnabled: true,
+    lensCorrectionEnabled: true,
     originalResolutionEditing: false,
     rawDecoderBackend: "system",
+    computeBackend: "system",
     mcp: { enabled: true, running: false, status: "啟動中", endpoint: "http://127.0.0.1:8765/mcp", connectionFile: "" },
     selectedCustomFilmID: null,
     selectedStyle: localStorage.getItem("photoStyle.selectedStyle") || "original",
@@ -1982,8 +1984,9 @@
     var exposureExpansionHelp = L.text("預設關閉，印相／觀看曝光範圍為 ±8 EV；開啟後擴大至 ±16 EV。關閉時仍保留已設定的超範圍數值。");
     var modernFilmExposureHelp = L.text("使用更強的高光抑制並保留色彩；EV 值過高時，容易使畫面扁平、缺乏層次。");
     var highlightProtectionHelp = L.text("預設開啟，提高曝光時柔和壓縮高光。關閉後不再壓縮高光；降低曝光皆依 2^EV 計算，不自動補亮暗部。");
+    var lensCorrectionHelp = L.text("預設開啟，使用系統 RAW 解析器提供的鏡頭校正，預覽與匯出同步套用。僅適用支援校正的 RAW；內建軟體解析、內嵌 JPEG 與一般圖片不套用。");
     var hdrFeatureHelp = L.text("預設開啟，可在全域調整中設定 HDR 模擬強度。關閉後隱藏該滑桿，預覽與匯出皆不套用 HDR 模擬；原有強度設定會保留。");
-    var originalResolutionHelp = state.rawDecoderBackend === "software" ? L.text("預設關閉；內建軟體解析的 RAW 使用半尺寸處理，其他圖片使用最長邊 2048 px。開啟後使用原檔，匯出皆使用全尺寸。") : L.text("預設關閉，使用最長邊 2048 px 的處理縮圖；開啟後使用原檔。若設備效能不足，建議關閉以加快操作。");
+    var originalResolutionHelp = (state.effectiveRAWDecoderBackend || state.rawDecoderBackend) === "software" ? L.text("預設關閉；內建軟體解析的 RAW 使用半尺寸處理，其他圖片使用最長邊 2048 px。開啟後使用原檔，匯出皆使用全尺寸。") : L.text("預設關閉，使用最長邊 2048 px 的處理縮圖；開啟後使用原檔。若設備效能不足，建議關閉以加快操作。");
     var version = window.__appInfo ? window.__appInfo.version + " build " + window.__appInfo.build : "—";
     var categories = [["general", "一般"], ["develop", "顯影"], ["acceleration", "加速"], ["export", "輸出"], ["mcp", "MCP"], ["about", "關於"]];
     var panels = {
@@ -2006,7 +2009,14 @@
       '<div class="settings-row"><span id="rawAccelerationLabel">' + renderHelp(L.text("切換後重新解析目前的 RAW，並保留調整。內建軟體解析使用 CPU；編輯採半尺寸，匯出採全尺寸。高光範圍與細節可能不同，建議先使用系統原生解析。"), L.text("RAW 加速")) + '</span>',
       '<select id="rawDecoderSelect" aria-labelledby="rawAccelerationLabel"' + (photoIsBusy(state) ? ' disabled' : '') + '>',
       option("system", L.text("系統原生解析"), state.rawDecoderBackend),
-      option("software", L.text("內建軟體解析"), state.rawDecoderBackend),
+      option("software", L.text("內建軟體解析 (測試中)"), state.rawDecoderBackend),
+      '</select></div>',
+      state.rawDecoderBackend === "software" && state.softwareRAWFallback
+        ? '<div class="settings-row" role="status"><span>' + L.text("目前照片使用系統原生解析，內建解析器無法解析此檔案。") + '</span></div>' : '',
+      '<div class="settings-row"><span id="computeAccelerationLabel">' + renderHelp(L.text("選擇影像計算後端，套用於預覽與匯出。Vulkan 處理底片、顯影與掃描，其他效果保留系統原生處理。"), L.text("計算加速")) + '</span>',
+      '<select id="computeBackendSelect" aria-labelledby="computeAccelerationLabel"' + (photoIsBusy(state) || state.isRenderingPreview ? ' disabled' : '') + '>',
+      option("system", L.text("系統原生加速"), state.computeBackend),
+      option("vulkan", L.text("Vulkan 加速"), state.computeBackend),
       '</select></div>'
       ].join(""),
       export: [
@@ -2028,6 +2038,8 @@
       '<button id="highlightProtectionToggle" class="switch ' + (state.highlightProtectionEnabled !== false ? "on" : "") + L.html('" type="button" role="switch" aria-label="使用高光抑制" aria-describedby="highlightProtectionHelp" aria-checked="') + (state.highlightProtectionEnabled !== false ? "true" : "false") + '" ' + (photoIsBusy(state) ? "disabled" : "") + '></button></div>',
       '<div class="settings-row"><span>' + renderHelp(hdrFeatureHelp, L.text("啟用 HDR 模擬")) + '</span><span id="hdrFeatureHelp" hidden>' + escapeHtml(hdrFeatureHelp) + '</span>',
       '<button id="hdrFeatureToggle" class="switch ' + (state.hdrFeatureEnabled !== false ? "on" : "") + L.html('" type="button" aria-label="啟用 HDR 模擬" aria-describedby="hdrFeatureHelp" aria-pressed="') + (state.hdrFeatureEnabled !== false ? "true" : "false") + '"></button></div>',
+      '<div class="settings-row"><span>' + renderHelp(lensCorrectionHelp, L.text("啟用鏡頭修正")) + '</span><span id="lensCorrectionHelp" hidden>' + escapeHtml(lensCorrectionHelp) + '</span>',
+      '<button id="lensCorrectionToggle" class="switch ' + (state.lensCorrectionEnabled !== false ? "on" : "") + L.html('" type="button" role="switch" aria-label="啟用鏡頭修正" aria-describedby="lensCorrectionHelp" aria-checked="') + (state.lensCorrectionEnabled !== false ? "true" : "false") + '" ' + (photoIsBusy(state) ? "disabled" : "") + '></button></div>',
       ].join(""),
       mcp: [
       L.html('<div class="settings-row"><span>本機 MCP 伺服器</span><button id="mcpEnabledToggle" class="switch ') + (state.mcp.enabled ? "on" : "") + L.html('" type="button" aria-label="本機 MCP 伺服器" aria-pressed="') + Boolean(state.mcp.enabled) + '"></button></div>',
@@ -2808,6 +2820,11 @@
       });
     }
 
+    var computeBackendSelect = document.getElementById("computeBackendSelect");
+    if (computeBackendSelect) computeBackendSelect.addEventListener("change", function () {
+      computeBackendSelect.disabled = true;
+      post("setComputeBackend", { backend: computeBackendSelect.value });
+    });
     var rawDecoderSelect = document.getElementById("rawDecoderSelect");
     if (rawDecoderSelect) rawDecoderSelect.addEventListener("change", function () {
       rawDecoderSelect.disabled = true;
@@ -2895,6 +2912,15 @@
         if (photoIsBusy(state)) return;
         state.highlightProtectionEnabled = state.highlightProtectionEnabled === false;
         post("setHighlightProtectionEnabled", { enabled: state.highlightProtectionEnabled });
+        render();
+      });
+    }
+    var lensCorrectionToggle = document.getElementById("lensCorrectionToggle");
+    if (lensCorrectionToggle) {
+      lensCorrectionToggle.addEventListener("click", function () {
+        if (photoIsBusy(state)) return;
+        state.lensCorrectionEnabled = state.lensCorrectionEnabled === false;
+        post("setLensCorrectionEnabled", { enabled: state.lensCorrectionEnabled });
         render();
       });
     }

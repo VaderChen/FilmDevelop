@@ -12,7 +12,11 @@ enum PhotoSoftwareRAWDecoder {
             photo_raw_decode(bytes.bindMemory(to: UInt8.self).baseAddress, bytes.count,
                              halfSize ? 1 : 0, directory.path, &pixels)
         }
-        guard status == 0 else { return nil }
+        guard status == 0 else {
+            // 立即讀取同一執行緒的錯誤，不把低階錯誤吞掉。
+            NSLog("內建 RAW 解析失敗：%@", String(cString: photo_raw_error()))
+            return nil
+        }
         defer { photo_raw_free(&pixels) }
         let width = Int(pixels.width), height = Int(pixels.height)
         guard width > 0, height > 0, width <= Int.max / height / 16,

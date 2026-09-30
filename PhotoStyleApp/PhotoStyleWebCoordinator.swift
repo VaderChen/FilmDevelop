@@ -71,7 +71,7 @@ final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMe
     var lastEditInteractionID: String?
     var isRestoringEditHistory = false
     var reportedPhotoEditError = false
-    let renderer: any PhotoStyleRendering
+    var renderer: any PhotoStyleRendering
     let computer: any PhotoStyleComputing
     let persistsImportedImages: Bool
     let sourcePersistenceDirectory: URL?
@@ -106,6 +106,7 @@ final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMe
     var showAllFilms = UserDefaults.standard.bool(forKey: "showAllFilms.v1")
     var exposureExpansionEnabled = UserDefaults.standard.bool(forKey: "exposureExpansionEnabled.v1")
     var modernFilmExposureEnabled = UserDefaults.standard.object(forKey: "modernFilmExposureEnabled.v1") as? Bool ?? false
+    var lensCorrectionEnabled = UserDefaults.standard.object(forKey: "lensCorrectionEnabled.v1") as? Bool ?? true
     var highlightProtectionEnabled = UserDefaults.standard.object(forKey: "highlightProtectionEnabled.v1") as? Bool ?? true
     var hdrFeatureEnabled: Bool = {
         let defaults = UserDefaults.standard
@@ -115,6 +116,7 @@ final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMe
         return defaults.bool(forKey: "hdrFeatureEnabled.v1")
     }()
     var rawDecoderBackend = PhotoRAWBackend.preference()
+    var computeBackend = PhotoComputeBackend.preference()
     var sourceRAWData: Data?
     var originalResolutionEditing = UserDefaults.standard.object(forKey: originalResolutionEditingDefaultsKey) as? Bool ?? false
     var processingImage: PhotoImage?
@@ -195,7 +197,8 @@ final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMe
     lazy var mcpServer = PhotoStyleMCPServer()
 
     init(renderer: any PhotoStyleRendering = CoreImagePhotoStyleRenderer(), persistsImportedImages: Bool = true, aiModelStore: AIModelStore? = nil, computer: any PhotoStyleComputing = LocalPhotoStyleComputer(), sourcePersistenceDirectory: URL? = nil, photoDirectoryStore: PhotoDirectoryStore? = nil, photoEditStore: PhotoEditStore? = nil) {
-        self.renderer = renderer
+        self.renderer = renderer is CoreImagePhotoStyleRenderer
+            ? CoreImagePhotoStyleRenderer(backend: PhotoComputeBackend.preference()) : renderer
         self.computer = computer
         self.aiModelStore = aiModelStore ?? AIModelStore()
         self.persistsImportedImages = persistsImportedImages

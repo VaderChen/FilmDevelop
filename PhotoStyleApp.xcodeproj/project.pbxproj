@@ -86,6 +86,8 @@
 		AC2409240000000000000010 /* PhotoRepairService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC2409240000000000000000 /* PhotoRepairService.swift */; };
 		AC2409240000000000000011 /* PhotoStyleWebCoordinator+Repair.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC2409240000000000000001 /* PhotoStyleWebCoordinator+Repair.swift */; };
 		A9E24E73986A421FA6851982 /* PhotoProcessingPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 891EDD24F6C145A494899191 /* PhotoProcessingPipeline.swift */; };
+		FC3000010000000000000001 /* PhotoComputeBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC3000020000000000000001 /* PhotoComputeBackend.swift */; };
+		FC3000010000000000000002 /* PhotoImageDecoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC3000020000000000000002 /* PhotoImageDecoding.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -169,6 +171,8 @@
 		AC2409240000000000000000 /* PhotoRepairService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoRepairService.swift"; sourceTree = "<group>"; };
 		AC2409240000000000000001 /* PhotoStyleWebCoordinator+Repair.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleWebCoordinator+Repair.swift"; sourceTree = "<group>"; };
 		891EDD24F6C145A494899191 /* PhotoProcessingPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoProcessingPipeline.swift; sourceTree = "<group>"; };
+		FC3000020000000000000001 /* PhotoComputeBackend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoComputeBackend.swift"; sourceTree = "<group>"; };
+		FC3000020000000000000002 /* PhotoImageDecoding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoImageDecoding.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -227,6 +231,8 @@
 				DD1201032C00100100000001 /* PhotoStyleAppLifecycle.swift */,
 				FA3000020000000000000001 /* PhotoSoftwareRAWDecoder.swift */,
 				FA3000020000000000000002 /* PhotoStyleWebCoordinator+Acceleration.swift */,
+				FC3000020000000000000002 /* PhotoImageDecoding.swift */,
+				FC3000020000000000000001 /* PhotoComputeBackend.swift */,
 				FA3000020000000000000003 /* RAWMapping */,
 				FA3000020000000000000004 /* RAWLicenses */,
 				44F8E51D2C00100100000001 /* PhotoStyleWebCoordinator.swift */,
@@ -297,6 +303,7 @@
 					44F8E8012C00100100000001 /* Sources */,
 					44F8E3012C00100100000001 /* Frameworks */,
 					44F8E9012C00100100000001 /* Resources */,
+                    FC3000030000000000000001 /* Build Compute */,
                     AD2302052C00100100000001 /* Stamp App Version */,
 				);
 			buildRules = (
@@ -413,6 +420,18 @@
             shellPath = /bin/bash;
             shellScript = "/bin/bash \"$PROJECT_DIR/scripts/stamp-app-version.sh\"";
         };
+        FC3000030000000000000001 /* Build Compute */ = {
+            isa = PBXShellScriptBuildPhase;
+            alwaysOutOfDate = 1;
+            buildActionMask = 2147483647;
+            files = ();
+            inputPaths = ();
+            name = "Build Compute";
+            outputPaths = ("$(TARGET_BUILD_DIR)/$(CONTENTS_FOLDER_PATH)/Frameworks/libPhotoCompute.dylib", "$(TARGET_BUILD_DIR)/$(CONTENTS_FOLDER_PATH)/Frameworks/libMoltenVK.dylib", "$(TARGET_BUILD_DIR)/$(CONTENTS_FOLDER_PATH)/Resources/PhotoCompute");
+            runOnlyForDeploymentPostprocessing = 0;
+            shellPath = /bin/bash;
+            shellScript = "\"$PROJECT_DIR/scripts/build-compute-macos.sh\"";
+        };
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -460,6 +479,8 @@
 				DD1202032C00100100000001 /* PhotoStyleAppLifecycle.swift in Sources */,
 				FA3000010000000000000001 /* PhotoSoftwareRAWDecoder.swift in Sources */,
 				FA3000010000000000000002 /* PhotoStyleWebCoordinator+Acceleration.swift in Sources */,
+				FC3000010000000000000002 /* PhotoImageDecoding.swift in Sources */,
+				FC3000010000000000000001 /* PhotoComputeBackend.swift in Sources */,
 				44F8E61C2C00100100000001 /* PhotoStyleWebCoordinator.swift in Sources */,
 				44F8E62C2C00100100000001 /* PhotoStyleWebCoordinator+Preview.swift in Sources */,
 				44F8E62B2C00100100000001 /* PhotoStyleWebCoordinator+MCP.swift in Sources */,

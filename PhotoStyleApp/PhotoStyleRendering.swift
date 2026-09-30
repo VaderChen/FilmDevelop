@@ -19,9 +19,15 @@ protocol PhotoStyleRendering: Sendable {
     func detectSubjectMask(for image: PhotoImage) -> CIImage?
 
     func render(_ request: PhotoStyleRenderRequest) -> PhotoImage
+    func renderChecked(_ request: PhotoStyleRenderRequest) throws -> PhotoImage
+}
+
+extension PhotoStyleRendering {
+    func renderChecked(_ request: PhotoStyleRenderRequest) throws -> PhotoImage { render(request) }
 }
 
 struct CoreImagePhotoStyleRenderer: PhotoStyleRendering {
+    var backend: PhotoComputeBackend = .system
     var canDetectSubjectMask: Bool {
         PhotoStyleProcessor.canDetectSubjectMask
     }
@@ -31,7 +37,11 @@ struct CoreImagePhotoStyleRenderer: PhotoStyleRendering {
     }
 
     func render(_ request: PhotoStyleRenderRequest) -> PhotoImage {
-        PhotoStyleProcessor.apply(
+        (try? renderChecked(request)) ?? request.image
+    }
+
+    func renderChecked(_ request: PhotoStyleRenderRequest) throws -> PhotoImage {
+        try PhotoStyleProcessor.render(
             style: request.style,
             adjustment: request.adjustment,
             to: request.image,
@@ -39,7 +49,8 @@ struct CoreImagePhotoStyleRenderer: PhotoStyleRendering {
             shouldDetectSubjectMask: request.shouldDetectSubjectMask,
             repairPatches: request.repairPatches,
             isPreview: request.isPreview,
-            progress: request.progress
+            progress: request.progress,
+            compute: PhotoBackendRouter.compute(backend)
         )
     }
 }

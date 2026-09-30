@@ -1,0 +1,518 @@
+#version 450
+// A/B/C 為唯讀影像，dst/dst2 為獨立輸出；只有反應步驟同時產生兩張影像。
+// p 是每次 dispatch 的參數，lut 是整個流程共用的原始 13 波段重建表。
+// op：0 曝光、1 RAW 映射、2 校色、3 Gaussian、4 Lanczos、5 活性、6 初始覆蓋率、
+// 7 反應、8 擴散、9 補給、10 生長、11 藥水密度、12 藥水、13 光譜、
+// 14 光源矩陣、15 紙白／複製、16 底片特性、17 掃描、18 sRGB16。
+// 光譜 p 與 pipeline.cpp::spectral 的封裝同步：flags[0:4]、curve[4:8]、paper[8:12]、
+// gain/shift[12:16]、ev/middle[16:20]、loss/chroma[20:24]、sensitivity[24:63]、
+// negative dyes[63:102]、base[102:115]、print sensor[115:154]、print dyes[154:193]、
+// scan sensor[193:232]、view sensor[232:271]、scanner matrix[271:280]、norm[280:283]、
+// layer density[283:286]、layer curves[286:298]、density/coupler/correction/flare/contrast[298:303]、
+// calibration base/middle/inverse/slope[303:319]、LUT dimension[319]、silver[320]、reference[321:324]。
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) readonly buffer InA { vec4 a[]; };
+layout(std430, binding = 1) readonly buffer InB { vec4 b[]; };
+layout(std430, binding = 2) readonly buffer InC { vec4 c[]; };
+layout(std430, binding = 3) writeonly buffer OutA { vec4 dst[]; };
+layout(std430, binding = 4) writeonly buffer OutB { vec4 dst2[]; };
+layout(std430, binding = 5) readonly buffer Params { float p[]; };
+layout(std430, binding = 6) readonly buffer Table { float lut[]; };
+layout(push_constant) uniform Work { uint op, count, width, height, aw, ah, axis, offset; }
+work;
+const vec3 W = vec3(.2126, .7152, .0722),
+           EW = vec3(.21263900587151027, .7151686787677559, .07219231536073371);
+const float LN10 = 2.302585092994046;
+vec3 pv(int i) { return vec3(p[i], p[i + 1], p[i + 2]); }
+vec3 mul(int i, vec3 v) { return vec3(dot(pv(i), v), dot(pv(i + 3), v), dot(pv(i + 6), v)); }
+float lp(float x) {
+    return abs(x) < .001 ? x * (1 - x * (.5 - x * (1.0 / 3 - x * .25))) : log(1 + x);
+}
+vec3 straight(vec4 v) { return v.a > 0 ? v.rgb / v.a : vec3(0); }
+float smoothGate(float l, float h, float x) {
+    float t = clamp((x - l) / (h - l), 0, 1);
+    return t * t * (3 - 2 * t);
+}
+vec3 fit(vec3 color, float y) {
+    vec3 d = color - y;
+    float s = 1, ceiling = max(1, y);
+    for (int j = 0; j < 3; ++j) {
+        if (d[j] < 0)
+            s = min(s, y / -d[j]);
+        if (d[j] > 0)
+            s = min(s, (ceiling - y) / d[j]);
+    }
+    return y + d * max(0, s);
+}
+float labf(float x) { return x > 216.0 / 24389 ? pow(x, 1.0 / 3) : (24389.0 / 27 * x + 16) / 116; }
+float labinv(float t) { return t > 6.0 / 29 ? t * t * t : (116 * t - 16) * 27 / 24389; }
+vec3 labLum(vec3 color, float y, float scale) {
+    if (scale == 1)
+        return color;
+    if (y <= 1e-20)
+        return color * scale;
+    float target = y * scale;
+    if (color.r == color.g && color.g == color.b)
+        return vec3(target);
+    float fy = labf(y),
+          la = 500 *
+               (labf(dot(color, vec3(.41239079926595934, .35758433938387796, .1804807884018343)) /
+                     .9504559270516716) -
+                fy);
+    float lb =
+        200 *
+        (fy - labf(dot(color, vec3(.01933081871559185, .11919477979462599, .9505321522496607)) /
+                   1.0890577507598784));
+    float f = labf(target);
+    vec3 xyz = vec3(.9504559270516716 * labinv(f + la / 500), target,
+                    1.0890577507598784 * labinv(f - lb / 200));
+    vec3 result = vec3(dot(xyz, vec3(3.240969941904521, -1.537383177570093, -.498610760293)),
+                       dot(xyz, vec3(-.9692436362808796, 1.8759675015077202, .04155505740717559)),
+                       dot(xyz, vec3(.05563007969699366, -.20397695888897652, 1.0569715142428786)));
+    float lower = min(0, min(color.r, min(color.g, color.b))) * scale,
+          minimum = min(result.r, min(result.g, result.b));
+    if (minimum < lower)
+        result = lower + (result - minimum) * ((target - lower) / (target - minimum));
+    return result;
+}
+vec3 grade(vec3 color, float saturation, float midWarm, float highWarm, vec3 style, bool mono) {
+    float sy = max(0, dot(color, W)), y = sy;
+    if (style.y != 1 || style.z != 0) {
+        if (sy > 0 && sy < 1) {
+            float z = style.y * (log(sy / (1 - sy)) - log(.18 / .82)) + log(.18 / .82);
+            y = 1 / (1 + exp(-z));
+        }
+        y = style.z + (1 - style.z) * y;
+    }
+    color = sy > 1e-12 ? color * (y / sy) : vec3(y);
+    if (mono)
+        return vec3(y);
+    color = fit(y + (color - y) * saturation * style.x, y);
+    float mid = smoothGate(.02, .18, y) * (1 - smoothGate(.3, .65, y)),
+          high = smoothGate(.25, .7, y) * (1 - smoothGate(.85, 1, y));
+    color *= exp(vec3(.35, .10, -.4) * (midWarm * mid + highWarm * high) * log(2.0));
+    return fit(color * (y / max(1e-12, dot(color, W))), y);
+}
+vec4 sampleA(ivec2 q) {
+    q = clamp(q, ivec2(0), ivec2(work.aw, work.ah) - 1);
+    return a[q.y * int(work.aw) + q.x];
+}
+vec3 field(uint which, ivec2 q, int fw, int fh) {
+    q = clamp(q, ivec2(0), ivec2(fw, fh) - 1);
+    return which == 0 ? b[q.y * fw + q.x].rgb : c[q.y * fw + q.x].rgb;
+}
+vec3 bilinear(uint which, vec2 q, int fw, int fh) {
+    ivec2 k = ivec2(floor(q));
+    // 對齊原生 Metal 線性取樣器的 8-bit 插值權重，避免非線性生長比放大差異。
+    vec2 f = floor((q - vec2(k)) * 256 + .5) / 256;
+    vec3 lo = field(which, k, fw, fh) +
+              (field(which, k + ivec2(1, 0), fw, fh) - field(which, k, fw, fh)) * f.x;
+    vec3 hi = field(which, k + ivec2(0, 1), fw, fh) +
+              (field(which, k + ivec2(1, 1), fw, fh) - field(which, k + ivec2(0, 1), fw, fh)) * f.x;
+    return lo + (hi - lo) * f.y;
+}
+vec3 demand(vec3 activityField, vec3 salt, vec3 developer, float rate) {
+    vec3 radius = pow(.125 + (1 - salt) / max(activityField, vec3(1e-6)), vec3(1.0 / 3)),
+         dr = .28 * rate * salt * developer;
+    return min(
+        salt, max(activityField * dr * (3 * radius * radius + 3 * radius * dr + dr * dr), vec3(0)));
+}
+float chemDensity(float x) {
+    return .08 + 2.4 / (1 + exp(clamp(-4 * .65 * p[0] * x / 2.4, -60, 60)));
+}
+float chemExposure(float y) {
+    float x = log(max(y, 1e-10) / .18) / LN10 + p[1] * .3010299956639812,
+          z = max(x - .3010299956639812, 0);
+    if (p[2] > 0 && z > 0) {
+        float u = p[2] * z;
+        float ratio = u < .001 ? 1 - u * .5 + u * u * (1.0 / 3 - u * .25) : lp(u) / u;
+        x += z * (ratio - 1);
+    }
+    return x;
+}
+float noise(vec2 v) {
+    precise float arg = v.x * 127.1 + v.y * 311.7 + 17;
+    precise float value = sin(arg) * 43758.5453;
+    return 2 * (value - floor(value)) - 1;
+}
+float chemNoise(vec2 q) {
+    precise vec2 xx = q * p[6];
+    vec2 base = floor(xx);
+    precise vec2 f = xx - base;
+    f = f * f * (3 - 2 * f);
+    precise float lo = noise(base) * (1 - f.x) + noise(base + vec2(1, 0)) * f.x;
+    precise float hi = noise(base + vec2(0, 1)) * (1 - f.x) + noise(base + vec2(1)) * f.x;
+    return lo * (1 - f.y) + hi * f.y;
+}
+float density(float ev, vec4 curve) {
+    float x = curve.z * (ev - curve.x), y = curve.z * (ev - curve.y);
+    return curve.w * (max(x, 0) + lp(exp(-abs(x))) - max(y, 0) - lp(exp(-abs(y)))) /
+           (curve.z * (curve.y - curve.x));
+}
+float band(vec3 rgb, int k) {
+    float amp = max(rgb.r, max(rgb.g, rgb.b));
+    if (amp <= 0)
+        return 0;
+    int face = rgb.r >= rgb.g && rgb.r >= rgb.b ? 0 : (rgb.g >= rgb.b ? 1 : 2), dim = int(p[319]);
+    vec2 uv = vec2(rgb[(face + 1) % 3], rgb[(face + 2) % 3]) / amp * (dim - 1);
+    ivec2 xy = min(ivec2(dim - 2), ivec2(uv));
+    vec2 f = uv - vec2(xy);
+    int idx = ((k / 3 * 3 * dim + face * dim + xy.y) * dim + xy.x) * 4 + k % 3;
+    return ((lut[idx] * (1 - f.x) + lut[idx + 4] * f.x) * (1 - f.y) +
+            (lut[idx + dim * 4] * (1 - f.x) + lut[idx + dim * 4 + 4] * f.x) * f.y) *
+           amp;
+}
+vec3 unmix(vec3 optical) {
+    precise vec3 estimate = clamp(vec3(p[19]) + mul(309, optical - pv(306)), vec3(0), vec3(p[7]));
+    vec3 best = estimate;
+    float bestError = 1e30;
+    for (int it = 0; it <= 4; ++it) {
+        precise vec3 signal = vec3(0), j0 = vec3(0), j1 = vec3(0), j2 = vec3(0);
+        for (int k = 0; k < 13; ++k) {
+            vec3 dye = pv(63 + k * 3);
+            precise vec3 weight =
+                pv(193 + k * 3) * exp(-2.302585093 * (p[102 + k] + dot(dye, estimate)));
+            signal += weight;
+            j0 += weight * dye.x;
+            j1 += weight * dye.y;
+            j2 += weight * dye.z;
+        }
+        signal = max(signal, vec3(1e-12));
+        precise vec3 residual = -log(signal / pv(303)) * .4342944819032518 - optical;
+        precise float err = dot(residual, residual);
+        if (err < bestError) {
+            best = estimate;
+            bestError = err;
+        }
+        if (it == 4 || err < 1e-12)
+            break;
+        j0 /= signal;
+        j1 /= signal;
+        j2 /= signal;
+        precise vec3 co0 = cross(j1, j2), co1 = cross(j2, j0), co2 = cross(j0, j1);
+        precise float det = dot(j0, co0);
+        if (isnan(det) || isinf(det) || abs(det) <= 1e-8)
+            break;
+        precise vec3 step = vec3(dot(co0, residual), dot(co1, residual), dot(co2, residual)) / det;
+        float largest = max(abs(step.x), max(abs(step.y), abs(step.z)));
+        if (isnan(largest) || isinf(largest))
+            break;
+        step *= min(1, .75 / max(largest, 1e-12));
+        estimate = clamp(estimate - step, vec3(0), vec3(p[7]));
+    }
+    return best - p[19];
+}
+vec3 intent(vec3 inputColor) {
+    float black = pow(10, -p[9]), anchor = (.18 - black) / (1 - black),
+          bias = log(anchor / (1 - anchor));
+    vec3 x = clamp(inputColor, vec3(1e-12), vec3(1 - 1e-7));
+    vec3 z = p[8] * (log(x / (1 - x)) - log(.18 / .82)) + bias,
+         tone = black + (1 - black) / (1 + exp(-clamp(z, vec3(-80), vec3(80))));
+    for (int j = 0; j < 3; ++j) {
+        if (inputColor[j] <= 0)
+            tone[j] = black;
+        if (inputColor[j] >= 1)
+            tone[j] = 1;
+    }
+    float silver = p[11] * dot(-log(max(tone, vec3(1e-12))) / LN10, W);
+    tone *= pow(10, -silver);
+    float y = dot(tone, W);
+    if (p[0] != 0)
+        return vec3(y);
+    vec3 d = (tone - y) * (p[23] / (1 + 2 * p[11]));
+    float scale = 1;
+    for (int j = 0; j < 3; ++j) {
+        if (d[j] < 0)
+            scale = min(scale, y / -d[j]);
+        if (d[j] > 0)
+            scale = min(scale, (1 - y) / d[j]);
+    }
+    return y + d * max(0, scale);
+}
+vec4 spectral(vec4 px, uint i) {
+    float alpha = clamp(px.a, 0, 1);
+    if (alpha <= 0)
+        return vec4(0);
+    vec3 color = clamp(px.rgb / alpha, vec3(0), vec3(65536)), h = vec3(0);
+    for (int k = 0; k < 13; ++k)
+        h += pv(24 + k * 3) * band(color, k);
+    h /= pv(280);
+    if (p[3] != 0) {
+        float dom = (color.r - max(color.g, color.b)) / max(1e-7, color.r);
+        vec3 alternate = vec3(.45 * h.x + .55 * h.y, h.z, h.y);
+        h = alternate + (h - alternate) * smoothGate(.15, .65, dom);
+    }
+    vec3 ev = log2(max(h, vec3(1e-7)) / .18) * pv(12) + pv(16) - pv(20), d;
+    for (int j = 0; j < 3; ++j)
+        d[j] = clamp(density(ev[j] + p[15], vec4(pv(286 + j * 4), p[289 + j * 4])) + p[298] -
+                         p[283 + j],
+                     0, p[7]);
+    if (p[299] > 0) {
+        vec3 neighboring = max(straight(b[i]), vec3(0));
+        vec3 act = d * clamp((neighboring + .02) / (color + .02), vec3(.25), vec3(4)),
+             inhib = act / (1 + act);
+        vec3 crossColor = vec3(dot(inhib, vec3(.1, .55, .35)), dot(inhib, vec3(.4, .1, .5)),
+                               dot(inhib, vec3(.55, .35, .1)));
+        d *= 1 - .35 * p[299] * crossColor;
+    }
+    vec3 positive;
+    float silver = p[320];
+    if (p[2] != 0) {
+        vec3 measured = vec3(0), white = vec3(0), material = p[1] != 0 ? p[7] - d : d;
+        for (int k = 0; k < 13; ++k) {
+            float optical = (p[1] != 0 ? 0 : p[102 + k]) +
+                            (p[0] != 0 ? material.x : dot(pv(63 + k * 3), material)) +
+                            silver * dot(material, W);
+            vec3 sensor = pv(193 + k * 3);
+            measured += sensor * exp(-LN10 * optical);
+            white += sensor;
+        }
+        if (p[1] != 0) {
+            vec3 t = (measured / white + p[301]) / (1 + p[301]);
+            positive = p[0] != 0 ? vec3(t.x) : max(mul(271, t), vec3(0));
+            positive = .18 * max(positive, vec3(1e-12)) / .18;
+        } else {
+            vec3 t = (measured / pv(303) + p[301]) / (1 + p[301]),
+                 logD = -log(max(t, vec3(1e-12))) / LN10 - pv(306), separated = mul(309, logD);
+            if (p[0] == 0 && p[300] > 0)
+                separated = unmix(logD + pv(306));
+            vec3 stops = (logD + (separated - logD) * p[300]) / p[318];
+            positive =
+                1 / (1 + exp(-clamp(-1.516347489 + stops * .693147181, vec3(-40), vec3(40))));
+            positive = intent(positive);
+        }
+        positive = grade(positive, 1, 0, 0, vec3(1, 1, 0), p[0] != 0);
+    } else {
+        if (p[1] != 0) {
+            d = max(p[7] - d, vec3(0));
+            d += silver * dot(d, W);
+        } else {
+            vec3 ph = vec3(0);
+            for (int k = 0; k < 13; ++k) {
+                float optical =
+                    p[102 + k] + (p[0] != 0 ? d.x : dot(pv(63 + k * 3), d)) + silver * dot(d, W);
+                ph += pv(115 + k * 3) * exp(-LN10 * optical);
+            }
+            vec3 pe = log2(max(ph / pv(321), vec3(1e-12)));
+            d = p[9] / (1 + exp(-(pe * p[8] + p[10])));
+            d += p[11] * dot(d, W);
+        }
+        if (p[0] != 0)
+            positive = vec3(exp(-LN10 * d.x));
+        else {
+            vec3 signal = vec3(0);
+            for (int k = 0; k < 13; ++k)
+                signal += pv(232 + k * 3) * exp(-LN10 * dot(pv((p[1] != 0 ? 63 : 154) + k * 3), d));
+            positive = max(mul(271, signal), vec3(0));
+        }
+    }
+    positive = .18 * pow(max(positive, vec3(0)) / .18, vec3(p[302]));
+    return vec4(positive * alpha, alpha);
+}
+void main() {
+    uint i = work.offset + gl_GlobalInvocationID.x;
+    if (i >= work.count)
+        return;
+    uint x = i % work.width, y = i / work.width;
+    if (work.op == 4) {
+        int n = int(work.axis == 0 ? x : y), stride = int(p[0]), base = 1 + n * stride,
+            start = int(p[base]), count = int(p[base + 2]);
+        vec4 sum = vec4(0);
+        for (int k = 0; k < count; ++k) {
+            ivec2 q = work.axis == 0 ? ivec2(start + k, int(y)) : ivec2(int(x), start + k);
+            if (all(greaterThanEqual(q, ivec2(0))) && all(lessThan(q, ivec2(work.aw, work.ah))))
+                sum += a[q.y * int(work.aw) + q.x] * p[base + 3 + k];
+        }
+        dst[i] = sum / p[base + 1];
+        return;
+    }
+    if (work.op == 6) {
+        float cx = clamp(p[0] - x, 0, 1), cy = clamp(p[1] - (work.height - y - 1), 0, 1);
+        dst[i] = vec4(cx * cy);
+        return;
+    }
+    vec4 px = a[i];
+    vec4 result = px;
+    if (work.op == 0) {
+        if (px.a > 0) {
+            vec3 rgb = px.rgb / px.a;
+            float lum = dot(rgb, EW), z = log2(max(lum, 1e-20) / .18);
+            float s0 = max(z + 6, 0) + .4 * lp(exp(-abs(z + 6) / .4)),
+                  s1 = max(z + 1, 0) + .4 * lp(exp(-abs(z + 1) / .4)),
+                  s2 = max(z - 2, 0) + .4 * lp(exp(-abs(z - 2) / .4));
+            float ze = p[0] + (p[1] - 1) * (s0 - s1) + (p[2] - 1) * (s1 - s2),
+                  gain = exp2(p[3] + ze), anchor = p[6] != 0 ? max(rgb.r, max(rgb.g, rgb.b)) : lum;
+            if (p[5] != 0 && gain > 1 && anchor > 1e-20) {
+                float mapped = anchor, start = .6 / gain;
+                if (anchor < 1) {
+                    if (anchor <= start)
+                        mapped = anchor * gain;
+                    else {
+                        float d = anchor - start, curvature = gain / .4 - 1 / (1 - start);
+                        mapped = .6 + gain * d / (1 + curvature * d);
+                    }
+                }
+                gain = mapped / anchor;
+            }
+            gain = 1 + (gain - 1) * p[4];
+            result = vec4(px.rgb * gain, px.a);
+        }
+    } else if (work.op == 1) {
+        if (px.a > 0) {
+            float peak = max(px.r, max(px.g, px.b)) / px.a;
+            if (peak > .78)
+                result.rgb *= (.78 + .22 * (1 - exp(-(peak - .78) / .22))) / max(peak, .00001);
+        }
+    } else if (work.op == 2) {
+        vec3 v = straight(px);
+        if (px.a > 0 && all(greaterThanEqual(v, vec3(0)))) {
+            vec3 crossTerms =
+                vec3(sqrt(v.r) * sqrt(v.g), sqrt(v.g) * sqrt(v.b), sqrt(v.r) * sqrt(v.b));
+            result.rgb =
+                vec3(dot(pv(0), v) + dot(pv(3), crossTerms), dot(pv(6), v) + dot(pv(9), crossTerms),
+                     dot(pv(12), v) + dot(pv(15), crossTerms)) *
+                px.a;
+        }
+    } else if (work.op == 3) {
+        int radius = int(p[0]);
+        precise vec4 sum = px * p[1];
+        for (int k = 1; k <= radius; ++k) {
+            ivec2 delta = work.axis == 0 ? ivec2(k, 0) : ivec2(0, k);
+            sum += (sampleA(ivec2(x, y) - delta) + sampleA(ivec2(x, y) + delta)) * p[1 + k];
+        }
+        result = sum;
+    } else if (work.op == 5) {
+        vec3 v = max(px.rgb / max(px.a, 1e-8), vec3(0));
+        result = vec4(clamp(1 - vec3(.18) / (v + .18), vec3(0), vec3(1)), 1);
+    } else if (work.op == 7) {
+        vec3 need = demand(px.rgb, b[i].rgb, vec3(c[i].r), p[0]);
+        float usage = 1.6 * dot(need, vec3(1.0 / 3));
+        vec3 uptake = need * min(1, c[i].r / max(usage, 1e-7));
+        result = vec4(max(b[i].rgb - uptake, vec3(0)), 1);
+        dst2[i] = vec4(vec3(max(0, c[i].r - 1.6 * dot(uptake, vec3(1.0 / 3)))), 1);
+    } else if (work.op == 8) {
+        float delta = 0, total = p[1];
+        for (int k = 1; k <= int(p[0]); ++k) {
+            ivec2 d = work.axis == 0 ? ivec2(k, 0) : ivec2(0, k);
+            delta += p[1 + k] *
+                     ((sampleA(ivec2(x, y) - d).r - px.r) + (sampleA(ivec2(x, y) + d).r - px.r));
+            total += 2 * p[1 + k];
+        }
+        result = vec4(vec3(px.r + delta / total), 1);
+    } else if (work.op == 9) {
+        result = vec4(vec3(clamp(px.r, 0, 1) * (1 - p[0]) + p[0]), 1);
+    } else if (work.op == 10) {
+        int fw = int(p[4]), fh = int(p[5]);
+        vec2 q = vec2((x + .5) * p[0] - .5, float(fh) - (float(work.height) - y - .5) * p[0] - .5);
+        vec3 activityField = bilinear(0, q, fw, fh), salt = bilinear(1, q, fw, fh), rs = vec3(1),
+             rd = vec3(1);
+        for (int k = 0; k < 12; ++k) {
+            vec3 need = demand(activityField, rs, rd, p[2]),
+                 uptake = need * min(vec3(1), rd / max(1.6 * need, vec3(1e-7)));
+            rs = max(rs - uptake, vec3(0));
+            vec3 ref = max(rd - 1.6 * uptake, vec3(0));
+            rd = ref + (1 - ref) * p[3];
+        }
+        vec3 rel = (max(1 - salt, vec3(0)) + .0001) / (max(1 - rs, vec3(0)) + .0001);
+        result = vec4(px.rgb * exp(clamp(log(rel), vec3(-.7), vec3(.7)) * p[1]), px.a);
+    } else if (work.op == 11) {
+        float d = chemDensity(chemExposure(dot(straight(px), EW))) * px.a;
+        result = vec4(vec3(d), px.a);
+    } else if (work.op == 12) {
+        if (px.a <= 0)
+            result = vec4(0);
+        else {
+            vec3 color = straight(px);
+            float lum = dot(color, EW);
+            if (lum > 1e-10) {
+                float ex = chemExposure(lum), d = chemDensity(ex);
+                if (p[5] > 0) {
+                    float delta = d - b[i].r / max(b[i].a, 1e-10);
+                    d += p[5] * delta / (1 + abs(delta) / .08);
+                }
+                if (p[4] > 0)
+                    d += p[4] * chemNoise(vec2(x + .5 + p[11], float(work.height) - y - .5 + p[12]));
+                float t = clamp((d - .08) / 2.4, .00001, .99999),
+                      inverse = log(t / (1 - t)) / (4 * .65 / 2.4),
+                      target = .18 * exp(clamp(inverse * LN10, -60, 25));
+                target = lum * clamp(target / lum, .015625, 64);
+                vec3 v = labLum(color, lum, target / lum);
+                if (p[7] == 0 && dot(abs(pv(8)), vec3(1)) > 0) {
+                    v *= exp(clamp(ex, -3, 2) * pv(8) * LN10);
+                    float cy = dot(v, EW);
+                    if (cy <= target * .0001) {
+                        v += target - cy;
+                        cy = target;
+                    }
+                    v *= target / cy;
+                    float lower = min(0, min(color.r, min(color.g, color.b))) * target / lum,
+                          minimum = min(v.r, min(v.g, v.b));
+                    if (minimum < lower)
+                        v = target +
+                            (v - target) * clamp((target - lower) / (target - minimum), 0, 1);
+                }
+                result = vec4((color + (v - color) * p[3]) * px.a, px.a);
+            }
+        }
+    } else if (work.op == 13) {
+        result = spectral(px, i);
+    } else if (work.op == 14) {
+        if (px.a <= 0)
+            result = vec4(0);
+        else {
+            vec3 v = mul(0, straight(px));
+            if (p[9] != 0)
+                v = vec3(dot(v, W));
+            result = vec4(v * px.a, px.a);
+        }
+    } else if (work.op == 15) {
+        result.rgb *= pv(0);
+    } else if (work.op == 16) {
+        if (px.a <= 0)
+            result = vec4(0);
+        else {
+            vec3 color = max(straight(px), vec3(0));
+            float before = dot(color, W), lum = before;
+            if (lum > 0 && lum < 1 && p[0] != 1) {
+                float z = p[0] * (log(lum / (1 - lum)) - log(.18 / .82)) + log(.18 / .82);
+                lum = 1 / (1 + exp(-clamp(z, -80, 80)));
+            }
+            color = before > 1e-12 ? color * (lum / before) : vec3(lum);
+            if (p[6] != 0)
+                result = vec4(vec3(lum) * px.a, px.a);
+            else {
+                float warm = smoothGate(-.25, .25, (color.r - color.b) / max(.02, lum));
+                color = fit(lum + (color - lum) * (p[3] + (p[2] - p[3]) * warm), lum);
+                float shadows = smoothGate(0, .012, lum) * (1 - smoothGate(.025, .18, lum)),
+                      high = smoothGate(.25, .70, lum) * (1 - smoothGate(.85, 1, lum)),
+                      mid = smoothGate(.025, .18, lum) * (1 - smoothGate(.3, .65, lum));
+                color *= exp(vec3(.35, .10, -.4) * (p[4] * shadows + p[5] * high + p[1] * mid) *
+                             log(2.0));
+                color *= lum / max(1e-12, dot(color, W));
+                result = vec4(fit(color, lum) * px.a, px.a);
+            }
+        }
+    } else if (work.op == 17) {
+        vec3 v = (px.rgb / max(px.a, 1e-6) + p[3]) / (1 + p[3]);
+        v = grade(v, p[0], p[1], p[2], pv(4), false);
+        if (p[7] != 0)
+            v = vec3(dot(v, W));
+        result = vec4(v * px.a, px.a);
+    } else if (work.op == 19) {
+        // 與 CIColorMatrix alpha + CISourceOverCompositing 相同的預乘混合。
+        vec4 foreground = b[i] * p[0];
+        result = foreground + px * (1 - foreground.a);
+    } else if (work.op == 20) {
+        // CIColorControls saturation=0 的線性工作空間係數。
+        result = vec4(vec3(dot(px.rgb, vec3(.2125, .7154, .0721))), px.a);
+    } else if (work.op == 18) {
+        vec3 v = clamp(px.rgb, vec3(0), vec3(1));
+        for (int j = 0; j < 3; ++j) {
+            float s = v[j] <= .0031308 ? 12.92 * v[j] : 1.055 * pow(v[j], 1 / 2.4) - .055;
+            s = floor(s * 65535 + .5) / 65535;
+            v[j] = s <= .04045 ? s / 12.92 : pow((s + .055) / 1.055, 2.4);
+        }
+        result = vec4(v, 1);
+    }
+    dst[i] = result;
+}

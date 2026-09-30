@@ -65,6 +65,9 @@ extension PhotoStyleWebCoordinator {
         if image.usesEmbeddedRAWPreview {
             sendToast("RAW 解碼異常，已改用相機內嵌 JPEG 編輯與匯出；曝光調整空間較小，原始檔案未變更。")
         }
+        if image.softwareRAWFallback {
+            sendToast("內建解析器無法解析這張 RAW，已改用系統原生解析；其他照片仍優先使用內建軟體解析。")
+        }
         processingImage = preparedProcessingImage
         sourceFileURL = sourceURL
         previewImage = preparedPreview

@@ -1,0 +1,209 @@
+import Foundation
+import AppKit
+import CoreImage
+import ImageIO
+import UniformTypeIdentifiers
+import PhotoStyleShared
+
+struct PhotoRAWDecodeRequest {
+    let data: Data
+    let url: URL
+    let lensCorrection: Bool
+}
+protocol PhotoRAWDecodeProvider {
+    var route: String { get }
+    func decode(_ request: PhotoRAWDecodeRequest) -> PhotoImage?
+}
+struct PhotoSystemRAWProvider: PhotoRAWDecodeProvider {
+    let route = "mac-native-raw"
+    func decode(_ request: PhotoRAWDecodeRequest) -> PhotoImage? {
+        PhotoImageDecoder.decodeRAWImage(data: request.data, url: request.url, lensCorrection: request.lensCorrection)
+    }
+}
+struct PhotoSoftwareRAWProvider: PhotoRAWDecodeProvider {
+    let route = "portable-libraw"
+    func decode(_ request: PhotoRAWDecodeRequest) -> PhotoImage? {
+        PhotoImageDecoder.decodeSoftwareRAWImage(data: request.data)
+    }
+}
+extension PhotoBackendRouter {
+    static func raw(_ backend: PhotoRAWBackend) -> any PhotoRAWDecodeProvider {
+        switch backend {
+        case .system: return PhotoSystemRAWProvider()
+        case .software: return PhotoSoftwareRAWProvider()
+        }
+    }
+    static func decodeRAW(data: Data, url: URL, backend: PhotoRAWBackend, lensCorrection: Bool) -> PhotoImage? {
+        let request = PhotoRAWDecodeRequest(data: data, url: url, lensCorrection: lensCorrection)
+        if let result = raw(backend).decode(request) { return result }
+        guard backend == .software, var fallback = raw(.system).decode(request) else { return nil }
+        fallback.softwareRAWFallback = true
+        return fallback
+    }
+    static func decode(data: Data, url: URL, backend: PhotoRAWBackend, lensCorrection: Bool) -> PhotoImage? {
+        PhotoImageDecoder.decode(data: data, url: url, backend: backend, lensCorrection: lensCorrection)
+    }
+}
+
+/// 格式辨識、既有系統解碼及相容性處理集中於影像輸入層，不依賴 UI coordinator。
+enum PhotoImageDecoder {
+    private static let imageDecodeContext = PhotoImageRenderPrecision.makeContext()
+    static func decode(data: Data, url: URL, backend: PhotoRAWBackend, lensCorrection: Bool) -> PhotoImage? {
+        let correctLens = lensCorrection
+        let selectedBackend = backend
+        if let source = CGImageSourceCreateWithData(data as CFData, nil) {
+            // Nikon NEF can be reported as public.tiff with a tiny embedded JPEG
+            // at index zero. Decode camera RAW before accepting that raster image.
+            let isRAWFile = UTType(filenameExtension: url.pathExtension)?.conforms(to: .rawImage) == true
+            if sourceContainsRAWData(source) || isRAWFile {
+                let image = PhotoBackendRouter.decodeRAW(data: data, url: url, backend: selectedBackend, lensCorrection: correctLens)
+                if image != nil || selectedBackend == .software { return image }
+            }
+            if let image = decodeImageSource(source) {
+                return image
+            }
+        }
+
+        if let image = PhotoBackendRouter.decodeRAW(data: data, url: url, backend: selectedBackend, lensCorrection: correctLens) { return image }
+        if selectedBackend == .software && UTType(filenameExtension: url.pathExtension)?.conforms(to: .rawImage) == true { return nil }
+
+        if let image = PhotoImage(data: data) {
+            return image
+        }
+
+        // Decode only the coordinated snapshot: rereading the URL can display different bytes
+        // from the content identifier and the copy persisted for the next launch.
+        let ciImage = CIImage(data: data, options: [.applyOrientationProperty: true])
+        guard let ciImage else { return nil }
+        return PhotoImageRenderPrecision.renderedImage(
+            from: ciImage,
+            context: Self.imageDecodeContext,
+            highPrecision: false,
+            scale: 1
+        )
+    }
+
+    static func decodeSoftwareRAWImage(data: Data) -> PhotoImage? {
+        guard var full = PhotoSoftwareRAWDecoder.decode(data: data, halfSize: false),
+              let half = PhotoSoftwareRAWDecoder.decode(data: data, halfSize: true),
+              let linear = half.cgImage, let display = half.cameraOriginal else { return nil }
+        full.softwareRAWPreview = (linear, display)
+        return full
+    }
+
+    private static func sourceContainsRAWData(_ source: CGImageSource) -> Bool {
+        guard let typeIdentifier = CGImageSourceGetType(source),
+              let type = UTType(typeIdentifier as String) else {
+            return false
+        }
+        return type.conforms(to: .rawImage)
+    }
+
+    static func decodeRAWImage(data: Data, url: URL, lensCorrection: Bool) -> PhotoImage? {
+        let identifierHint = UTType(filenameExtension: url.pathExtension)?.identifier
+        let rawFilter = PhotoRAWDecoder.makeSceneLinearFilter(
+            data: data,
+            identifierHint: identifierHint,
+            lensCorrectionEnabled: lensCorrection
+        )
+        // Malformed files can return nil metadata despite the SDK's nonnull annotation.
+        // KVC keeps that Objective-C nil optional instead of trapping during Swift bridging.
+        guard let rawFilter,
+              let rawProperties = rawFilter.value(forKey: "properties") as? NSDictionary,
+              let output = rawFilter.outputImage,
+              output.extent.minX.isFinite,
+              output.extent.minY.isFinite,
+              output.extent.width.isFinite,
+              output.extent.height.isFinite,
+              !output.extent.isEmpty else {
+            return nil
+        }
+
+        let properties = rawProperties
+        let profileName = properties[kCGImagePropertyProfileName] as? String
+        let colorSpaceName = profileName?.localizedCaseInsensitiveContains("P3") == true
+            ? CGColorSpace.extendedLinearDisplayP3
+            : CGColorSpace.extendedLinearSRGB
+        guard var decoded = PhotoImageRenderPrecision.renderedImage(
+            from: output,
+            context: Self.imageDecodeContext,
+            highPrecision: true,
+            colorSpace: CGColorSpace(name: colorSpaceName),
+            // Finish RAW decoding before any preview, statistics or development
+            // branch resamples it. A deferred RAW provider can replay decoding
+            // and return corrupt tiles when those branches request different scales.
+            scale: 1,
+            deferred: false
+        ) else { return nil }
+        // CIRAWFilter can succeed yet return only near-zero pixels for a NEF.
+        // Require contradictory, visible camera-JPEG content before replacing
+        // a dark RAW: real black frames and ordinary underexposure stay RAW.
+        if Self.rawBitmapIsCollapsed(decoded),
+           let bitmap = PhotoRAWThumbnail.make(from: data, maxPixel: Int(max(output.extent.width, output.extent.height))),
+           bitmap.width >= 1024, bitmap.height >= 1024 {
+            var fallback = PhotoImage(cgImage: bitmap, usesEmbeddedRAWPreview: true)
+            fallback.rawDecoderBackend = .system
+            if Self.rawPreviewHasVisibleContent(fallback) { return fallback }
+        }
+        // 另存預設 RAW 顯影，保留每張照片的基準曝光、色調增強與白平衡。
+        // 不使用內嵌 JPEG 代替 RAW，也不把顯示曲線灌入底片的線性輸入。
+        let cameraFilter = CIRAWFilter(imageData: data, identifierHint: identifierHint)
+        if let cameraFilter, cameraFilter.isLensCorrectionSupported {
+            cameraFilter.isLensCorrectionEnabled = lensCorrection
+        }
+        if let cameraFilter,
+           let cameraOutput = cameraFilter.outputImage,
+           cameraOutput.extent == output.extent,
+           let cameraImage = PhotoImageRenderPrecision.renderedImage(
+               from: cameraOutput, context: Self.imageDecodeContext, highPrecision: false,
+               colorSpace: CGColorSpace(name: colorSpaceName), scale: 1, deferred: false) {
+            decoded.cameraOriginal = cameraImage.cgImage
+        }
+        decoded.rawDecoderBackend = .system
+        return decoded
+    }
+
+    /// Inspect stable FP32 storage directly: no second RAW decode, resampling or GPU allocation.
+    private static func rawBitmapSampleRange(_ image: PhotoImage) -> (Float, Float)? {
+        guard let bitmap = image.cgImage, bitmap.bitsPerComponent == 32,
+              bitmap.bitsPerPixel == 128, bitmap.bitmapInfo.contains(.floatComponents),
+              let data = bitmap.dataProvider?.data, let bytes = CFDataGetBytePtr(data),
+              bitmap.bytesPerRow >= bitmap.width * 16,
+              CFDataGetLength(data) / bitmap.bytesPerRow >= bitmap.height else { return nil }
+        var minimum = Float.infinity, maximum = -Float.infinity
+        for y in stride(from: 0, to: bitmap.height, by: max(1, bitmap.height / 64)) {
+            let row = UnsafeRawPointer(bytes.advanced(by: y * bitmap.bytesPerRow)).assumingMemoryBound(to: Float.self)
+            for x in stride(from: 0, to: bitmap.width, by: max(1, bitmap.width / 64)) {
+                for channel in 0..<3 {
+                    let value = row[x * 4 + channel]
+                    guard value.isFinite else { return nil }
+                    minimum = min(minimum, value); maximum = max(maximum, value)
+                }
+            }
+        }
+        return (minimum, maximum)
+    }
+
+    static func rawBitmapIsCollapsed(_ image: PhotoImage) -> Bool {
+        guard let (minimum, maximum) = rawBitmapSampleRange(image) else { return false }
+        return abs(minimum) < 1e-7 && abs(maximum) < 1e-7
+    }
+
+    static func rawPreviewHasVisibleContent(_ image: PhotoImage) -> Bool {
+        guard let (minimum, maximum) = rawBitmapSampleRange(image) else { return false }
+        return maximum > 0.05 && maximum - minimum > 0.02
+    }
+
+    static func decodeImageSource(_ source: CGImageSource) -> PhotoImage? {
+        guard CGImageSourceGetCount(source) > 0,
+              let cgImage = CGImageSourceCreateImageAtIndex(source, 0, [kCGImageSourceShouldAllowFloat: true] as CFDictionary) else {
+            return nil
+        }
+
+        let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
+        let rawOrientation = properties?[kCGImagePropertyOrientation] as? UInt32
+        let orientation = rawOrientation
+            .flatMap(CGImagePropertyOrientation.init(rawValue:)) ?? .up
+        return PhotoImage(cgImage: cgImage, scale: 1, orientation: orientation)
+    }
+}

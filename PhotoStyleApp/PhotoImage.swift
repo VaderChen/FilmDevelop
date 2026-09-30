@@ -56,6 +56,8 @@ struct PhotoImage {
     /// 相同 RAW 的解碼器預設顯影；與供底片運算的線性像素分開保存。
     var cameraOriginal: CGImage?
     var rawDecoderBackend: PhotoRAWBackend?
+    /// 偏好軟體解析但此檔案須改用系統解析。
+    var softwareRAWFallback = false
     var softwareRAWPreview: (linear: CGImage, display: CGImage)?
 
     func processingPreview(maxPixel: CGFloat) -> PhotoImage {

@@ -7,7 +7,7 @@ import UniformTypeIdentifiers
 /// This is not access to Bayer/CFA samples; camera white balance, demosaicing,
 /// and the decoder's camera-specific noise reduction and sharpening remain active.
 public enum PhotoRAWDecoder {
-    public static func makeSceneLinearFilter(data: Data, identifierHint: String?) -> CIRAWFilter? {
+    public static func makeSceneLinearFilter(data: Data, identifierHint: String?, lensCorrectionEnabled: Bool = true) -> CIRAWFilter? {
         // Inspect the bytes rather than trusting the filename/hint.
         // X-Trans RAF can omit CFA/Maker/Photometric tags in CIRAWFilter's
         // properties, and LinearRaw DNG legitimately has no CFA at all.
@@ -21,6 +21,9 @@ public enum PhotoRAWDecoder {
               ((properties[kCGImagePropertyDepth] as? NSNumber)?.intValue ?? 0) > 8,
               isRAWContent(sourceType: sourceType, properties: properties) else { return nil }
 
+        if filter.isLensCorrectionSupported {
+            filter.isLensCorrectionEnabled = lensCorrectionEnabled
+        }
         filter.scaleFactor = 1
         filter.isDraftModeEnabled = false
         filter.exposure = 0

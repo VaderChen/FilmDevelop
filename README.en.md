@@ -11,6 +11,10 @@ A film-inspired photo editor for Apple Silicon Mac. Open a photo folder, choose 
 Requires macOS 14 or later. AI features require a compatible local model, downloaded separately.
 
 
+## Acceleration settings
+
+Use **System native decoding** for RAW and **System native acceleration** for computation. Built-in software decoding and Vulkan are testing modes in preparation for Windows; this release does not include a Windows installer. The two settings are independent and apply to previews and exports.
+
 ## Export settings
 
 In Settings → Export, choose the default folder, format and color space. sRGB is the default; Adobe RGB (1998) and Display P3 are also available. Pixels are converted and the corresponding ICC profile is embedded.
@@ -31,15 +35,18 @@ Film recipes now combine layer response, tone curves, hue-selective saturation a
 
 Cross Process, Kodak Gold 200, CineStill 800T and Polaroid SX-70 retain their current rendering. Digital simulations and the original receive no film-specific grading. Scanner device labels use simulation; legacy off becomes neutral. Paper controls are hidden for film scanning. UI help describes controls and their visual effects. Processing uses Metal point operations without CPU image readback.
 
-## Latest changes — 1.26.0929 build 2113
+## Latest changes — 1.26.0930 build 1745
 
-Changes since the previous release, `v1.26.0929-build-1812`.
+Changes since the previous release, `v1.26.0929-build-2113`.
 
-- Film strength 0 now matches Original; values from 0 to 50 smoothly blend into the existing film look.
-- The default film strength of 50, rendering above 50 and all preset parameters remain unchanged.
-- Strength adjustments retain cropping, rotation and repairs. Frames and dates remain fully visible, with the same pipeline for previews and exports.
+- For acceleration settings, use System native decoding and System native acceleration. Built-in software decoding and Vulkan are testing modes in preparation for Windows.
+- Added separate RAW decoding and compute acceleration settings, shared by previews and single or batch exports.
+- Added Enable lens correction for RAW, on by default, using system-supplied corrections in previews and exports.
+- Consecutive Vulkan film, development and strength-blending stages now keep images on the GPU, reducing transfers. Scanning retains its original processing order.
+- Corrected C++/Vulkan development sampling on large images to improve agreement with native output.
+- Improved resource cleanup when switching backends, finishing processing and handling errors; fixed auxiliary-file handling in the built-in RAW build.
 
-Color and black-and-white films both start from Original at strength 0. This update changes only blending below 50 and does not rewrite saved recipes or photos.
+This release is for Apple Silicon macOS; no Windows installer is available yet.
 
 ## Download and languages
 

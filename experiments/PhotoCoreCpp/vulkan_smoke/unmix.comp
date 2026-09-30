@@ -1,0 +1,47 @@
+#version 450
+layout(local_size_x = 64) in;
+layout(std430, set=0, binding=0) readonly buffer Input { vec4 optical[]; } src;
+layout(std430, set=0, binding=1) writeonly buffer Output { vec4 separated[]; } dst;
+layout(std430, set=0, binding=2) readonly buffer Parameters { vec4 data[]; } params;
+layout(push_constant) uniform Count { uint count; } work;
+
+// FP32 Smoke：與 CPU 相同的 13 波段、誤差門檻及 4 次 Newton 更新。
+// NoContraction 用於限制重組；exp/log 的跨驅動差異仍由成品 ΔE 驗證。
+void main() {
+    uint i = gl_GlobalInvocationID.x;
+    if (i >= work.count) return;
+    vec3 optical = src.optical[i].xyz;
+    float middle = params.data[0].x, maximum = params.data[0].y;
+    vec3 base = params.data[1].xyz, mid = params.data[2].xyz;
+    precise vec3 delta = optical - mid;
+    precise vec3 estimate = clamp(vec3(middle) + vec3(dot(params.data[3].xyz, delta),
+        dot(params.data[4].xyz, delta), dot(params.data[5].xyz, delta)), vec3(0), vec3(maximum));
+    vec3 best = estimate;
+    float bestError = 1e30;
+    for (int iteration = 0; iteration <= 4; ++iteration) {
+        precise vec3 signal = vec3(0), j0 = vec3(0), j1 = vec3(0), j2 = vec3(0);
+        for (int k = 0; k < 13; ++k) {
+            vec4 dye = params.data[6+k];
+            precise vec3 weight = params.data[19+k].xyz * exp(-2.302585093 * (dye.w + dot(dye.xyz, estimate)));
+            signal += weight;
+            j0 += weight * dye.x;
+            j1 += weight * dye.y;
+            j2 += weight * dye.z;
+        }
+        signal = max(signal, vec3(1e-12));
+        precise vec3 residual = -log(signal / base) * 0.4342944819032518 - optical;
+        precise float error = dot(residual, residual);
+        if (error < bestError) { best = estimate; bestError = error; }
+        if (iteration == 4 || error < 1e-12) break;
+        j0 /= signal; j1 /= signal; j2 /= signal;
+        precise vec3 co0 = cross(j1,j2), co1 = cross(j2,j0), co2 = cross(j0,j1);
+        precise float determinant = dot(j0, co0);
+        if (isnan(determinant) || isinf(determinant) || abs(determinant) <= 1e-8) break;
+        precise vec3 step = vec3(dot(co0,residual),dot(co1,residual),dot(co2,residual)) / determinant;
+        float largest = max(abs(step.x),max(abs(step.y),abs(step.z)));
+        if (isnan(largest) || isinf(largest)) break;
+        step *= min(1.0, 0.75/max(largest,1e-12));
+        estimate = clamp(estimate-step,vec3(0),vec3(maximum));
+    }
+    dst.separated[i] = vec4(best-middle,1);
+}
