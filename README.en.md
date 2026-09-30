@@ -12,14 +12,28 @@ Give your photos a film look you love. Pick a film, adjust exposure, color and g
 
 Requires **Apple Silicon and macOS 14 or later**. The app supports Traditional Chinese, English, Japanese and Korean. The installer is notarized by Apple.
 
-## What can you do?
+## What makes it different
 
-- **Find your look:** choose color, black-and-white or cinema film styles and GR camera simulations, or save your own adjustments.
-- **Fine-tune the feel:** adjust exposure, white balance, contrast, grain, development and scanning.
-- **Organize and edit in batches:** use star ratings and categories, then copy adjustments to several photos at once.
-- **Clean up the frame:** crop, rotate, repair unwanted objects, and add borders or dates.
-- **Get help from AI:** download a model for local photo analysis and adjustment suggestions. Your photos are not uploaded.
-- **Export your work:** save JPEG, PNG, WebP or TIFF with your choice of size and color space, keeping the originals untouched.
+- **Explore the whole film process:** simulate color layers, emulsion grain, developer chemistry, print paper and scanning, with control throughout the process.
+- **Start with a classic, make it your own:** Portra, Ektar, VISION3, Velvia, monochrome and special films, plus GR III/GR IV simulations. Save your favorite settings as custom films.
+- **Each photo keeps its own edits:** adjustments, crops and repairs stay with the photo. Compare with the original anytime; exports use the source image without overwriting it.
+- **Local editing, optional AI:** photos and edits stay on your Mac. Download models for offline analysis and repairs, or adjust everything yourself.
+
+## Features at a glance
+
+| Feature | What you can do |
+| --- | --- |
+| Film collection and custom looks | Pick favorites, reorder them and adjust strength; rename, duplicate, import and export custom films. |
+| Development and texture | Adjust time, temperature, agitation, contrast, grain, glow and halation; explore color layers, emulsion, reciprocity and retained silver. |
+| Scanning and printing | Choose scanner simulations, film or paper scanning, glossy, matte or warm fiber paper, and adjust print lighting and warmth. |
+| RAW, exposure and color | Keep Original exposure and white balance, with lens correction for supported RAW files; use the white-balance eyedropper, zone exposure, contrast, vibrance, saturation and HDR. |
+| Portraits and detail | Skin smoothing, whitening and warmth, background and lens blur, noise reduction and vignette compensation. |
+| Live preview | Hover over films to try them, zoom into details, compare with the original and view the RGB histogram. |
+| Composition and repairs | Free or fixed-ratio crops, rotation, an AI repair brush, borders and date stamps, with undo and redo. |
+| Photo organization | Select multiple thumbnails, add ratings and categories, sort and filter, inspect EXIF and reopen recent folders. |
+| Copies and batch editing | Duplicate a photo with its edits, copy adjustments to several photos, reset selections to Original and export in batches. |
+| Export options | JPEG, PNG, WebP and TIFF; 8/16-bit PNG and TIFF, size and quality settings, plus sRGB, Adobe RGB and Display P3. |
+| AI and external tools | Start AI-assisted analysis and adjustments when you want. Enable the local MCP server to connect compatible external tools. |
 
 ## Start in four steps
 
