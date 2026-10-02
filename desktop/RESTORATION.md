@@ -373,3 +373,7 @@ Go application／storage race 與 vet、JavaScript 語法及差異空白檢查�
 - 更新四語 README、Windows 安裝說明與版本。正式 Mac 封裝新增 Developer ID、App／DMG 公證、票證附加及 Gatekeeper 驗證；本機 ad-hoc 封裝仍供開發使用。公證與 GitHub 發布狀態以 Release 頁及該次封裝驗證結果為準，不將既有版本的公證視為本次通過。
 
 發布整理補測：重新產生 289 組 Swift 參考影像，本機共用 C++ 管線 CPU／GPU 各 289 組通過。Windows 最新正式 GUI 以隔離資料啟動，158 個封裝檔雜湊一致；10 項 WebView2 操作、3 項重開持久化，以及本輪新增／重新匯出配方的 CPU／GPU 各 16 組比較通過。這次使用安裝包的同份 payload，未取代正在使用的 Windows 安裝位置。正式 Mac Developer ID 簽章另做深度驗證與原生 16 項 Smoke。
+
+正式封裝驗收：本版 Mac App 與 DMG 均取得 Apple `Accepted`，已附加公證票證並通過 Gatekeeper。App 提交 ID 為 `3dff4b04-93c8-4309-95ba-dff90b9f0d6b`，DMG 提交 ID 為 `1a10239e-a8a7-44c7-b17a-dff0819420a3`。最終 DMG 重新掛載後，深度簽章、兩份票證、版本、隔離資料 GUI 啟動與 Go 呼叫包內引擎的兩組匯出均通過，兩組像素與先前簽章成品完全一致。
+
+雙平台應用程式由乾淨的 `a63a776` 原始碼建置；後續提交只更新封裝流程與文件。Mac DMG SHA-256：`af3ae120fd151ba1a871e26f3bc16409a6fe0b0d87294b6b83803be734adf91b`；Windows x64 Beta 安裝檔 SHA-256：`f8387681201eb45461ed5402ad7390b700aa55935a1887e8fb36016900164943`。[1.26.1002 build 1208 發布頁](https://github.com/VaderChen/FilmDevelop/releases/tag/v1.26.1002-build-1208)提供安裝檔、`SHA256SUMS.txt` 與 `release-validation.json`；本機完整紀錄位於 `build/release-20261002`。

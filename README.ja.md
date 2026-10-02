@@ -10,7 +10,7 @@
 
 [Mac・Windows 版をダウンロード](https://github.com/VaderChen/FilmDevelop/releases/latest)。バージョンは **1.26.1002 build 1208**、Windows は **Beta** 表記です。
 
-Mac は Apple Silicon・macOS 14 以降に対応。DMG から FilmDevelop を「アプリケーション」に移動します。正式 DMG は Developer ID 署名・Apple 公証の完了後に提供します。Windows は 10／11 x64、WebView2 と VC++ x64 Runtime が必要です。x64 setup EXE を実行してください。Authenticode 署名はありません。
+Mac は Apple Silicon・macOS 14 以降に対応。DMG から FilmDevelop を「アプリケーション」に移動します。今回の DMG と内包アプリは Developer ID 署名・Apple 公証・公証チケット添付済みです。Windows は 10／11 x64、WebView2 と VC++ x64 Runtime が必要です。x64 setup EXE を実行してください。Authenticode 署名はありません。
 
 旧 Swift Mac 版からは手動でダウンロードして更新してください。認識できる編集、星評価、カテゴリ、カスタムフィルムを引き継ぎ、新版のデータを優先します。データベースの書き出し・読み込みと再配置で別の PC へ移せますが、元写真は含みません。繁体字中国語・英語・日本語・韓国語に対応します。
 

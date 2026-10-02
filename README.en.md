@@ -10,7 +10,7 @@ Give your photos a film look you love. Pick a film, adjust exposure, color and g
 
 [Download for Mac and Windows](https://github.com/VaderChen/FilmDevelop/releases/latest). Version **1.26.1002 build 1208**; Windows is labeled **Beta**.
 
-Mac requires Apple Silicon and macOS 14+. Open the DMG and drag FilmDevelop into Applications. Release DMGs are offered only after Developer ID signing and Apple notarization. Windows requires Windows 10/11 x64, WebView2 and the VC++ x64 Runtime. Run the x64 setup EXE; it is not Authenticode signed.
+Mac requires Apple Silicon and macOS 14+. Open the DMG and drag FilmDevelop into Applications. This release’s DMG and included app are Developer ID signed, Apple notarized and stapled. Windows requires Windows 10/11 x64, WebView2 and the VC++ x64 Runtime. Run the x64 setup EXE; it is not Authenticode signed.
 
 When upgrading from the Swift Mac app, download the new app manually. Recognized edits, ratings, categories and custom films migrate without overwriting newer data. Database export/import supports relocation to another computer; original photos are not included. The interface supports Traditional Chinese, English, Japanese and Korean.
 

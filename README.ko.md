@@ -10,7 +10,7 @@
 
 [Mac 및 Windows 버전 다운로드](https://github.com/VaderChen/FilmDevelop/releases/latest). 버전은 **1.26.1002 build 1208**이며 Windows에는 **Beta**가 표시됩니다.
 
-Mac은 Apple Silicon과 macOS 14 이상이 필요합니다. DMG에서 FilmDevelop을 응용 프로그램 폴더로 옮기세요. 정식 DMG는 Developer ID 서명과 Apple 공증을 완료한 뒤 제공합니다. Windows는 10/11 x64, WebView2와 VC++ x64 Runtime이 필요합니다. x64 setup EXE를 실행하세요. Authenticode 서명은 없습니다.
+Mac은 Apple Silicon과 macOS 14 이상이 필요합니다. DMG에서 FilmDevelop을 응용 프로그램 폴더로 옮기세요. 이번 DMG와 포함된 앱은 Developer ID 서명, Apple 공증 및 공증 티켓 첨부를 완료했습니다. Windows는 10/11 x64, WebView2와 VC++ x64 Runtime이 필요합니다. x64 setup EXE를 실행하세요. Authenticode 서명은 없습니다.
 
 이전 Swift Mac 앱에서 전환할 때는 새 앱을 직접 다운로드하세요. 인식 가능한 편집, 별점, 분류와 사용자 필름을 가져오며 새 버전의 기존 데이터를 우선합니다. 데이터베이스 내보내기·가져오기와 경로 재지정으로 다른 컴퓨터로 옮길 수 있지만 원본 사진은 포함하지 않습니다. 번체 중국어, 영어, 일본어와 한국어를 지원합니다.
 

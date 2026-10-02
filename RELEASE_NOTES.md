@@ -14,13 +14,13 @@
 
 ## 下載與升級
 
-- Mac：Apple Silicon、macOS 14 以上，使用 `macos-arm64.dmg`。正式提供的 Mac 安裝檔需完成 Developer ID 簽章與 Apple 公證。
+- Mac：Apple Silicon、macOS 14 以上，使用 `macos-arm64.dmg`。本次 DMG 與內含 App 已完成 Developer ID 簽章、Apple 公證、票證附加及 Gatekeeper 驗證。
 - Windows：Windows 10／11 x64，使用 `windows-x64-setup.exe`；版本標示 Beta。需要 WebView2 與 VC++ x64 Runtime，安裝檔未簽 Authenticode。
 - 首次從舊 Swift Mac 版升級，請手動下載混合版。舊更新器不使用新的套件名稱與識別碼。
 - 資料移轉保留舊檔及收據，不覆寫新版已有修改。跨電腦資料包不含原始照片；只有舊雜湊而缺少來源路徑的紀錄需重新定位。
 
 ## 驗證與已知差異
 
-已完成 Go race／vet、共用契約與資料檢查、Mac 原生和實際 Wails Smoke，以及 Windows 交叉編譯與封裝檢查。前輪 Windows 10／GTX 1060 實機涵蓋配方、編輯、匯出、資料移轉、GGUF 與 ONNX 修復；兩平台 CPU／GPU 共 1,216 組 Swift 影像參考比較通過。各輪測試與最終變更複測分開記錄，詳見[功能恢復紀錄](desktop/RESTORATION.md)。
+已完成 Go race／vet、共用契約與資料檢查、Mac 原生和實際 Wails Smoke，以及 Windows 交叉編譯與封裝檢查。前輪 Windows 10／GTX 1060 實機涵蓋配方、編輯、匯出、資料移轉、GGUF 與 ONNX 修復；兩平台 CPU／GPU 共 1,216 組 Swift 影像參考比較通過。發布前補測本機 C++ CPU／GPU 各 289 組；Windows 10 實機完成 158 個 payload 檔案校驗、正式 GUI 啟動、10 項 WebView2 操作、3 項設定重開及 CPU／GPU 各 16 組比較。完整 NSIS 解壓校驗 159 檔（含清單本身），此次未在正式安裝位置重跑安裝／解除安裝。各輪測試與最終變更複測分開記錄，詳見[功能恢復紀錄](desktop/RESTORATION.md)。
 
 44 份 RAW 樣本中，共用 LibRaw 成功解碼 38 份，其中 37 份通過嚴格跨平台數值比較。Nikon HE／HE*、GoPro GPR 仍有缺口。原生 RAW、主體／深度、降噪、景深與日期字形仍有平台差異；既有 Swift XCTest 的 10 個案例／20 個失敗斷言維持原基線。Windows 11、乾淨電腦缺少 Runtime 與其他 GPU 驅動仍需擴大驗證。

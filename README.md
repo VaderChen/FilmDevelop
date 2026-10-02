@@ -12,7 +12,7 @@
 
 | 平台 | 安裝方式與需求 |
 | --- | --- |
-| macOS | Apple Silicon、macOS 14 以上。開啟 `macos-arm64.dmg`，將 FilmDevelop 拖進「應用程式」。正式 DMG 需完成 Developer ID 簽章與 Apple 公證後才提供下載。 |
+| macOS | Apple Silicon、macOS 14 以上。開啟 `macos-arm64.dmg`，將 FilmDevelop 拖進「應用程式」。本次 DMG 及內含 App 已完成 Developer ID 簽章、Apple 公證與票證附加。 |
 | Windows Beta | Windows 10／11 x64，執行 `windows-x64-setup.exe`。需要 WebView2 與 VC++ x64 Runtime；安裝程式未簽署 Authenticode。 |
 
 兩個平台共用繁體中文、英文、日文與韓文介面。第一次從舊 Swift Mac 版升級，請手動下載新版；舊版的更新器不使用新的混合版套件。安裝後會沿用可辨識的照片調整、星級、分類與自訂底片，既有新版資料優先。換電腦可在設定中「匯出資料庫／匯入並重新定位」；資料包不含原始照片，舊紀錄缺少原路徑時需重新定位。
