@@ -662,3 +662,21 @@ Windows 11 與乾淨系統尚未實測；沒有以這次的 Windows 10 結果代
 Windows 交付改為完整解壓後即可執行的 ZIP，內附原廠 VC++ x64 Runtime。第一次從舊 setup 版移轉需手動解壓至新的資料夾，其後可在免安裝版內更新。macOS 保留標準 FilmDevelop DMG 與 FilmYourPhoto 一次性識別移轉入口，首次啟動後即使用標準身分。
 
 新版完成解壓執行、封裝與公開下載驗證後，才取代並移除 build 1323 的 Release；舊 Git tag 保留作為歷史紀錄。本機私用 `pack.command`、測試照片、絕對私人路徑與測試目錄不納入 Git 或發佈包。
+
+### 本次正式成品驗證
+
+- Go internal race／vet、共用契約、Python／Shell／JavaScript 語法及差異檢查通過。Git 追蹤的 652 個一般檔案另做私密資料與私人路徑掃描；唯一文字匹配是掃描器自身的正規表示式，經確認不含實際個人路徑。`pack.command` 未納入 Git。
+- macOS 重新建置後通過 16 項 Go／原生引擎及 46 項真實 Wails 桌面 Smoke。標準 App、過渡 App 與兩個 DMG 均完成 Developer ID 簽章、Apple 公證、票證附加與 Gatekeeper 驗證。
+- 從正式 DMG 掛載啟動 GUI，並用內含引擎匯出原片／Portra；兩份成品與本輪參考像素完全相同。過渡包內含標準 App 的 110 個一般檔案逐檔相同。
+- 使用本機舊 Swift App 的隔離副本實際執行選包、簽章準備、過渡啟動、原位置替換與標準 App 再次啟動；16 個既有資料檔保持不變。掛載檢查與移轉測試採順序執行，保留初次併行掛載失敗及後續成功的紀錄。
+- Windows 正式 ZIP 與測試工具傳至 Windows 10 x64（19045）後先比對 SHA-256，再以 Windows 原生方式解壓至全新目錄。170 個檔案的封裝回讀、27 個 PE 的 x64／相依檢查與 11 項封裝 Smoke 通過。
+- Windows 六組實機 Smoke 全數通過：原生解壓、正式更新工具逐檔驗證、12 個原廠 Runtime 簽章／實際 app-local 載入、Go Windows 更新測試、正式 GUI 啟動及 10 項 WebView2 編輯檢查。更新測試為 9 個主測試、含子測試共 23 項，沒有略過，包含成功交接、失敗還原及使用者檔案保留；UI 實際使用 Vulkan。測試後本輪目錄無殘留工作程序，既有遠端連線保留。
+- 這是新 build 2330 成品的測試；Windows 11、乾淨系統與其他 GPU 尚未實機驗證。本次沒有重跑無變動的完整影像金樣本，前述 CPU／GPU、乳劑與 RAW 比對屬於本次整併工作期間的既有證據。
+
+| 正式附件 | 大小 | SHA-256 |
+| --- | ---: | --- |
+| `FilmDevelop-1.26.1002-build2330-macos-arm64.dmg` | 87,283,493 bytes | `c5eb7e62b743d2a05b1722760b4411af289f33c9e5a460f863657919a0aba0cb` |
+| `FilmYourPhoto-1.26.1002-build-2330-arm64.dmg` | 92,211,355 bytes | `58fbe379c7c0660fc8bcb0e792f1570a4debe22f3f78b3945d6c613beb6097c7` |
+| `FilmDevelop-1.26.1002-build2330-windows-x64-portable.zip` | 342,981,808 bytes | `dba50026ea2a31fc7652d0155faabb6c1c2be4fb0ba267d9586380742e542d35` |
+
+建置來源提交為 `5d43152e7e66b66d43ead95e4899b944c0cc48e6`；最後的發布提交只補文件與驗證紀錄，不變更產品原始碼。Release 附上三個正式成品的 `SHA256SUMS.txt` 與不含私人路徑的 `release-validation.json`。本機完整證據保存在 `build/release-20261002-2330`，不納入 Git。
