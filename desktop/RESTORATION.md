@@ -705,4 +705,4 @@ Windows 交付改為完整解壓後即可執行的 ZIP，內附原廠 VC++ x64 R
 | `FilmYourPhoto-1.26.1003-build-0018-arm64.dmg` | 92,229,054 bytes | `3b45a9dede6d88eebb90a5ccca60502db393ed33ceba0067c22be3125ba7f9cf` |
 | `FilmDevelop-1.26.1003-build0018-windows-x64-portable.zip` | 315,212,352 bytes | `3f91fc22af847abba883a3ff20d9ca64fd1832233bc64a5dc5785835b6dac5cc` |
 
-建置來源提交為 `4ad539e97cec1ff39679125c5f957af453f7a6a3`；此後只補本文件的實測紀錄。完整證據在本機 `build/release-notes-20261003`；Release 提供成品 SHA-256 與不含私人路徑的驗證摘要。Windows 實機驗證為 10 x64，沒有把 Windows 11、乾淨系統或其他 GPU 列為已測。完整 RAW／CPU／GPU 金樣本矩陣本輪未重跑，先前的 RAW 缺口、平台差異及 Swift XCTest 失敗基線仍依前文保留。
+建置來源提交為 `4ad539e97cec1ff39679125c5f957af453f7a6a3`；此後僅補發布文件與文件產生器同步，App／引擎來源未變更。`RELEASE_NOTES.md` 也由共用四語資料產生，避免保留舊版摘要。完整證據在本機 `build/release-notes-20261003`；Release 提供成品 SHA-256 與不含私人路徑的驗證摘要。Windows 實機驗證為 10 x64，沒有把 Windows 11、乾淨系統或其他 GPU 列為已測。完整 RAW／CPU／GPU 金樣本矩陣本輪未重跑，先前的 RAW 缺口、平台差異及 Swift XCTest 失敗基線仍依前文保留。

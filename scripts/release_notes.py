@@ -101,6 +101,7 @@ def generated_files(data):
             at = positions[1].start()
             original = original[:at] + block + '\n\n' + original[at:]
         files[readme] = original
+    files[ROOT / 'RELEASE_NOTES.md'] = release_body(data, latest['tag'])
     return files
 
 
