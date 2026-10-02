@@ -40,7 +40,7 @@
 - 在設定選取計算加速後，立即顯示「正在切換計算加速」與轉圈動畫；Go 管理切換及預覽狀態，待新後端的預覽完成後關閉，焦點回到選單。
 - 對話框期間暫停其他編輯。要求識別與預覽世代隔離舊回覆；若排隊中的手勢結束重新排程預覽，等待會跟隨最新工作。無照片、相同選項、後端不支援、設定保存失敗及預覽失敗均能結束等待，不遺失現有影像。
 - 普通編輯顯影與主體偵測仍使用照片下方提示。這次對話框只用於計算加速切換，RAW 解析選項沿用原流程。
-- 通過 Go race／vet 及 35 項真實 Wails 桌面 Smoke，包括系統原生與 Vulkan 雙向切換、立即顯示動畫、過期回覆、錯誤恢復與焦點還原。彙整：[`compute-switch-report.json`](../build/compute-switch-report.json)。
+- 通過 Go race／vet 及 35 項真實 Wails 桌面 Smoke，包括系統原生與 Vulkan 雙向切換、立即顯示動畫、過期回覆、錯誤恢復與焦點還原。彙整：`compute-switch-report.json`（本機 `build/compute-switch-report.json`）。
 
 ## 預覽效能修正
 
@@ -50,7 +50,7 @@
 - 取消工作先丟棄舊結果，等待 GPU 安全收尾，避免強制結束程序時遺留 Metal 使用紀錄快取的鎖。工作階段限時回收、關閉時清理，格式錯誤或程序失敗後重新建立工作階段；快取只保留目前來源。
 - 新增 7 項真實 Swift 快取 Smoke：冷啟動、曝光重用、裁切失效、遮罩首次與再次使用、同路徑內容變動、鏡頭設定變動。每項均與獨立 Swift 工作的解碼後像素比較。
 
-量測範圍為同一張 `DSC_1717.NEF`、系統影像後端，混合版修正前後從 Go 排程至預覽產生的時間；舊 Swift 部分以原始碼流程對照。量測資料與驗證彙整見 [`preview-performance-report.json`](../build/preview-performance-report.json)。
+量測範圍為同一張 `DSC_1717.NEF`、系統影像後端，混合版修正前後從 Go 排程至預覽產生的時間；舊 Swift 部分以原始碼流程對照。量測資料與驗證彙整見 `preview-performance-report.json`（本機 `build/preview-performance-report.json`）。
 
 | 曝光調整（三次中位數） | 修正前 | 修正後 | 耗時減少 |
 | --- | --- | --- | --- |
@@ -76,7 +76,7 @@
 
 首次新照片仍需解碼並顯影；這次兩張 RAW 的首次結果約為 1.13／0.91 秒，未列為加速成果。快取命中時回傳的影像與首次成品逐字比對相同，底片切換的影像傳輸量由約 4.4 MB 降至 1.6 MB。
 
-Go race／vet、35 項桌面 Smoke 與 9 個真實 RAW 切換案例通過。新增單元驗證涵蓋跨底片／照片重用、完整設定與內容失效、容量淘汰、影像差量、清空及重新同步。完整數據：[`preview-navigation-report.json`](../build/preview-navigation-report.json)。
+Go race／vet、35 項桌面 Smoke 與 9 個真實 RAW 切換案例通過。新增單元驗證涵蓋跨底片／照片重用、完整設定與內容失效、容量淘汰、影像差量、清空及重新同步。完整數據：`preview-navigation-report.json`（本機 `build/preview-navigation-report.json`）。
 
 ## 已通過的驗證
 
@@ -87,15 +87,15 @@ Go race／vet、35 項桌面 Smoke 與 9 個真實 RAW 切換案例通過。新�
 - 真實本機 **Qwen3.5-4B MLX** 影像分析與完整配方生成，再經 Go 驗證、**Core ML LaMa 修復及 PNG16 匯出**。
 - 舊 Xcode App 建置，以及 **1,408 項 Swift AI 配方契約檢查**。修正 Plan 輸出混入已停用欄位，並區分明確三區零曝光與保存格式的繼承值。
 - 唯讀取得本機既有 Swift 偏好，將遷移結果寫入隔離測試目錄，確認匯出、語言與最近目錄等設定可讀取，重複遷移不覆蓋 Go 已保存的偏好。
-- 舊照片還原回歸：Swift 固定雜湊、首次載入、兩種空白 Go 紀錄、Go 編輯與重設優先、同內容副本、損壞紀錄及僅瀏覽的預設紀錄。實際比對 6 張已編輯 RAW 的完整配方／手動歷史／標記，包含 2 筆空白 Go 紀錄；原生預覽及 16-bit PNG 匯出通過，原照片及 Swift 來源未變動。紀錄：[`photo-recipe-native-smoke.log`](../build/photo-recipe-native-smoke.log)；本輪桌面 Smoke：[`photo-recipe-desktop-smoke.log`](../build/photo-recipe-desktop-smoke.log)。
+- 舊照片還原回歸：Swift 固定雜湊、首次載入、兩種空白 Go 紀錄、Go 編輯與重設優先、同內容副本、損壞紀錄及僅瀏覽的預設紀錄。實際比對 6 張已編輯 RAW 的完整配方／手動歷史／標記，包含 2 筆空白 Go 紀錄；原生預覽及 16-bit PNG 匯出通過，原照片及 Swift 來源未變動。紀錄：`photo-recipe-native-smoke.log`（本機 `build/photo-recipe-native-smoke.log`）；本輪桌面 Smoke：`photo-recipe-desktop-smoke.log`（本機 `build/photo-recipe-desktop-smoke.log`）。
 - macOS DMG 簽章及完整性檢查；更新器以實際 DMG 驗證掛載、識別、版本、架構、最低系統版本、簽章、同磁碟暫存、收據與取消清理。修正 /var 與 /private/var 路徑比較。
 - Windows x64：**15 個 PE 產物、9 項 NSIS 封裝 Smoke**，包括架構、相依、版本、圖示及解壓後 SHA-256。
 
-機器可讀彙總：[`build/restoration-report.json`](../build/restoration-report.json)。各次完整紀錄位於該報告列出的 log 與 JSON 檔。
+機器可讀彙總：`build/restoration-report.json`（本機 `build/restoration-report.json`）。各次完整紀錄位於該報告列出的 log 與 JSON 檔。
 
-照片參數還原修正的追加報告：[`photo-recipe-recovery-report.json`](../build/photo-recipe-recovery-report.json)。本機新版已恢復兩筆受影響的 Go 紀錄，逐欄比對原 Swift 保存參數及手動歷史相同，並確認 31 個 Swift 來源檔案未變更。
+照片參數還原修正的追加報告：`photo-recipe-recovery-report.json`（本機 `build/photo-recipe-recovery-report.json`）。本機新版已恢復兩筆受影響的 Go 紀錄，逐欄比對原 Swift 保存參數及手動歷史相同，並確認 31 個 Swift 來源檔案未變更。
 
-預覽顯影與下方提示的追加報告：[`preview-handoff-report.json`](../build/preview-handoff-report.json)；桌面實測明細：[`desktop-smoke-glq27ya6/report.json`](../build/desktop-smoke-glq27ya6/report.json)。Go 測試另涵蓋冷／暖縮圖、初次顯影的快取保留、遮罩進度與不同照片的過期縮圖隔離。
+預覽顯影與下方提示的追加報告：`preview-handoff-report.json`（本機 `build/preview-handoff-report.json`）；桌面實測明細：`desktop-smoke-glq27ya6/report.json`（本機 `build/desktop-smoke-glq27ya6/report.json`）。Go 測試另涵蓋冷／暖縮圖、初次顯影的快取保留、遮罩進度與不同照片的過期縮圖隔離。
 
 ## 既有 Swift 測試基線
 
@@ -103,7 +103,7 @@ Go race／vet、35 項桌面 Smoke 與 9 個真實 RAW 切換案例通過。新�
 
 本次以修改前的 PhotoStylePlan 備份建立隔離基線，確認修改前後的失敗斷言清單完全相同，沒有新增失敗。涉及舊自適應曝光預期、底片色差與鎢光色偏斷言、正片曝光比例、紅外線文案、超出顯示範圍的分區測量，以及舊 AI 配方欄位／曝光範圍。未為了通過舊斷言改變現行影像演算法或放寬測試。
 
-比對證據：[`restoration-shared-comparison.json`](../build/restoration-shared-comparison.json)，以及相鄰的 baseline／current log。此基線不影響已通過的 Go 移植金樣本與桌面 Smoke，但完整原生測試仍不是 Release 全綠狀態。
+比對證據：`restoration-shared-comparison.json`（本機 `build/restoration-shared-comparison.json`），以及相鄰的 baseline／current log。此基線不影響已通過的 Go 移植金樣本與桌面 Smoke，但完整原生測試仍不是 Release 全綠狀態。
 
 ## Windows 與發布界線
 
@@ -139,7 +139,7 @@ Go 宿主不編譯舊 WebCoordinator、應用儲存器、模型管理、MCP 或�
 
 改善集中在即時回饋；完整清晰圖仍要等待最新縮圖及完整顯影，未宣稱此階段加快或已達舊 Swift UI 的速度。原生浮點運算、原尺寸設定與匯出精度不變。
 
-本輪通過 35 項完整桌面 Smoke、10 項 Swift 快取／像素一致性檢查、真實滑桿與快速連續指令測試、實際兩次啟動的設定保存測試，以及 Go race／vet。macOS App／DMG 與 Windows x64 安裝包已更新；Windows 僅交叉編譯與封裝檢查，未實機執行、未發布 Release。詳細紀錄見 [`editing-performance-report.json`](../build/editing-performance-report.json)。
+本輪通過 35 項完整桌面 Smoke、10 項 Swift 快取／像素一致性檢查、真實滑桿與快速連續指令測試、實際兩次啟動的設定保存測試，以及 Go race／vet。macOS App／DMG 與 Windows x64 安裝包已更新；Windows 僅交叉編譯與封裝檢查，未實機執行、未發布 Release。詳細紀錄見 `editing-performance-report.json`（本機 `build/editing-performance-report.json`）。
 
 ## Windows 原生解碼與自動加速（2026-10-01）
 
@@ -213,9 +213,9 @@ Windows 真實人像（239×320 px）重用來源及視覺快取後，一次複�
 
 另通過 macOS 引擎 15 項、Wails 桌面 35 項、C++ 核心 16 項，以及相位表完整／截斷／非法權重／非法索引／格式／缺失的 6 項 Smoke。Windows 安裝內容的引擎與 GPU 函式庫須和實機驗證雜湊相符；本輪實機工作在隔離目錄完成，未重新執行正式位置的安裝或解除安裝。
 
-RAW 解碼器本輪未變更，沿用 [`RAW 相容性報告`](../build/raw-compatibility-20261002/report.json)：44 份樣本、17 家品牌、31 種機型，共用 LibRaw 成功 38／44，嚴格跨平台數值比對通過 37／38。Nikon HE／HE* 與 GoPro GPR 的外部 DNG 轉換尚未自動整合，Apple／WIC 原生色彩及裁切也不保證相同。Apple 主體、景深、降噪與 Windows 模型，以及日期字形，仍有平台差異，不包含在這 304 組逐像素驗證內。既有 Swift XCTest 失敗基線維持前述紀錄。
+RAW 解碼器本輪未變更，沿用 `RAW 相容性報告`（本機 `build/raw-compatibility-20261002/report.json`）：44 份樣本、17 家品牌、31 種機型，共用 LibRaw 成功 38／44，嚴格跨平台數值比對通過 37／38。Nikon HE／HE* 與 GoPro GPR 的外部 DNG 轉換尚未自動整合，Apple／WIC 原生色彩及裁切也不保證相同。Apple 主體、景深、降噪與 Windows 模型，以及日期字形，仍有平台差異，不包含在這 304 組逐像素驗證內。既有 Swift XCTest 失敗基線維持前述紀錄。
 
-完整數據、效能分布、初次失敗、最終 Smoke、來源及安裝檔雜湊見 [`二次檢視報告`](../build/parity-review2-20261002/report.json)。備份清冊為 `build/parity-review2-20261002/backups.json`，驗證完成後僅移除本輪 `.review2.bak` 並記錄於同目錄的 `backups-removed.json`。Go／Swift／C++ 分工不變；Windows 維持 Beta，本輪沒有發布 Release。
+完整數據、效能分布、初次失敗、最終 Smoke、來源及安裝檔雜湊見 `二次檢視報告`（本機 `build/parity-review2-20261002/report.json`）。備份清冊為 `build/parity-review2-20261002/backups.json`，驗證完成後僅移除本輪 `.review2.bak` 並記錄於同目錄的 `backups-removed.json`。Go／Swift／C++ 分工不變；Windows 維持 Beta，本輪沒有發布 Release。
 
 ## 功能再次複核（2026-10-02）
 
@@ -241,7 +241,7 @@ Windows 最初缺少兩項測試所需的 Vulkan validation layer，另缺光學
 
 RAW 完整 44 份矩陣沿用前輪結果：LibRaw 解碼 38／44、嚴格數值比對 37／38，5 份 Nikon HE／HE* 與 1 份 GoPro GPR 的直接解碼仍未補齊。Apple 與 Windows 的主體、景深、降噪、原生 RAW 色彩／裁切及日期字形仍有差異；既有 Swift XCTest 10 個案例／20 個失敗斷言也尚未解決。因此本輪不代表所有 RAW、所有平台演算法或 Release 驗收已完全通過。
 
-完整證據及各項測試入口見 [`功能複核報告`](../build/function-audit-20261002/report.json)。本輪來源備份清冊為 `build/function-audit-20261002/backups.json`，對應語法與 Smoke 通過後清除本輪備份；測試使用的傳輸服務與含權杖控制腳本在收回報告後清理。沒有發布 Release。
+完整證據及各項測試入口見 `功能複核報告`（本機 `build/function-audit-20261002/report.json`）。本輪來源備份清冊為 `build/function-audit-20261002/backups.json`，對應語法與 Smoke 通過後清除本輪備份；測試使用的傳輸服務與含權杖控制腳本在收回報告後清理。沒有發布 Release。
 
 ## 裁切還原與預覽交接（2026-10-02）
 
@@ -251,7 +251,7 @@ RAW 完整 44 份矩陣沿用前輪結果：LibRaw 解碼 38／44、嚴格數值
 
 JavaScript 語法檢查、差異空白檢查通過；Mac 真實 Wails／WKWebView 與透過 YourDesk MCP 啟動的 Windows x64／WebView2 桌面 Smoke 各 38 項通過。新增案例實際操作裁切與旋轉，刻意延後提交及解碼，並驗證舊回覆不造成原圖閃回、還原保留調色、復原／重做、重複還原命中快取及取消編輯。Mac 測試以 race 建置執行。
 
-已重新建置 `run.command` 使用的 Go／Swift App，以及 Mac DMG 與 Windows x64 Beta 安裝檔；封裝驗證通過，沒有發布 Release。本輪不修改影像演算法，完整像素與 RAW 矩陣仍以先前複核為準。來源備份與驗證結果見 [`裁切修正報告`](../build/crop-preview-20261002/report.json)。
+已重新建置 `run.command` 使用的 Go／Swift App，以及 Mac DMG 與 Windows x64 Beta 安裝檔；封裝驗證通過，沒有發布 Release。本輪不修改影像演算法，完整像素與 RAW 矩陣仍以先前複核為準。來源備份與驗證結果見 `裁切修正報告`（本機 `build/crop-preview-20261002/report.json`）。
 
 ## 匯出預設名稱對齊 Swift（2026-10-02）
 
@@ -261,7 +261,7 @@ JPEG、TIFF 的預設副檔名同步使用 Swift 的 `.jpg`、`.tif`，儲存對
 
 本輪從 `PhotoStyleWebCoordinator+Saving.swift` 及 `PhotoImage.swift` 擷取實際命名與副檔名規則，執行 Swift 產生 28 組參考。Mac 與透過 YourDesk MCP 執行的 Windows x64 命名 Smoke 全部符合，並驗證格式篩選與批次重名處理。Mac 的 application 套件 race 測試及 38 項真實桌面 Smoke 通過。驗證程式放在 build 目錄，以 Go overlay 執行，未加入正式程式。
 
-已更新 `run.command` 使用的 App、Mac DMG 與 Windows x64 Beta 安裝檔。驗證紀錄見 [`匯出命名修正報告`](../build/export-name-20261002/report.json)。本輪未發布 Release，也未在 Windows 正式安裝位置重新安裝。
+已更新 `run.command` 使用的 App、Mac DMG 與 Windows x64 Beta 安裝檔。驗證紀錄見 `匯出命名修正報告`（本機 `build/export-name-20261002/report.json`）。本輪未發布 Release，也未在 Windows 正式安裝位置重新安裝。
 
 ## 匯出 EXIF 與設定介面（2026-10-02）
 
@@ -275,7 +275,7 @@ RAW 採有界讀取；CR3 依 BMFF 容器的 CMT1／2／4 區塊邊界讀取，�
 
 另以 CRW／CR3 真實匯出比對兩平台的相機、拍攝日期、曝光及 ISO，並將 CR3 輸出值與來源 CMT2 原始值比較；CRW 在 UTC、台北及洛杉磯三個時區的拍攝時間一致。測試初版發現 CR3 備份誤讀及 CIFF 時區偏移後，已修正並重新執行相關檢查；早期失敗與複測證據保留在報告目錄。
 
-已重建 `run.command` 使用的 Go／Swift App、Mac DMG 與 Windows x64 Beta 安裝檔。成品封裝與雜湊檢查完成，沒有發布 Release，也未改動 Windows 正式安裝位置。詳細測試、來源備份清冊與成品雜湊見 [`EXIF 匯出報告`](../build/export-exif-20261002/report.json)。
+已重建 `run.command` 使用的 Go／Swift App、Mac DMG 與 Windows x64 Beta 安裝檔。成品封裝與雜湊檢查完成，沒有發布 Release，也未改動 Windows 正式安裝位置。詳細測試、來源備份清冊與成品雜湊見 `EXIF 匯出報告`（本機 `build/export-exif-20261002/report.json`）。
 
 ## 共用右鍵與操作選單（2026-10-02）
 
@@ -296,7 +296,7 @@ RAW 採有界讀取；CR3 依 BMFF 容器的 CMT1／2／4 區塊邊界讀取，�
 
 Go application race／vet、JavaScript 語法與空白檢查通過。Mac 真實 WKWebView 與 Windows 真實 WebView2 各 42 項桌面 Smoke 通過，涵蓋原有功能及新增的選單定位、分隔線、停用、階層、鍵盤、焦點恢復、多選分級、分類與自訂底片更名；另以共用元件的瀏覽器測試頁檢視實際選單及子選單排版。單元檢查也驗證停用父選單、無效命令、換圖後的舊操作及重複執行均不能執行。
 
-已更新 `run.command` 使用的 App、Mac DMG 與 Windows x64 Beta 安裝檔；沒有發布 Release，沒有修改 Windows 正式安裝位置。完整紀錄及本輪備份清冊見 [`右鍵選單修正報告`](../build/context-menu-20261002/report.json)。
+已更新 `run.command` 使用的 App、Mac DMG 與 Windows x64 Beta 安裝檔；沒有發布 Release，沒有修改 Windows 正式安裝位置。完整紀錄及本輪備份清冊見 `右鍵選單修正報告`（本機 `build/context-menu-20261002/report.json`）。
 
 
 ## Swift 分類與分級沿用（2026-10-02）
@@ -307,7 +307,7 @@ Go application race／vet、JavaScript 語法與空白檢查通過。Mac 真實 
 - 本機 `DSC_2357.NEF` 的 3 星／分類「456」、`DSC_2590.NEF` 的 5 星／分類「123」均由原 `PhotoOrganizationStore.swift` 實際讀取，再與 Go 列表及右鍵勾選逐筆比較。分類篩選、分級排序、清除後保存與第二次啟動共 10 項真實 Wails Smoke 通過；另以舊 Swift 儲存器讀回 Go 保存格式，確認相容。
 - 測試將正式 Swift／Go 資料複製到隔離目錄，原照片只讀，前後 SHA-256 一致。Go application／photos／storage race 與 vet、macOS App 建置與 Windows x64 交叉編譯通過；本輪未執行 Windows 實機，也未更新安裝包或發布 Release。
 
-重現測試：`python3 engine/verification/organization-compatibility-smoke.py`。彙整報告：[`organization-compatibility-20261002/report.json`](../build/organization-compatibility-20261002/report.json)。重新啟動新版宿主即自動補入，無須覆寫原 Swift 資料檔。
+重現測試：`python3 engine/verification/organization-compatibility-smoke.py`。彙整報告：`organization-compatibility-20261002/report.json`（本機 `build/organization-compatibility-20261002/report.json`）。重新啟動新版宿主即自動補入，無須覆寫原 Swift 資料檔。
 
 
 ## Swift 資料移轉缺口修正（2026-10-02）
@@ -344,7 +344,7 @@ Go application race／vet、JavaScript 語法與空白檢查通過。Mac 真實 
 - macOS App／DMG 與 Windows x64 Beta 安裝檔重新建置；封裝檢查通過。此次未重新執行 Windows 安裝／解除安裝，亦未發布 Release。
 - 自訂底片、提示詞、模型配對等本機缺少真實舊資料的分支採合成樣本；遮罩重用成品比對不代表兩平台所有原生演算法逐像素相同。前述 RAW 支援及 Swift 測試基線限制仍存在。
 
-詳細測試、成品雜湊、原資料核對與本輪備份清冊見 [`移轉修正報告`](../build/migration-fixes-20261002/report.json)。
+詳細測試、成品雜湊、原資料核對與本輪備份清冊見 `移轉修正報告`（本機 `build/migration-fixes-20261002/report.json`）。
 
 
 ## 底片勾選與共用介面修正（2026-10-02，最新）
@@ -357,7 +357,7 @@ Go application race／vet、JavaScript 語法與空白檢查通過。Mac 真實 
 
 驗證包含 macOS 真實 Wails 的完整桌面 Smoke，新增四種縮圖尺寸、Go 偏好讀回、底片預設勾選、不改其他底片選擇、同列按鈕及語意顏色、名稱提示移除等檢查。另以相同隔離資料目錄再次啟動，確認底片勾選及超大縮圖仍在，並檢查設定頁三個移轉按鈕的寬度、高度、圓角、字重、顏色及右側對齊一致。
 
-Go application／storage race 與 vet、JavaScript 語法及差異空白檢查通過。Mac App／DMG 與 Windows x64 Beta 安裝檔已更新；這批修改的 Windows 驗證為交叉編譯及封裝檢查，未重跑 Windows 實機。沒有發布 Release。詳細紀錄：[`共用介面修正報告`](../build/custom-film-default-20261002/report.json)。
+Go application／storage race 與 vet、JavaScript 語法及差異空白檢查通過。Mac App／DMG 與 Windows x64 Beta 安裝檔已更新；這批修改的 Windows 驗證為交叉編譯及封裝檢查，未重跑 Windows 實機。沒有發布 Release。詳細紀錄：`共用介面修正報告`（本機 `build/custom-film-default-20261002/report.json`）。
 
 ## 發布整理與最新介面（2026-10-02，1.26.1002 build 1208）
 
@@ -371,3 +371,5 @@ Go application／storage race 與 vet、JavaScript 語法及差異空白檢查�
 - 新增可重複執行的 Swift → Go 靜態目錄同步工具；原有 1,957 項 Swift 參考答案未改寫。新增配方使用獨立 Swift 擷取資料及真實原生顯影檢查。
 - 發布前 Go race／vet、JavaScript／Python 語法、契約與色彩資料檢查通過；Mac 原生 16 項、實際 Wails 45 項 Smoke 通過。Windows x64 重新交叉編譯，29 個 PE 架構與相依檢查通過。
 - 更新四語 README、Windows 安裝說明與版本。正式 Mac 封裝新增 Developer ID、App／DMG 公證、票證附加及 Gatekeeper 驗證；本機 ad-hoc 封裝仍供開發使用。公證與 GitHub 發布狀態以 Release 頁及該次封裝驗證結果為準，不將既有版本的公證視為本次通過。
+
+發布整理補測：重新產生 289 組 Swift 參考影像，本機共用 C++ 管線 CPU／GPU 各 289 組通過。Windows 最新正式 GUI 以隔離資料啟動，158 個封裝檔雜湊一致；10 項 WebView2 操作、3 項重開持久化，以及本輪新增／重新匯出配方的 CPU／GPU 各 16 組比較通過。這次使用安裝包的同份 payload，未取代正在使用的 Windows 安裝位置。正式 Mac Developer ID 簽章另做深度驗證與原生 16 項 Smoke。

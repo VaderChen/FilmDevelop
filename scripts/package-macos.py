@@ -28,8 +28,13 @@ def sign_app(app, identity):
             if executable:
                 run('codesign','--force','--timestamp','--options','runtime','--sign',identity,path)
         elif path.suffix in ('.app','.framework','.xpc','.bundle'):
-            # 資源 bundle 沒有可執行檔，也一併封存簽章，避免外層簽署後再變更。
-            run('codesign','--force','--timestamp','--options','runtime','--sign',identity,path)
+            # SwiftPM 資源 bundle 沒有可執行檔，由外層 App 的資源簽章封存。
+            info_path = path/'Contents/Info.plist'
+            if not info_path.is_file():
+                info_path = path/'Info.plist'
+            info = plistlib.loads(info_path.read_bytes()) if info_path.is_file() else {}
+            if info.get('CFBundleExecutable'):
+                run('codesign','--force','--timestamp','--options','runtime','--sign',identity,path)
     run('codesign','--force','--timestamp','--options','runtime','--sign',identity,app)
     run('codesign','--verify','--deep','--strict',app)
 
