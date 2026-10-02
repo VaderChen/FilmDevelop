@@ -376,4 +376,48 @@ Go application／storage race 與 vet、JavaScript 語法及差異空白檢查�
 
 正式封裝驗收：本版 Mac App 與 DMG 均取得 Apple `Accepted`，已附加公證票證並通過 Gatekeeper。App 提交 ID 為 `3dff4b04-93c8-4309-95ba-dff90b9f0d6b`，DMG 提交 ID 為 `1a10239e-a8a7-44c7-b17a-dff0819420a3`。最終 DMG 重新掛載後，深度簽章、兩份票證、版本、隔離資料 GUI 啟動與 Go 呼叫包內引擎的兩組匯出均通過，兩組像素與先前簽章成品完全一致。
 
-雙平台應用程式由乾淨的 `a63a776` 原始碼建置；後續提交只更新封裝流程與文件。Mac DMG SHA-256：`af3ae120fd151ba1a871e26f3bc16409a6fe0b0d87294b6b83803be734adf91b`；Windows x64 Beta 安裝檔 SHA-256：`f8387681201eb45461ed5402ad7390b700aa55935a1887e8fb36016900164943`。[1.26.1002 build 1208 發布頁](https://github.com/VaderChen/FilmDevelop/releases/tag/v1.26.1002-build-1208)提供安裝檔、`SHA256SUMS.txt` 與 `release-validation.json`；本機完整紀錄位於 `build/release-20261002`。
+雙平台應用程式由乾淨的 `a63a776` 原始碼建置；後續提交只更新封裝流程與文件。Mac DMG SHA-256：`af3ae120fd151ba1a871e26f3bc16409a6fe0b0d87294b6b83803be734adf91b`；Windows x64 Beta 安裝檔 SHA-256：`f8387681201eb45461ed5402ad7390b700aa55935a1887e8fb36016900164943`。build 1208 Release 後續已撤回；此段保留當時的驗證基線，本機完整紀錄位於 `build/release-20261002`。目前發布內容以以下 build 1243 紀錄為準。
+
+
+## 舊版更新、封裝縮減與發布隱私（2026-10-02，1.26.1002 build 1243）
+
+### 更新相容
+
+舊 Swift 更新器嚴格要求 `FilmYourPhoto-<version>-build-<build>-arm64.dmg`，且安裝 App 必須保留 `person.vader.PhotoStyleApp` 識別。現在 Mac 封裝統一產生兩種識別的安裝包，使用相同 Go 主程式與原生引擎，分別重新簽章、公證及附加票證。Go 更新器依目前安裝識別選包，避免首次升級成功後，下次因識別不符而失敗；雜湊、版本、架構、Developer Team 與簽章檢查仍然保留。
+
+以本機 Swift 1.26.0930 build 1745 的隔離副本，呼叫原本 Swift 選包及安裝準備程式，再進行相同順序的同磁碟替換。新版 Go 直接啟動、接收舊更新收據並確認成功，隔離 GUI 持續正常運作。此項未覆寫使用中的 App，也沒有以正式資料執行舊 helper 的完整 GUI 自動替換。重複驗證工具位於 `engine/verification/legacy-upgrade-smoke.py`。
+
+### 大小與影像一致性
+
+| 安裝檔 | 大小 |
+| --- | ---: |
+| 本次 Go Mac DMG | 87,183,574 bytes（83.1 MiB） |
+| 本次 Swift 升級相容 DMG | 87,183,538 bytes（83.1 MiB） |
+| 已撤回的 Go build 1208 DMG | 232,283,452 bytes（221.5 MiB） |
+| Swift 9 月 30 日 DMG | 101,520,095 bytes（96.8 MiB） |
+| Swift 9 月 29 日 DMG（使用者截圖版本） | 54,210,799 bytes（51.7 MiB） |
+| 本次 Windows x64 Beta 安裝檔 | 255,256,969 bytes（243.4 MiB） |
+
+Mac 相較 build 1208 縮小 62.5%。主要移除 Mac 不使用的 Windows 色彩／編輯查表，Core ML 模型只封裝編譯後執行內容，Go 去除除錯符號。RAW 校色資料與授權保留；11 份 RAW cube 與原 Swift App 雜湊一致。Windows 仍保留其運算管線需要的完整資料。
+
+精簡前後的 38 款原片／底片各測系統與 Vulkan 路徑，另測編譯後深度模型，共 77 組逐像素完全一致（maxError 0、changedChannels 0）。檢查工具位於 `engine/verification/macos-resource-smoke.py`。
+
+### 私人資訊與本機專用腳本
+
+Go 使用 `-trimpath`，Swift／C++ 編譯來源路徑映射為專案相對路徑；封裝前去除原生除錯物件路徑。正式 App 的資源定位不再保留 SwiftPM 開發機的絕對路徑。開發時仍可使用正常的 SwiftPM 資源讀取。
+
+`scripts/release_audit.py` 統一檢查兩平台發布內容中的私人來源路徑、私鑰及常見權杖格式，涵蓋一般字串與 Windows UTF-16。只回報相對檔名與問題種類，避免把敏感值寫入紀錄。本輪兩種 Mac App 各 108 檔、Windows payload 159 檔通過；Git 追蹤檔案掃描只有偵測器本身的通用路徑規則命中，未發現實際私人路徑或上述憑證格式。
+
+`pack.command` 僅留本機，受根目錄 `.gitignore` 排除，未被 Git 追蹤；發布檢查亦拒絕任何名為 `pack.command` 的檔案。此掃描有明確的格式範圍，不代表能辨識任意未知格式的秘密。
+
+### 本輪驗證與來源
+
+- Go updater／application race 與 vet、Python／Shell 語法、差異檢查通過；Mac 原生 16 項、實際 Wails 45 項 Smoke 通過。
+- 清理原生路徑並 strip 後，再跑 Mac 原生 16 項與 MLX 真實模型推論，均通過。
+- 最終 Mac DMG 重新掛載後，版本、深度簽章、App／DMG 票證、Gatekeeper、隔離 GUI 啟動及 Go→包內引擎的兩組匯出通過；影像與原本參考逐像素相同。
+- 兩種 Mac 包各自 App 與 DMG 共四份公證均為 Accepted；提交 ID 與安裝檔 SHA-256 隨 `release-validation.json` 提供。
+- 最新 Windows x64 Beta 的 NSIS 解壓、159 檔雜湊回讀、PE 相依及 11 項封裝 Smoke 通過。Windows 10 實機隔離測試逐一比對相同 payload 的 158 個受管理內容，正式 GUI 啟動、原生引擎回覆及六個重新建置的 GGUF／Vulkan DLL 載入通過；未取代現有安裝。
+- 本輪 Windows 未重跑全部配方／UI，也未重跑正式安裝／解除安裝；完整功能比較沿用上節與前輪明列的驗證，RAW 與原生模型差異仍存在。
+- Mac Go executable 來自乾淨的 `2c36c21`；Windows Go executable 來自乾淨的 `cfba6c5`。後續只調整驗證、封裝及文件，兩平台各自建置來源完整 commit 與最終發布 commit 寫入驗證摘要。
+
+本輪本機證據位於 `build/release-compat-20261002`。Release 使用繁中、英文、日文與韓文說明，不再在內文重複版本標題。正式發布頁為 [1.26.1002 build 1243](https://github.com/VaderChen/FilmDevelop/releases/tag/v1.26.1002-build-1243)。

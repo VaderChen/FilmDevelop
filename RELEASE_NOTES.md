@@ -30,8 +30,10 @@
 
 ### 驗證與已知差異
 
+- build 1243 重新驗證：精簡前後 77 組 Mac 影像像素完全相同；原生 16 項、Wails 45 項、MLX 真實推論與最終 DMG 啟動／匯出通過。舊 Swift 隔離副本完成選包、簽章準備、替換與 Go 收據確認；Windows 最新成品完成 158 檔校驗、GUI 啟動與 6 個原生函式庫載入。兩種 Mac 包各 108 檔、Windows 159 檔通過發布隱私掃描。
+- Mac DMG 約 **83.1 MiB**，相較撤回的 build 1208（221.5 MiB）減少 **62.5%**；9 月 30 日 Swift DMG 為 96.8 MiB。
 - 已完成 Go race／vet、共用契約與資料檢查、Mac 原生及實際 Wails Smoke，以及 Windows 交叉編譯與封裝檢查。前輪 Windows 10／GTX 1060 實機涵蓋配方、編輯、匯出、資料移轉、GGUF 與 ONNX 修復；兩平台 CPU／GPU 共 1,216 組 Swift 影像參考比較通過。
-- 發布前補測本機 C++ CPU／GPU 各 289 組；Windows 10 實機完成 158 個 payload 檔案校驗、正式 GUI 啟動、10 項 WebView2 操作、3 項設定重開及 CPU／GPU 各 16 組比較。完整 NSIS 解壓校驗 159 檔（含清單本身），此次未在正式安裝位置重跑安裝／解除安裝。
+- build 1208 發布整理曾補測本機 C++ CPU／GPU 各 289 組；Windows 10 實機完成 158 個 payload 檔案校驗、正式 GUI 啟動、10 項 WebView2 操作、3 項設定重開及 CPU／GPU 各 16 組比較。完整 NSIS 解壓校驗 159 檔（含清單本身），此次未在正式安裝位置重跑安裝／解除安裝。
 - 44 份 RAW 樣本中，共用 LibRaw 成功解碼 38 份，其中 37 份通過嚴格跨平台數值比較。Nikon HE／HE*、GoPro GPR 仍有缺口；原生 RAW、主體／深度、降噪、景深與日期字形仍有平台差異。
 - 既有 Swift XCTest 的 10 個案例／20 個失敗斷言維持原基線。Windows 11、乾淨電腦缺少 Runtime 與其他 GPU 驅動仍需擴大驗證。
 
@@ -65,8 +67,10 @@ The desktop host and shared features now use Go/Wails, with Swift/C++ handling i
 
 ### Validation and known differences
 
+- Build 1243 was retested: all 77 Mac image comparisons before/after resource reduction are pixel-identical; 16 native checks, 45 Wails checks, real MLX inference and final DMG startup/export passed. An isolated old Swift app copy completed package selection, signature preparation, replacement and Go receipt confirmation. The latest Windows payload passed 158 file checks, GUI startup and loading of 6 native libraries. Privacy scans passed for 108 files in each Mac package and 159 Windows files.
+- The Mac DMG is about **83.1 MiB**, **62.5% smaller** than the withdrawn build 1208 (221.5 MiB). The September 30 Swift DMG was 96.8 MiB.
 - Go race/vet, shared contracts and data checks, native Mac and real Wails smoke checks, and Windows cross-compilation and packaging checks passed. Earlier Windows 10/GTX 1060 tests covered presets, editing, export, migration, GGUF and ONNX repair; 1,216 comparisons against Swift reference images passed across CPU/GPU paths on both platforms.
-- Final checks added 289 local C++ comparisons each for CPU and GPU. On Windows 10, 158 payload files, production GUI startup, 10 WebView2 actions, 3 preference restart checks and 16 comparisons each for CPU and GPU passed. Full NSIS extraction verified 159 files, including the manifest. This final round did not repeat installation/uninstallation in the production install location.
+- The build 1208 release checks added 289 local C++ comparisons each for CPU and GPU. On Windows 10, 158 payload files, production GUI startup, 10 WebView2 actions, 3 preference restart checks and 16 comparisons each for CPU and GPU passed. Full NSIS extraction verified 159 files, including the manifest. This final round did not repeat installation/uninstallation in the production install location.
 - Shared LibRaw decoded 38 of 44 RAW samples; 37 of those passed strict cross-platform numerical comparison. Nikon HE/HE* and GoPro GPR remain gaps. Native RAW rendering, subject/depth processing, denoising, depth of field and date glyphs still differ by platform.
 - The existing Swift XCTest baseline remains 10 cases with 20 failed assertions. Windows 11, clean machines without the required runtimes and other GPU drivers need broader validation.
 
@@ -100,8 +104,10 @@ The desktop host and shared features now use Go/Wails, with Swift/C++ handling i
 
 ### 検証結果と既知の差異
 
+- build 1243 を再検証しました。資源削減前後の Mac 画像 77 組は全画素が一致し、ネイティブ 16 項目、Wails 45 項目、実際の MLX 推論、最終 DMG の起動・書き出しが通過しました。隔離した旧 Swift アプリのコピーでパッケージ選択、署名検証・準備、置換、Go の更新受領確認を検証しました。最新 Windows 成果物は 158 ファイルの照合、GUI 起動、ネイティブライブラリ 6 個の読み込みが通過しました。Mac 各 108 ファイル、Windows 159 ファイルのプライバシー検査も通過しています。
+- Mac DMG は約 **83.1 MiB** で、取り下げた build 1208（221.5 MiB）より **62.5% 削減**しました。9 月 30 日の Swift DMG は 96.8 MiB でした。
 - Go race／vet、共通契約・データ検査、Mac ネイティブ・実際の Wails のスモークテスト、Windows のクロスコンパイル・パッケージ検査を通過しました。前段の Windows 10／GTX 1060 実機検証ではプリセット、編集、書き出し、移行、GGUF、ONNX 修復を確認し、両プラットフォームの CPU／GPU で計 1,216 組の Swift 参照画像比較を通過しました。
-- 最終確認ではローカル C++ の CPU／GPU 各 289 組を追加検証しました。Windows 10 では payload 158 ファイルの照合、正式 GUI 起動、WebView2 操作 10 項目、設定の再起動確認 3 項目、CPU／GPU 各 16 組の比較を通過しました。NSIS の全展開ではマニフェストを含む 159 ファイルを照合しました。この最終確認では通常のインストール先でのインストール・アンインストールは再実行していません。
+- build 1208 の公開前検証ではローカル C++ の CPU／GPU 各 289 組を追加検証しました。Windows 10 では payload 158 ファイルの照合、正式 GUI 起動、WebView2 操作 10 項目、設定の再起動確認 3 項目、CPU／GPU 各 16 組の比較を通過しました。NSIS の全展開ではマニフェストを含む 159 ファイルを照合しました。この最終確認では通常のインストール先でのインストール・アンインストールは再実行していません。
 - RAW サンプル 44 件中、共通 LibRaw で 38 件をデコードでき、そのうち 37 件が厳密なクロスプラットフォーム数値比較を通過しました。Nikon HE／HE* と GoPro GPR は未対応部分が残ります。ネイティブ RAW、被写体・深度処理、ノイズ除去、被写界深度、日付の字体にはプラットフォーム差があります。
 - 既存の Swift XCTest は 10 ケース・20 アサーション失敗の基準状態から変化していません。Windows 11、必要なランタイムがないクリーン環境、他の GPU ドライバーは追加検証が必要です。
 
@@ -135,8 +141,10 @@ The desktop host and shared features now use Go/Wails, with Swift/C++ handling i
 
 ### 검증 및 알려진 차이
 
+- build 1243을 다시 검증했습니다. 리소스 축소 전후 Mac 이미지 77개 비교가 모든 픽셀에서 일치했으며, 네이티브 16개, Wails 45개 검사, 실제 MLX 추론 및 최종 DMG 실행·내보내기를 통과했습니다. 격리된 이전 Swift 앱 복사본에서 패키지 선택, 서명 검증·준비, 교체 및 Go 업데이트 수신 확인을 검증했습니다. 최신 Windows 결과물은 파일 158개 검증, GUI 실행 및 네이티브 라이브러리 6개 로드를 통과했습니다. Mac 패키지당 108개 파일과 Windows 159개 파일의 개인정보 검사도 통과했습니다.
+- Mac DMG는 약 **83.1 MiB**로, 철회한 build 1208(221.5 MiB)보다 **62.5% 감소**했습니다. 9월 30일 Swift DMG는 96.8 MiB였습니다.
 - Go race/vet, 공통 계약 및 데이터 검사, Mac 네이티브와 실제 Wails 스모크 테스트, Windows 교차 컴파일 및 패키지 검사를 통과했습니다. 앞선 Windows 10/GTX 1060 실기기 검증은 프리셋, 편집, 내보내기, 데이터 이전, GGUF 및 ONNX 복구를 포함하며, 두 플랫폼의 CPU/GPU 경로에서 Swift 참조 이미지 비교 총 1,216건을 통과했습니다.
-- 최종 확인에서는 로컬 C++ CPU/GPU 각각 289건을 추가로 검증했습니다. Windows 10에서 payload 파일 158개 검증, 정식 GUI 시작, WebView2 동작 10개, 설정 재시작 검사 3개 및 CPU/GPU 각각 16건의 비교를 통과했습니다. NSIS 전체 압축 해제 후 목록 파일을 포함한 159개 파일을 검증했습니다. 이번 최종 확인에서는 실제 사용 중인 설치 위치에서 설치·제거를 다시 실행하지 않았습니다.
+- build 1208 공개 전 검증에서는 로컬 C++ CPU/GPU 각각 289건을 추가로 검증했습니다. Windows 10에서 payload 파일 158개 검증, 정식 GUI 시작, WebView2 동작 10개, 설정 재시작 검사 3개 및 CPU/GPU 각각 16건의 비교를 통과했습니다. NSIS 전체 압축 해제 후 목록 파일을 포함한 159개 파일을 검증했습니다. 이번 최종 확인에서는 실제 사용 중인 설치 위치에서 설치·제거를 다시 실행하지 않았습니다.
 - RAW 샘플 44개 중 공통 LibRaw가 38개를 디코딩했으며, 그중 37개가 엄격한 플랫폼 간 수치 비교를 통과했습니다. Nikon HE/HE*와 GoPro GPR에는 아직 지원 공백이 있습니다. 네이티브 RAW, 피사체·깊이 처리, 노이즈 제거, 피사계 심도 및 날짜 글꼴에는 플랫폼별 차이가 남아 있습니다.
 - 기존 Swift XCTest의 기준 상태인 10개 사례와 20개 실패 단언은 변하지 않았습니다. Windows 11, 필수 런타임이 없는 새 환경 및 다른 GPU 드라이버는 추가 검증이 필요합니다.
 
