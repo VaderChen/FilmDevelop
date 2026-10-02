@@ -473,6 +473,16 @@
       "speedEV": 0,
       "blue": 1,
       "grain": 9
+    },
+    "gr3-sky-orange": {
+      "acutance": 0,
+      "blue": 0,
+      "compensation": 0,
+      "contrast": 1,
+      "grain": 0,
+      "green": 0,
+      "red": 0,
+      "speedEV": 0
     }
   }
 }

@@ -50,7 +50,7 @@
   }
   try {
     post('getState');
-    await until(()=>latest.styles&&latest.styles.length===37,'宿主就緒');
+    await until(()=>latest.styles&&latest.styles.length===38,'宿主就緒');
     await measure('首次照片',()=>document.querySelector('[data-action="browsePhotoDirectory"]').click(),()=>latest.hasImage);
     const items=latest.photoDirectory.items;
     if(items.length!==2)throw new Error('量測目錄必須有兩張照片');

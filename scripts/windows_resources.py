@@ -25,7 +25,7 @@ def project_version():
         raise ValueError('Windows 版本需要四段 0～65535 整數')
     return {'version': version, 'build': build, 'numericVersion': '.'.join(map(str, components)),
             'displayVersion': f'{version} build {build} Beta',
-            'architecture': 'x64', 'fullWindowsRendererAvailable': False}
+            'architecture': 'x64', 'fullWindowsRendererAvailable': True}
 
 
 def make_icon(destination):

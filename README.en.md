@@ -8,16 +8,18 @@ Give your photos a film look you love. Pick a film, adjust exposure, color and g
 
 ## Get the app
 
-[Download for Mac](https://github.com/VaderChen/FilmDevelop/releases/latest), open the DMG and drag the app into Applications.
+[Download for Mac and Windows](https://github.com/VaderChen/FilmDevelop/releases/latest). Version **1.26.1002 build 1208**; Windows is labeled **Beta**.
 
-Requires **Apple Silicon and macOS 14 or later**. The app supports Traditional Chinese, English, Japanese and Korean. The installer is notarized by Apple.
+Mac requires Apple Silicon and macOS 14+. Open the DMG and drag FilmDevelop into Applications. Release DMGs are offered only after Developer ID signing and Apple notarization. Windows requires Windows 10/11 x64, WebView2 and the VC++ x64 Runtime. Run the x64 setup EXE; it is not Authenticode signed.
+
+When upgrading from the Swift Mac app, download the new app manually. Recognized edits, ratings, categories and custom films migrate without overwriting newer data. Database export/import supports relocation to another computer; original photos are not included. The interface supports Traditional Chinese, English, Japanese and Korean.
 
 ## What makes it different
 
 - **Explore the whole film process:** simulate color layers, emulsion grain, developer chemistry, print paper and scanning, with control throughout the process.
 - **Start with a classic, make it your own:** Portra, Ektar, VISION3, Velvia, monochrome and special films, plus GR III/GR IV simulations. Save your favorite settings as custom films.
 - **Each photo keeps its own edits:** adjustments, crops and repairs stay with the photo. Compare with the original anytime; exports use the source image without overwriting it.
-- **Local editing, optional AI:** photos and edits stay on your Mac. Download models for offline analysis and repairs, or adjust everything yourself.
+- **Local editing, optional AI:** photos and edits stay on your computer. Download models for offline analysis and repairs, or adjust everything yourself.
 
 ## Features at a glance
 
@@ -42,11 +44,13 @@ Requires **Apple Silicon and macOS 14 or later**. The app supports Traditional C
 3. Adjust while watching the preview. Undo changes or compare with the original whenever you like.
 4. Choose Export Photo. You can export several photos together, each with its own adjustments.
 
-Photos and edits stay on your Mac. AI models need an initial download; once ready, they work offline.
+Photos and edits stay on your computer. AI models need an initial download; once ready, they work offline.
 
 ## A couple of tips
 
-Use **System native decoding** and **System native acceleration**. Built-in software decoding and Vulkan are testing modes in preparation for Windows. There is no Windows installer yet.
+RAW and compute acceleration default to **System**, persist across launches and are checked against available hardware. Mac uses Apple acceleration. Windows prefers a tested Vulkan GPU and falls back to CPU. Built-in LibRaw provides fallback RAW decoding.
+
+The 44-file RAW corpus covers 17 brands and 31 camera models: LibRaw decodes 38 files, with 37 passing strict cross-platform comparisons. Nikon HE/HE* and GoPro GPR still have gaps. Native RAW rendering, subject/depth models, denoising and date fonts can differ between platforms. See the [verification record](desktop/RESTORATION.md).
 
 Film and camera looks are simulations, not manufacturer presets or LUTs. Click a feature title in the app for help.
 
@@ -54,6 +58,8 @@ Film and camera looks are simulations, not manufacturer presets or LUTs. Click a
 <summary>Want to build from source?</summary>
 
 You need full Xcode, CMake, glslang, Vulkan headers/loader and MoltenVK. See the [build notes](Vendor/PhotoCompute/README.md#建置與部署) for dependencies.
+
+Go 1.25+ / Python 3.9+. [Go / Swift / C++](desktop/README.md).
 
 ```sh
 git clone --recurse-submodules https://github.com/VaderChen/FilmDevelop.git

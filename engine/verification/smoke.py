@@ -35,11 +35,12 @@ def host(method, payload):
     return json.loads(subprocess.check_output([str(cli),'-engine',str(worker),'-method',method,'-request',str(path)],text=True))
 
 catalog=host('catalog',None)
-assert len(catalog['styles'])==37
+reference_catalog=json.loads((root/'desktop/internal/recipes/catalog.json').read_text())
+assert {s['id'] for s in catalog['styles']}=={s['id'] for s in reference_catalog['styles']}
 recipes={s['id']:{'version':1,'style':s['id'],'adjustment':s['adjustment'],'repairPatches':[],'detectSubject':False} for s in catalog['styles']}
 for name, recipe in recipes.items():
     assert host('normalizeRecipe',recipe)==recipe, name
-results.append({'case':'37 款既有預設配方往返','passed':True})
+results.append({'case':f"{len(recipes)} 個預設與相容配方往返",'passed':True})
 # 同一份實際配方經由 Go → C++ → Go 往返；不將序列化冒充 C++ 渲染。
 subprocess.run(['cmake','-S',str(root/'engine/cpp'),'-B',str(root/'build/engine-contract-macos'),'-G','Ninja'],check=True,stdout=subprocess.DEVNULL)
 subprocess.run(['cmake','--build',str(root/'build/engine-contract-macos')],check=True,stdout=subprocess.DEVNULL)
@@ -71,7 +72,8 @@ def go_job(job,name,success=True):
     return p
 
 variants=[('original',recipes['original'],'system','png',16),('portra',recipes['filmPortra400'],'system','png',16),
-          ('vulkan',recipes['filmPortra400'],'vulkan','png',16),('bw',recipes['filmHP5'],'system','png',16)]
+          ('vulkan',recipes['filmPortra400'],'vulkan','png',16),('bw',recipes['filmHP5'],'system','png',16),
+          ('hidden-camera',recipes['gr3-sky-orange'],'system','png',16)]
 edited=host('editRecipe',{'recipe':recipes['filmPortra400'],'changes':[
     {'key':'exposure','value':12},{'key':'hdrAmount','value':20},
     {'cropValues':{'cropAspectRatio':'oneOne','cropRotation':8,'cropScale':80}},

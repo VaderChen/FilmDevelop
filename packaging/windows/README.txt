@@ -23,7 +23,7 @@ FilmDevelop @DISPLAY_VERSION@
   RAW 預設優先使用可用的系統解析器；無法解析時使用內建 LibRaw。
   也可明確選用 LibRaw；RAW 與計算選項會保存，啟動時重新核對可用能力。
   系統計算預設自動選用探測通過的 Vulkan；無可用 GPU 時採 CPU。
-  37 個內建配方、乳劑顆粒、底片光譜、數位色彩、HDR、掃描、裁切、校色、
+  37 個既有配方與 1 個隱藏相容配方、乳劑顆粒、底片光譜、數位色彩、HDR、掃描、裁切、校色、
   膚色、降噪、主體與景深、外框、日期及保存修復貼片均已接入。
   可輸出 sRGB／Adobe RGB／Display P3 的 JPEG、WebP 8 bit、PNG／TIFF 8／16 bit。
   AI 使用 GGUF 主模型及相配的視覺投影模型；模型需自行選取／下載。
@@ -32,11 +32,11 @@ FilmDevelop @DISPLAY_VERSION@
   GPU 計算元件需要顯示卡廠商提供的 Vulkan 驅動；本套件不附驅動。
 
 已知差異
-  目前 Windows 系統解析器與 LibRaw 都無法完整顯影 Nikon HE／HE* RAW。
+  目前仍無法完整顯影 Nikon HE／HE* RAW 與 GoPro GPR。
   LibRaw 尚未提供鏡頭校正與場景線性 HDR；WIC 鏡頭校正取決於系統解析器。
   Windows 主體／深度模型、降噪、景深與日期字形採跨平台實作，與 Apple 框架可能有差異。
   MLX 僅適用於 macOS；AI 配方品質取決於所選模型。
-  本版本為 Beta，安裝程式未簽 Authenticode，尚未發布正式 Release。
+  本版本為 Beta，安裝程式未簽 Authenticode，需留意 Windows 的來源驗證提示。
 
 授權
   專案授權請見 LICENSE.md；完整第三方授權位於 Licenses。

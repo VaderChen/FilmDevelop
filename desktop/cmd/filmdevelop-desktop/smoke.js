@@ -95,11 +95,11 @@
       image.onerror = () => fail('預覽影像無法解碼');
       image.onload = async function () {
         try {
-        if (image.naturalWidth !== 97 || image.naturalHeight !== 65 || s.styles.length !== 37) return fail('原圖尺寸或底片目錄不符');
+        if (image.naturalWidth !== 97 || image.naturalHeight !== 65 || s.styles.length !== 38) return fail('原圖尺寸或底片目錄不符');
         if (!loadingThumbnailCheck || !inlinePreviewCheck) return fail('未觀察到先顯示縮圖及下方進度提示的流程');
         completed.push('列表與主預覽共用縮圖，等待文字與轉圈位於照片下方');
         await verifyPreviewReveal();
-        completed.push('開啟原圖與 37 款底片目錄');
+        completed.push('開啟原圖與 38 個底片／相容配方目錄');
         const items = s.photoDirectory.items;
         if (items.length!==3 || items[0].name!=='photo2.bmp' || items[1].name!=='photo10.bmp' || !items[0].selected) return fail('目錄自然排序、選取或檔案過濾不符');
         firstID=items[0].id;secondID=items[1].id;

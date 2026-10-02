@@ -1,8 +1,8 @@
 # Windows x64 安裝檔
 
-此流程參考 `/Users/vader/Codes/App/YourDesk/scripts/windows-installer.nsi`、`release.py` 與 `windows_runtime.py`，採用 NSIS、每位使用者安裝、桌面／開始功能表捷徑與保留使用者資料的解除安裝。建置時不需要 YourDesk，也不修改它的檔案。
+此流程沿用 YourDesk 的 NSIS、每位使用者安裝與保留資料的解除安裝設計。建置不依賴 YourDesk 專案。
 
-產品名稱固定為 **FilmDevelop**。Windows 的版本顯示文字統一在組建編號後加上 **Beta**，涵蓋設定頁、主程式與安裝程式版本資源；檔名、產品名稱、數字版本與更新比對維持原值。macOS 不加此標記。測試完成後才另行發布 Release，這個腳本只在本機產生檔案。
+產品名稱固定為 **FilmDevelop**。Windows 的版本顯示文字統一在組建編號後加上 **Beta**，涵蓋設定頁、主程式與安裝程式版本資源；檔名、產品名稱、數字版本與更新比對維持原值。macOS 不加此標記。此腳本只產生並驗證本機檔案；GitHub Release 另行發布。
 
 ## 建置
 
@@ -22,7 +22,7 @@ bash scripts/build-windows-installer.sh --no-build
 
 `--no-build` 使用現有產物並檢查版本、資源、架構與相依，**不保證現有產物反映最新程式碼**。原始碼變更後使用預設完整建置。可使用 `--build-dir` 與 `--output-dir` 更改路徑；`WINDOWS_CROSS_BUILD_DIR` 也可指定交叉編譯目錄。
 
-版本取自 `PhotoStyleApp.xcodeproj/project.pbxproj` 的 `MARKETING_VERSION` 與 `CURRENT_PROJECT_VERSION`，不另建 Windows 版本來源。目前顯示為 `1.26.0924 build 1107 Beta`，Windows 數字版本為 `1.26.924.1107`。圖示直接封裝專案既有各尺寸 PNG，保留原有像素與透明度。
+版本取自 `PhotoStyleApp.xcodeproj/project.pbxproj` 的 `MARKETING_VERSION` 與 `CURRENT_PROJECT_VERSION`，不另建 Windows 版本來源。目前顯示為 `1.26.1002 build 1208 Beta`，Windows 數字版本為 `1.26.1002.1208`。圖示直接封裝專案既有各尺寸 PNG，保留原有像素與透明度。
 
 預設輸出至 `dist/windows-x64/`：
 
@@ -37,11 +37,11 @@ bash scripts/build-windows-installer.sh --no-build
 
 - 限 Windows 10／11 原生 x64（AMD64）；拒絕 x86 與 ARM64。
 - 安裝路徑：`%LOCALAPPDATA%\Programs\FilmDevelop`，可改至空資料夾或本產品已擁有的資料夾。
-- 登錄於 HKCU 的 64 位元檢視，不要求系統管理員、不安裝服務、不加入開機自動執行。
+- 主程式登錄於 HKCU 的 64 位元檢視，不要求系統管理員、不安裝服務、不加入開機自動執行。缺少 VC++ x64 Runtime 時，Microsoft 官方前置元件安裝可能要求提權；靜默／離線安裝應先部署 Runtime。
 - `FilmDevelop.exe` 是 Go／Wails GUI；`filmdevelop-cli.exe` 為 CLI，避免 Windows 不分大小寫的同名衝突。
 - `engine/filmdevelop-engine.exe` 是 Go 共用 JSONL 契約的 C++／WIC 工作程序；同目錄另有 `RAWMapping` 色彩資料、`libPhotoCompute.dll`、階段 CLI、shader、底片資料與從 Go 目錄產生的中性配方。
 - WIC 解碼 JPEG／PNG／TIFF，套用 EXIF 方向與來源 ICC；RAW 會實際建立系統解析器確認可用性；檔案無法解碼時使用共用 PhotoRAW／LibRaw 0.22.2 備援，亦可明確選用 LibRaw。系統選項優先使用實際計算探測通過的 Vulkan，否則使用 CPU；選項與持久化設定會在啟動時重新核對。
-- Windows 已接入全部 37 個內建配方的預覽與 sRGB JPEG／PNG／TIFF 輸出，包含乳劑顆粒、光暈、光譜底片、顯影藥水、掃描、數位／相機色彩及 HDR。AI、修復、裁切與裝飾尚未完成；有效的未支援參數會回報錯誤，不會省略後當作成功。
+- Windows 已接入 37 個既有配方及 1 個隱藏相容配方，包含乳劑顆粒、光暈、光譜底片、顯影、掃描、數位／相機色彩、HDR、裁切、外框、日期、GGUF AI 與 ONNX LaMa 修復。輸出支援 JPEG、WebP、PNG／TIFF 8／16 bit，以及 sRGB／Adobe RGB／Display P3。預設回填拍攝 EXIF，可在設定中關閉。
 - 主程式需要 WebView2 Evergreen Runtime；缺少或版本過舊時使用 Wails 既有 Microsoft 下載流程，提示使用者安裝。離線環境請預先部署官方 x64 Runtime，詳見 [Microsoft 部署說明](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution)。
 - Vulkan DLL 需要顯示卡驅動提供 `vulkan-1.dll`，相依檢查會明確列為 GPU 驅動；不將它視為 Windows 內建 DLL，也不私自附帶驅動。
 - 配方與 WebView2 快取放在 `%APPDATA%\FilmDevelop`；`FILMDEVELOP_DATA_DIR` 可覆寫。解除安裝保留此處、照片及匯出檔。
@@ -59,7 +59,7 @@ FilmDevelop-<版本>-build<組建>-windows-x64-setup.exe /S /D=C:\Users\使用�
 
 退出碼：`0` 成功、`2` 檔案占用／另一個安裝程序、`3` 目錄或檔案寫入失敗、`4` 不支援的 Windows／CPU 架構；一般使用者取消由 NSIS 回傳取消狀態。
 
-## 本機 Smoke 與 Release 前待驗證
+## Smoke 與驗證界線
 
 ```sh
 python3 engine/verification/windows-installer-smoke.py
@@ -68,20 +68,13 @@ go -C desktop vet ./...
 go -C desktop test ./internal/...
 ```
 
-本機檢查包括 PE32+／AMD64、GUI 子系統、圖示、Manifest、版本、靜態 DLL 相依與 PhotoCompute ABI，及 NSIS 壓縮測試、解壓後所有檔案 SHA-256 比對。負向 Smoke 以真實產物注入錯誤架構、缺少 DLL、錯誤版本與截斷資料，確認封裝不會誤放行。相依掃描包含一般與延遲匯入；動態載入的 WebView2／GPU 執行環境仍須實機驗證。
+本機檢查涵蓋 PE32+／AMD64、GUI 子系統、圖示、Manifest、版本、一般與延遲 DLL 相依、NSIS 壓縮完整性、解壓後逐檔 SHA-256。負向 Smoke 注入錯誤架構、缺少 DLL、錯誤版本與截斷資料，確認封裝會拒絕。
 
-已透過 YourDesk MCP 在 Windows 10 22H2 x64（19045）、標準使用者、WebView2 154.0.4258.37 上執行實機測試。JPEG 列表與原片預覽、中文與空格路徑、ICC／EXIF、16 bit 輸出、LibRaw DNG、GPU 版本／失敗備援與 Vulkan 計算圖已通過；具體記錄見 `build/windows-native-runtime-report.json`。機器具有 Intel HD Graphics 530 與 GTX 1060 6GB；實際選用 GTX 1060，Loader 1.3.204、裝置 Vulkan 1.2.133。Nikon Z f HE／HE* NEF 仍不受目前系統與 LibRaw 支援，實測未通過。兩項要求 `VK_LAYER_KHRONOS_validation` 的除錯驗證因缺少該層而未通過，不列為 GPU 完整驗收。
+已透過 YourDesk MCP 在 Windows 10 22H2 x64、WebView2、GTX 1060 上驗證 CPU／Vulkan、照片編輯／匯出、GGUF → Go 配方 → ONNX LaMa → PNG16。兩平台各 304 組 CPU／GPU 的 Swift 參考比較通過，共 1,216 組。另已在隔離目錄補齊 Vulkan validation layer，通過光學檢查與 180 次 GPU 故障注入，沒有 validation warning／error。資料移轉也已用本機舊 Swift 資料與 Windows 隔離資料驗證，不修改使用者原圖。
 
-封裝器輸出的 `windowsExecutionVerified`、`windowsInstallUninstallVerified`、`windowsGPUVerified` 仍為 `false`：這些欄位僅描述該次交叉編譯／封裝，不能自動承襲其他二進位的實機結果。實機報告另綁定測試安裝檔雜湊。**完整 Windows 照片處理流程仍未完成**，尚未簽署 Authenticode，也未發布 Release。
+上述為不同階段的實機紀錄，不代表新安裝檔已重新在所有環境執行。封裝器的 `windowsExecutionVerified`、`windowsInstallUninstallVerified`、`windowsGPUVerified` 描述該次封裝，不能直接承襲先前版本結果；原生功能是否已提供由 `fullWindowsRendererAvailable` 表示。驗證細節見[功能恢復紀錄](../../desktop/RESTORATION.md)。
 
-Release 前仍需依序完成：
-
-1. 以標準使用者在乾淨 Windows 10／11 安裝，核對版本、圖示、登錄、捷徑及沒有提權。
-2. 測試有／無 WebView2 與離線環境，確認缺少 Runtime 的提示及安裝後啟動；使用含繁體中文與空白的安裝路徑。
-3. 同版重裝與升級；程式執行中測試占用提示及靜默非零退出；不支援架構應拒絕。
-4. 安裝目錄放入額外測試檔並建立使用者設定，解除安裝後確認這些資料與照片仍存在；同時核對捷徑及解除安裝登錄已移除。
-5. 補齊完整 Windows 原生影像引擎後，驗證開圖／預覽／匯出、CPU／GPU、不同驅動與跨平台影像一致性；再處理正式簽章與 Release。
-
+仍待擴大驗證 Windows 11、乾淨電腦缺少 WebView2／VC++ Runtime、離線安裝及其他 GPU 驅動。Nikon HE／HE*、GoPro GPR 的直接 RAW 解碼仍缺失；原生 RAW、主體、景深、降噪與日期字形可能與 Apple 框架不同。安裝檔未簽 Authenticode，Windows 持續標示 Beta。
 
 ## 配方跨平台驗證
 

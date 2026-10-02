@@ -41,7 +41,23 @@ func TestSwiftCompatibility(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertJSON(t, catalog, fixture.Catalog)
+	// 新增的相容配方另與其 Swift 擷取資料比對，不改寫移植前的參考答案。
+	var current, reference object
+	_ = json.Unmarshal(catalog, &current)
+	_ = json.Unmarshal(fixture.Catalog, &reference)
+	ids := map[string]bool{}
+	for _, raw := range reference["styles"].([]any) {
+		ids[raw.(object)["id"].(string)] = true
+	}
+	entries := []any{}
+	for _, raw := range current["styles"].([]any) {
+		if ids[raw.(object)["id"].(string)] {
+			entries = append(entries, raw)
+		}
+	}
+	current["styles"] = entries
+	baseline, _ := json.Marshal(current)
+	assertJSON(t, baseline, fixture.Catalog)
 	for _, test := range fixture.Cases {
 		t.Run(test.Name, func(t *testing.T) {
 			var result any
@@ -80,6 +96,39 @@ func TestSwiftCompatibility(t *testing.T) {
 			}
 			assertJSON(t, actual, test.Value)
 		})
+	}
+}
+
+func TestHiddenSwiftCompatibility(t *testing.T) {
+	data, err := os.ReadFile("testdata/swift-gr3-sky-orange.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var reference object
+	if err = json.Unmarshal(data, &reference); err != nil {
+		t.Fatal(err)
+	}
+	library, err := New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	style := reference["id"].(string)
+	if library.styles[style]["isHiddenFromCatalog"] != true {
+		t.Fatal("相容配方必須隱藏於選用入口")
+	}
+	actual, _ := json.Marshal(library.styles[style])
+	assertJSON(t, actual, data)
+	recipe, err := library.Default(style)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected, _ := json.Marshal(reference["adjustment"])
+	assertJSON(t, recipe.Adjustment, expected)
+	if _, err = library.Normalize(recipe); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = library.Project(recipe); err != nil {
+		t.Fatal(err)
 	}
 }
 

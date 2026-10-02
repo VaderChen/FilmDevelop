@@ -29,7 +29,7 @@
   }
   try {
     post('getState');
-    await until(()=>latest.styles?.length===37,'底片目錄');
+    await until(()=>latest.styles?.length===38,'底片目錄');
     const initial={computeBackend:latest.computeBackend,rawDecoderBackend:latest.rawDecoderBackend};
     if(window.editingSmokeMode==='restore') {
       if(initial.computeBackend!=='vulkan'||initial.rawDecoderBackend!=='software')throw new Error('重新啟動未保留加速選項');

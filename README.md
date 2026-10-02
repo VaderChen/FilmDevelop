@@ -8,16 +8,21 @@
 
 ## 下載使用
 
-[下載 Mac 版](https://github.com/VaderChen/FilmDevelop/releases/latest)，開啟 DMG 後，把「照片沖洗」拖進「應用程式」即可。
+[下載 Mac 與 Windows 版](https://github.com/VaderChen/FilmDevelop/releases/latest)。目前版本：**1.26.1002 build 1208**，Windows 標示 **Beta**。
 
-支援 **Apple Silicon Mac、macOS 14 以上**。介面有繁體中文、英文、日文與韓文，安裝檔已完成 Apple 公證。
+| 平台 | 安裝方式與需求 |
+| --- | --- |
+| macOS | Apple Silicon、macOS 14 以上。開啟 `macos-arm64.dmg`，將 FilmDevelop 拖進「應用程式」。正式 DMG 需完成 Developer ID 簽章與 Apple 公證後才提供下載。 |
+| Windows Beta | Windows 10／11 x64，執行 `windows-x64-setup.exe`。需要 WebView2 與 VC++ x64 Runtime；安裝程式未簽署 Authenticode。 |
+
+兩個平台共用繁體中文、英文、日文與韓文介面。第一次從舊 Swift Mac 版升級，請手動下載新版；舊版的更新器不使用新的混合版套件。安裝後會沿用可辨識的照片調整、星級、分類與自訂底片，既有新版資料優先。換電腦可在設定中「匯出資料庫／匯入並重新定位」；資料包不含原始照片，舊紀錄缺少原路徑時需重新定位。
 
 ## 特色
 
 - **從底片到成品都能玩**：模擬感色層、乳劑顆粒、顯影藥水、印相紙與掃描，一路調整成像與質感。
 - **經典風格，也能調出自己的味道**：Portra、Ektar、VISION3、Velvia、黑白與特殊底片，加上 GR III／GR IV 相機模擬；喜歡的設定可存成自訂底片。
 - **每張照片都有自己的設定**：保留各張的調整、裁切與修復，隨時比較原圖；匯出從原檔計算，不覆蓋原始照片。
-- **本機處理，AI 由你決定何時使用**：照片與調整留在 Mac，下載模型後可離線分析與修復，也可以完全手動調整。
+- **本機處理，AI 由你決定何時使用**：照片與調整留在電腦，下載模型後可離線分析與修復，也可以完全手動調整。
 
 ## 功能一覽
 
@@ -32,7 +37,7 @@
 | 構圖與修復 | 自由或固定比例裁切、旋轉、AI 修復筆刷、外框與日期印字；支援復原與重做。 |
 | 照片整理 | 縮圖複選、星級、自訂分類、排序與篩選，查看 EXIF，快速開啟最近使用的目錄。 |
 | 複製與批次處理 | 複製照片並保留調整，複製參數套用到多張照片，也能批次恢復原片與匯出。 |
-| 匯出設定 | JPEG、PNG、WebP、TIFF；PNG／TIFF 可選 8／16 bit，支援尺寸、品質及 sRGB、Adobe RGB、Display P3。 |
+| 匯出設定 | JPEG、PNG、WebP、TIFF；PNG／TIFF 可選 8／16 bit，支援尺寸、品質及 sRGB、Adobe RGB、Display P3；「寫入 EXIF」預設開啟，保留原始拍攝資訊。 |
 | AI 與外部工具 | 手動啟動 AI 輔助分析與調整；進階使用者可開啟本機 MCP，連接支援的外部工具。 |
 
 ## 四步開始
@@ -46,14 +51,16 @@
 
 ## 設定小提醒
 
-加速設定請選 **「系統原生解析」與「系統原生加速」**。內建軟體解析與 Vulkan 也用於跨平台移植驗證。Windows x64 已能在本機建立安裝檔，完整 Windows 影像引擎及實機驗收仍待完成，尚未發布 Windows Release。
+RAW 與計算加速預設使用 **系統**，選項會保存並在啟動時重新偵測。Mac 使用 Apple 原生加速；Windows 優先採用通過實際探測的 Vulkan GPU，無法使用時回退 CPU。系統 RAW 解碼失敗時，使用內建 LibRaw 備援。
+
+已測試 44 份、17 品牌、31 種機型的 RAW；共用 LibRaw 成功解碼 38 份，其中 37 份通過嚴格跨平台數值比對。Nikon HE／HE* 與 GoPro GPR 仍有缺口；原生 RAW、主體、景深、降噪與日期字形也可能因平台不同而有差異。詳細驗證範圍見[功能恢復紀錄](desktop/RESTORATION.md)。
 
 底片與相機風格是模擬效果，並非原廠預設或 LUT。更多操作提示可直接點選 App 內的功能標題查看。
 
 <details>
 <summary>想從原始碼執行？</summary>
 
-`run.command` 現在建置並啟動 **Go／Wails 主程序 + Swift／C++ 影像引擎**。Go 管理 UI、照片列表、配方、紀錄、模型、MCP、更新及匯出流程；macOS 影像、AI 推論與修復由 Swift／C++ 執行。本機混合 App 使用 ad-hoc 簽章，與已公證的正式下載版分開驗收。功能恢復紀錄及兩平台安裝檔建置方式見 [Go 桌面說明](desktop/README.md)。
+`run.command` 建置並啟動 **Go／Wails 主程序 + Swift／C++ 影像引擎**。Go 管理 UI、照片、配方、設定、模型、MCP、更新及匯出；macOS 硬體計算由 Swift／C++ 負責，Windows 由 C++ 負責。一般本機建置使用 ad-hoc 簽章；正式簽章、公證與 Windows 安裝檔建置方式見 [Go 桌面說明](desktop/README.md)。
 
 需要 Go 1.25 以上、Python 3.9 以上、完整 Xcode，以及 CMake、glslang、Vulkan headers／loader 和 MoltenVK；詳細相依項目見[建置說明](Vendor/PhotoCompute/README.md#建置與部署)。
 

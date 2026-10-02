@@ -1,9 +1,8 @@
 # Go 桌面宿主與跨平台進度
 
-更新日期：2026-10-01。`run.command` 建置並開啟 **Go／Wails 主程序＋Swift／C++ 影像引擎**。此次恢復照片目錄與下方列表，並把設定、照片管理、模型管理、AI 調整、修復排程、MCP 與更新流程接回 Go 宿主。產品名稱維持 FilmDevelop，沒有開發版標示；本機安裝檔不等於已發布 Release。
+更新日期：2026-10-02，版本 **1.26.1002 build 1208**。`run.command` 建置並開啟 **Go／Wails 主程序＋Swift／C++ 影像引擎**。Go 共用 UI、照片、配方、設定、資料移轉、模型、MCP、更新與匯出流程；macOS 使用 Swift／Apple 框架及 C++，Windows 使用 C++／WIC／Vulkan。
 
-macOS 目標為 Apple Silicon、macOS 14 以上。Windows 已有 x64 NSIS 安裝檔與 C++／WIC 原生入口，並在 Windows 10 實機恢復 JPEG 列表及原片預覽；**完整底片、AI／修復等流程仍待移植**，未達完整照片處理能力。
-
+macOS 支援 Apple Silicon、macOS 14 以上；Windows 支援 10／11 x64，版本文字附 **Beta**。兩平台均已接通底片、編輯、RAW 備援、AI 分析與修復、匯出及資料移轉；平台差異與實測界線列於文末。
 ## 分工
 
 ```mermaid
@@ -20,15 +19,15 @@ flowchart LR
 
 Go 管理業務規則、資料、排程與程序生命週期；Swift／C++ 負責影像和硬體計算。MLX 使用同一套 Go 推論介面，直接呼叫既有 Swift MLX 工作程序。共用配方操作不需要啟動原生程序。
 
-| 模組 | macOS 混合宿主現況 |
+| 模組 | 混合宿主現況 |
 | --- | --- |
 | 目錄與列表 | 選目錄、自然排序、可視縮圖、損壞檔案、空目錄、最近目錄、切換與重開恢復。 |
-| 編輯 | 37 款底片、119 個控制項、裁切、完整復原／重做、白平衡滴管、校準檔、懸停預覽、設定保存、系統選單與快捷鍵。 |
+| 編輯 | 37 個既有風格與 1 個隱藏相容配方、119 個控制項、裁切、完整復原／重做、白平衡滴管、校準檔、懸停預覽、設定保存、系統選單與快捷鍵。 |
 | 照片與底片管理 | 自訂底片匯入／匯出／改名／複製／刪除，四語提示詞，星級、分類、EXIF、複製照片、批次套用／重設／匯出、移到垃圾桶。 |
 | 模型與 AI | GGUF／MLX 探索、配對、驗證、匯入、Hugging Face 搜尋／下載／取消；完整 AI 配方在 Go 驗證並映射。 |
-| 修復與主體 | Go 管理模型下載、筆刷工作、取消與紀錄；Swift 使用 Core ML／系統主體遮罩，保留高精度修復貼片。 |
+| 修復與主體 | Go 管理模型下載、筆刷工作、取消與紀錄；macOS 使用 Core ML／系統主體遮罩，Windows 使用 ONNX／DirectML，均保留高精度修復貼片。 |
 | 預覽顯影 | 先顯示列表同一張縮圖，再將已套用參數的影像由 0→100% 不透明度漸進顯露；等待文字、轉圈與主體偵測取消按鈕固定在照片下方。 |
-| 匯出 | JPEG、PNG、WebP、TIFF，8／16 bit 與色彩空間、尺寸、品質設定；從原圖重新計算。 |
+| 匯出 | JPEG、PNG、WebP、TIFF，8／16 bit 與色彩空間、尺寸、品質設定；從原圖重新計算，拍攝 EXIF 預設回填，可關閉。 |
 | MCP | 本機 HTTP 服務與 12 項工具，Bearer 權杖、來源檢查、取消、編輯序列化及 UI 完成確認。 |
 | 更新 | Go 查詢版本、驗證下載與平台套件；macOS 共用原有可回復安裝助手，Windows 呼叫 NSIS。 |
 
@@ -87,7 +86,7 @@ python3 engine/verification/preview-cache-smoke.py
 
 配方移植以 **1,957 項 Swift 參考案例** 驗證。此次另執行真實原生渲染、Wails UI、MCP HTTP、實際 MLX 模型、Core ML 修復、PNG16 匯出及安裝套件驗證。逐項結果與限制見 [功能恢復紀錄](RESTORATION.md)。
 
-完整 PhotoStyleShared 舊測試仍有 20 個失敗斷言；隔離基線確認修改前後相同，未列為整套通過。這與已通過的移植金樣本、35 項桌面及 15 項引擎 Smoke 分開記錄。
+完整 PhotoStyleShared 舊測試仍有 20 個失敗斷言；隔離基線確認修改前後相同，未列為整套通過。這與已通過的移植金樣本、45 項桌面及 15 項引擎 Smoke 分開記錄。
 
 實際模型 Smoke 使用四個明確環境變數啟用，平時單元測試不下載或執行模型：`FILMDEVELOP_NATIVE_SMOKE_ENGINE`、`FILMDEVELOP_NATIVE_SMOKE_IMAGE`、`FILMDEVELOP_NATIVE_SMOKE_MODEL`、`FILMDEVELOP_NATIVE_SMOKE_REPAIR`。指定後執行 `go -C desktop test -v ./internal/application -run '^TestNativeRestoration$' -count=1 -timeout=10m`。
 
@@ -107,10 +106,20 @@ python3 engine/verification/preview-cache-smoke.py
 
 舊 Xcode 桌面與測試保留作相容性比對，不參與混合 App 執行。`PhotoStyle.swift` 保留影像模型與輸入驗證，`PhotoStyleShared` 保留 Core Image／Metal／Core ML 演算法。
 
-## Windows 與 Release 門檻
+## 資料移轉、平台驗證與發布
 
-Windows x64 的 16 個 PE 產物與 9 項封裝檢查已可在本機執行。已附 `filmdevelop-engine.exe`，使用 WIC 解碼、EXIF／ICC、原片的印相曝光／顯影／藥水／掃描及 sRGB JPEG、PNG／TIFF 16 bit 輸出。Windows 10 實機的 JPEG 列表／預覽與 Vulkan 計算圖已執行；兩項要求 Vulkan validation layer 的除錯測試仍缺執行環境。靜態封裝旗標不自動承襲實機結果，詳細實機證據另外保存在 `build/windows-native-runtime-report.json`。
+首次啟動讀取舊 Swift 設定、自訂底片、星級、分類、照片配方與主體遮罩；逐欄與逐項保存來源指紋及移轉收據。新版既有值、已刪除項目與明確還原優先，避免重複移轉覆蓋。舊檔案原樣封存，損壞項目個別隔離。設定頁可查看移轉紀錄，匯出資料庫，或匯入並重新定位。匯出包不包含原照片或 MCP 權杖；僅有舊雜湊而缺少路徑的紀錄需要使用者協助定位。
 
-尚需完成 Windows 的完整底片、數位色調、AI／修復、裁切／裝飾及更多輸出色彩空間，再做跨平台影像金樣本比較。WIC RAW 使用系統解析器的顯影輸出，不能宣稱與 Swift 的場景線性 RAW 等價。WIC 不支援來源時，Windows 會使用與 macOS 共用的 PhotoRAW／LibRaw 0.22.2；其 RGB16 高光及鏡頭校正限制仍須保留。現有 PhotoCompute 僅涵蓋部分運算階段，不能當作完整 Windows 照片編輯器發布；亦仍需 Windows 11、缺少 WebView2、離線及不同 GPU 驅動測試。
+已在 Windows 10 x64／GTX 1060 實機驗證 JPEG／RAW、CPU／Vulkan、全部既有配方、裁切與裝飾、色彩空間、EXIF、16 bit 匯出、GGUF 圖文推論及 ONNX LaMa 修復。Mac 使用 MLX Qwen 與 Core ML LaMa 驗證同一 Go 流程。304 組 Swift 影像參考在兩平台 CPU／GPU 共 1,216 組比較通過；主體、景深、降噪與日期字形不在該逐像素門檻內。最新 UI 及資料移轉另有實際 Wails／WebView2 Smoke，詳見 [功能恢復紀錄](RESTORATION.md)。
 
-本機 macOS App 使用 ad-hoc 簽章，DMG 尚未公證；此次沒有發布 Release。GGUF 圖文推論尚未以實際 GGUF 模型驗證，實際 AI Smoke 使用 MLX。更新器驗證及準備本機套件，不代表正式 Release 線上更新已驗收。Windows 安裝配置見 [封裝說明](../packaging/windows/README.md)。
+RAW 矩陣為 44 份、17 品牌、31 機型；共用 LibRaw 成功 38／44，嚴格數值比較 37／38。Nikon HE／HE*、GoPro GPR 的直接解碼仍缺失。WIC／Apple 原生 RAW 顯影、裁切與鏡頭校正可能不同；LibRaw 仍經 RGB16，不能宣稱保留所有場景線性 HDR。Windows 11、缺少 Runtime 的乾淨安裝及更多 GPU 驅動尚未完整實測；Windows 安裝器未簽 Authenticode，因此保留 Beta。
+
+本機封裝不等於正式公證。正式 Mac DMG 使用下列命令，簽署所有內嵌執行檔／套件，提交 Apple 公證，附加並驗證 App／DMG 票證；任何失敗都不替換正式產物。身份及 profile 由本機提供，不寫入儲存庫：
+
+```sh
+python3 scripts/package-macos.py --identity 'Developer ID Application: 姓名 (TEAMID)' --notary-profile '本機設定名稱'
+```
+
+Windows 建置與安裝細節見[封裝說明](../packaging/windows/README.md)。發布時核對安裝包內的版本、所有檔案雜湊及 GitHub 資產 digest。舊 Swift 更新器使用不同套件命名與 bundle ID，第一次升級混合版需手動下載；新版保留自己的資料路徑與更新介面。
+
+Swift 風格變更後，先建置 `PhotoStyleShared`，執行 `python3 scripts/sync-swift-catalog.py`、`python3 scripts/export-windows-style-data.py`；可用 `--check` 核對。Go 靜態目錄涵蓋隱藏配方以還原舊照片，前端只在選用入口隱藏，自訂底片不繼承隱藏狀態。原有 1,957 項 Swift 金樣本保持不變，新增相容配方使用獨立的 Swift 擷取資料驗證。

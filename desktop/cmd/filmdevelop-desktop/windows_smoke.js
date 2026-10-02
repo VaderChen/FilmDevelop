@@ -28,7 +28,7 @@
   }
   try {
     post('getState');
-    await until(() => latest.styles?.length === 37, 'Go 底片目錄');
+    await until(() => latest.styles?.length === 38, 'Go 底片目錄');
     if (window.windowsSmokeMode === 'restore') {
       if (latest.computeBackend !== 'vulkan' || latest.rawDecoderBackend !== 'software') throw new Error('重新啟動沒有恢復實機支援的選項');
       completed.push('重新啟動保留 Vulkan 與 LibRaw');

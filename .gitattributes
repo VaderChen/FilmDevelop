@@ -2,3 +2,7 @@
 # Core ML protobuf models and weights must retain their exact bytes.
 *.mlmodel binary
 *.bin binary
+
+# 浮點色彩表必須逐位元保存。
+*.f32 binary
+*.rgba32f binary

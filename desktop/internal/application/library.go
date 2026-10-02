@@ -207,6 +207,7 @@ func (a *App) stylePayloads() []any {
 				s["title"] = f.Name
 				s["subtitle"] = "以「" + base["title"].(string) + "」為基礎儲存的自訂參數。"
 				s["isCustom"] = true
+				s["isHiddenFromCatalog"] = false
 				s["baseStyle"] = f.BaseStyle
 				s["mergedInto"] = ""
 				s["filmFamilyTitle"] = "自訂底片"

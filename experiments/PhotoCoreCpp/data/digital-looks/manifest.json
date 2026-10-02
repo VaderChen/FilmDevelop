@@ -186,7 +186,7 @@
       "id": "japaneseColor1",
       "outputCurve": "japaneseColor1.output.f32",
       "spatial": [],
-      "sha256": "413dd9b86a2693641fda9f5b668f113dd15072e73918d1b5c47d80799cfed5e4",
+      "sha256": "92ded8b6f73ee0d489fbf3a258c29bc8eb5e70f9305a02bc4ab0a68b111fcab2",
       "outputCurveSHA256": "d1c3ca6277949905080925fbb5c2053e9914640aef10e9fd3589cbb97155955f"
     },
     {
@@ -756,7 +756,7 @@
       "id": "fujiClassicNeg",
       "outputCurve": "fujiClassicNeg.output.f32",
       "spatial": [],
-      "sha256": "d4f4e62bc898f6e1d81e0628fa1b68d1e21d00a4801ae51df50d5ff014f37615",
+      "sha256": "f824940374f307c6ed8549b2466eeb803a85260a608ca5249987ec5ee4b13832",
       "outputCurveSHA256": "a77c6b5fb5a1f953f8871aeee935065c422850f878defcde009d488a6250b31e"
     },
     {
@@ -788,6 +788,36 @@
       "id": "gr3-negative",
       "spatial": [],
       "sha256": "ac2c8736d5f1a798106aa84387954b0cefa052e1983128b2475bd53c875091e6"
+    },
+    {
+      "camera": [
+        1.08,
+        0.38,
+        0,
+        0.985,
+        0.12,
+        -0.03,
+        -0.1,
+        0.06,
+        0.03490658503988659,
+        -0.05235987755982988,
+        0.08726646259971647,
+        -0.3141592653589793,
+        -0.005,
+        -0.006,
+        0.003,
+        0.008,
+        1,
+        0.94,
+        0,
+        0.45
+      ],
+      "casts": [],
+      "dimension": 65,
+      "file": "gr3-sky-orange.rgba32f",
+      "id": "gr3-sky-orange",
+      "spatial": [],
+      "sha256": "e120652fb4182aa605494d1e3ccbfa677622a056d60cc2986c5b6e6fe2c288e9"
     },
     {
       "camera": [
@@ -882,6 +912,6 @@
   ],
   "sources": {
     "PhotoStyleApp/PhotoStyleProcessor.swift": "92537438ae35152fe5966c3643494099b3fc4d80073a865f16e72e45e58eca5c",
-    "PhotoStyleShared/Sources/PhotoStyleShared/PhotoCameraProcessor.swift": "33a22c15d02273d020da23ce8fe55863e278a92a5d655b448575868f522f25a9"
+    "PhotoStyleShared/Sources/PhotoStyleShared/PhotoCameraProcessor.swift": "0488a90519168ceb12e9cd924b04c9ebc45457993dbd9a96e9cef5d56d4c45e3"
   }
 }
