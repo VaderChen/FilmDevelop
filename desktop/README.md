@@ -127,7 +127,7 @@ Swift 風格變更後，先建置 `PhotoStyleShared`，執行 `python3 scripts/s
 
 ## Mac 封裝相容性與體積
 
-正式封裝產生標準 FilmDevelop 包，以及保留舊識別供更新器辨認的 FilmYourPhoto 過渡包。後者只增加小型 Go 啟動器，內含完全相同、已簽章公證的標準 App。首次開啟驗證版本、架構、簽章與相同 Developer Team 後，在原位置完成一次性替換；不重新下載、不搬移使用者資料，也不修改已簽章 App 的 Info.plist。之後 Go 只選取標準 FilmDevelop 更新包。過渡期保留兩種下載，將來停止支援舊 Swift 直接升級時才移除相容入口。`--variant current` 或 `--variant legacy` 可單獨封裝其中一種，完整 Release 必須包含兩種。
+正式封裝產生標準 FilmDevelop 包，以及保留舊識別供更新器辨認的 FilmYourPhoto 過渡包。後者只增加小型 Go 啟動器，內含完全相同、已簽章公證的標準 App。首次開啟驗證版本、架構、簽章與相同 Developer Team 後，在原位置完成一次性替換；不重新下載、不搬移使用者資料，也不修改已簽章 App 的 Info.plist。之後 Go 只選取標準 FilmDevelop 更新包。過渡期保留兩種下載，將來停止支援舊 Swift 直接升級時才移除相容入口。`--variant current` 或 `--variant legacy` 可單獨封裝其中一種，過渡期間的完整 Release 必須包含兩種；在後續數版完成移轉窗口後再撤除 FilmYourPhoto，並告知尚未更新的舊 Swift 使用者改用手動安裝。
 
 macOS 的 Swift／Core Image 管線不使用 Windows 完整 C++ 管線的 `digital-looks` 與 `editor` 查表，因此封裝時排除這兩組資料；RAW 校色表及授權完整保留。Core ML 模型先從來源編譯，只封裝執行用模型與授權，避免重複攜帶同一份權重。Go 正式建置移除除錯符號。資源同步會刪除舊建置殘留，避免增量建置將已排除內容帶回。
 

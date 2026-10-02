@@ -30,6 +30,8 @@
 
 ### 驗證與已知差異
 
+- build 1323 整併上一版內容並新增完整移轉驗證：實際過渡啟動、安裝 helper 替換、標準 App 再次開啟、16 份既有資料不變、build 1243 Go 接受過渡包，以及下一版僅有標準包的選擇均通過；另通過 16 項原生與 45 項桌面 Smoke。標準 DMG 約 83.1 MiB，過渡 DMG 約 87.9 MiB。Windows 同步版本與封裝校驗，本輪未重跑實機。
+
 - build 1243 重新驗證：精簡前後 77 組 Mac 影像像素完全相同；原生 16 項、Wails 45 項、MLX 真實推論與最終 DMG 啟動／匯出通過。舊 Swift 隔離副本完成選包、簽章準備、替換與 Go 收據確認；Windows 最新成品完成 158 檔校驗、GUI 啟動與 6 個原生函式庫載入。兩種 Mac 包各 108 檔、Windows 159 檔通過發布隱私掃描。
 - build 1243 的標準 Mac DMG 約 **83.1 MiB**，相較撤回的 build 1208（221.5 MiB）減少 **62.5%**；9 月 30 日 Swift DMG 為 96.8 MiB。
 - 已完成 Go race／vet、共用契約與資料檢查、Mac 原生及實際 Wails Smoke，以及 Windows 交叉編譯與封裝檢查。前輪 Windows 10／GTX 1060 實機涵蓋配方、編輯、匯出、資料移轉、GGUF 與 ONNX 修復；兩平台 CPU／GPU 共 1,216 組 Swift 影像參考比較通過。
@@ -66,6 +68,8 @@ The desktop host and shared features now use Go/Wails, with Swift/C++ handling i
 - Migration retains old files and migration receipts without overwriting existing changes in the new version. Database transfers do not include original photos; records with only an old hash and no source path require relocation.
 
 ### Validation and known differences
+
+- Build 1323 combines the previous release with full migration checks: bridge launch, replacement by the installer helper, standard-app restart, 16 preserved data files, acceptance by the build 1243 Go updater, and selection of a future release containing only the standard package all passed. Another 16 native and 45 desktop smoke checks passed. The standard DMG is about 83.1 MiB; the bridge DMG is about 87.9 MiB. Windows received the version and packaging update; real-machine tests were not repeated this round.
 
 - Build 1243 was retested: all 77 Mac image comparisons before/after resource reduction are pixel-identical; 16 native checks, 45 Wails checks, real MLX inference and final DMG startup/export passed. An isolated old Swift app copy completed package selection, signature preparation, replacement and Go receipt confirmation. The latest Windows payload passed 158 file checks, GUI startup and loading of 6 native libraries. Privacy scans passed for 108 files in each Mac package and 159 Windows files.
 - The build 1243 standard Mac DMG was about **83.1 MiB**, **62.5% smaller** than the withdrawn build 1208 (221.5 MiB). The September 30 Swift DMG was 96.8 MiB.
@@ -104,6 +108,8 @@ The desktop host and shared features now use Go/Wails, with Swift/C++ handling i
 
 ### 検証結果と既知の差異
 
+- build 1323 は前版の内容を統合し、移行起動、インストール helper による置換、標準 App の再起動、既存データ 16 ファイルの保持、build 1243 Go 更新機能での受け入れ、標準パッケージのみの次版の選択を検証しました。ネイティブ 16 項目・デスクトップ 45 項目も通過しました。標準 DMG は約 83.1 MiB、移行 DMG は約 87.9 MiB です。Windows はバージョン・パッケージを更新し、今回実機検証は繰り返していません。
+
 - build 1243 を再検証しました。資源削減前後の Mac 画像 77 組は全画素が一致し、ネイティブ 16 項目、Wails 45 項目、実際の MLX 推論、最終 DMG の起動・書き出しが通過しました。隔離した旧 Swift アプリのコピーでパッケージ選択、署名検証・準備、置換、Go の更新受領確認を検証しました。最新 Windows 成果物は 158 ファイルの照合、GUI 起動、ネイティブライブラリ 6 個の読み込みが通過しました。Mac 各 108 ファイル、Windows 159 ファイルのプライバシー検査も通過しています。
 - build 1243 の標準 Mac DMG は約 **83.1 MiB** で、取り下げた build 1208（221.5 MiB）より **62.5% 削減**しました。9 月 30 日の Swift DMG は 96.8 MiB でした。
 - Go race／vet、共通契約・データ検査、Mac ネイティブ・実際の Wails のスモークテスト、Windows のクロスコンパイル・パッケージ検査を通過しました。前段の Windows 10／GTX 1060 実機検証ではプリセット、編集、書き出し、移行、GGUF、ONNX 修復を確認し、両プラットフォームの CPU／GPU で計 1,216 組の Swift 参照画像比較を通過しました。
@@ -140,6 +146,8 @@ The desktop host and shared features now use Go/Wails, with Swift/C++ handling i
 - 데이터 이전은 기존 파일과 이전 기록을 보존하며 새 버전의 기존 변경 내용을 덮어쓰지 않습니다. 다른 컴퓨터로 옮기는 데이터베이스 패키지에는 원본 사진이 포함되지 않습니다. 이전 해시만 있고 원본 경로가 없는 기록은 경로를 다시 지정해야 합니다.
 
 ### 검증 및 알려진 차이
+
+- build 1323은 이전 릴리스 내용을 통합하고 전환 앱 실행, 설치 helper의 교체, 표준 앱 재실행, 기존 데이터 파일 16개 보존, build 1243 Go 업데이트 기능의 호환 패키지 수락 및 표준 패키지만 제공하는 다음 버전 선택을 검증했습니다. 네이티브 16개와 데스크톱 45개 검사도 통과했습니다. 표준 DMG는 약 83.1 MiB, 전환 DMG는 약 87.9 MiB입니다. Windows 버전과 패키지를 업데이트했으며 이번에는 실기기 검증을 반복하지 않았습니다.
 
 - build 1243을 다시 검증했습니다. 리소스 축소 전후 Mac 이미지 77개 비교가 모든 픽셀에서 일치했으며, 네이티브 16개, Wails 45개 검사, 실제 MLX 추론 및 최종 DMG 실행·내보내기를 통과했습니다. 격리된 이전 Swift 앱 복사본에서 패키지 선택, 서명 검증·준비, 교체 및 Go 업데이트 수신 확인을 검증했습니다. 최신 Windows 결과물은 파일 158개 검증, GUI 실행 및 네이티브 라이브러리 6개 로드를 통과했습니다. Mac 패키지당 108개 파일과 Windows 159개 파일의 개인정보 검사도 통과했습니다.
 - build 1243 표준 Mac DMG는 약 **83.1 MiB**로, 철회한 build 1208(221.5 MiB)보다 **62.5% 감소**했습니다. 9월 30일 Swift DMG는 96.8 MiB였습니다.

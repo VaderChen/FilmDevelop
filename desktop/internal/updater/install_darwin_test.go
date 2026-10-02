@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -157,5 +159,31 @@ func TestPackagedIdentityMigration(t *testing.T) {
 			bad.Discard()
 		}
 		t.Fatal("被修改的內含 App 不應允許識別移轉")
+	}
+}
+
+func TestMigratedAppUsesStandardUpdates(t *testing.T) {
+	target := os.Getenv("FILMDEVELOP_MIGRATED_SMOKE_APP")
+	if target == "" {
+		t.Skip("未指定已移轉 App")
+	}
+	info, err := metadata(context.Background(), target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	current := Version{info["CFBundleShortVersionString"].(string), info["CFBundleVersion"].(string)}
+	build, err := strconv.Atoi(current.Build)
+	if err != nil {
+		t.Fatal(err)
+	}
+	next := Version{current.Version, strconv.Itoa(build + 1)}
+	name := "FilmDevelop-" + next.Version + "-build" + next.Build + "-macos-arm64.dmg"
+	// 下一版只提供標準包，確認真實移轉後的識別不再依賴 FilmYourPhoto。
+	release := Release{Tag: next.Tag(), Assets: []Asset{{Name: name,
+		URL:  "https://github.com/" + Repository + "/releases/download/" + next.Tag() + "/" + name,
+		Size: 100, Digest: "sha256:" + strings.Repeat("a", 64)}}}
+	_, asset, err := release.SelectForBundle(current, "darwin", info["CFBundleIdentifier"].(string))
+	if err != nil || asset == nil || asset.Name != name {
+		t.Fatal("移轉後仍需要舊相容包", err)
 	}
 }

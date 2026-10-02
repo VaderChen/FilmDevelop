@@ -421,3 +421,31 @@ Go 使用 `-trimpath`，Swift／C++ 編譯來源路徑映射為專案相對路�
 - Mac Go executable 來自乾淨的 `2c36c21`；Windows Go executable 來自乾淨的 `cfba6c5`。後續只調整驗證、封裝及文件，兩平台各自建置來源完整 commit 與最終發布 commit 寫入驗證摘要。
 
 本輪本機證據位於 `build/release-compat-20261002`。Release 使用繁中、英文、日文與韓文說明，不再在內文重複版本標題。正式發布頁為 [1.26.1002 build 1243](https://github.com/VaderChen/FilmDevelop/releases/tag/v1.26.1002-build-1243)。
+
+
+## 一次性安裝識別移轉與合併發布（2026-10-02，1.26.1002 build 1323）
+
+本版整併 build 1243 的全部修正與四語說明，另加入離線的一次性安裝識別移轉；build 1243 的 Release 由本版取代，原始碼標籤保留。前節 build 1243 的數字保留作歷史驗證基線。
+
+### 移轉設計
+
+- `FilmYourPhoto` 過渡包保留舊識別供 Swift 與 build 1243 Go 更新器驗證；只增加小型 Go 啟動器，內含與標準 DMG 完全相同的已簽章、公證 App，不重複整套引擎。
+- 首次開啟先驗證來源與目的的版本、arm64、完整簽章及相同的正式 Developer Team。只允許 `person.vader.PhotoStyleApp` → `person.vader.FilmDevelop.GoDevelopment`；未正式簽章、未知來源或損壞內容均拒絕。
+- 將完整標準 App 暫存於同一磁碟，沿用有收據與備份的安裝 helper 在原安裝路徑替換，然後開啟標準 App。收到新 App 的啟動確認後才清理移轉備份；準備失敗或取消時不改動原安裝。
+- 不修改已簽章 App 的 Info.plist、不需要第二次網路下載，也不搬動照片、配方、設定或模型。原安裝資料夾可能仍名為 FilmYourPhoto.app，但 App 識別、顯示名稱及後續更新來源已為標準 FilmDevelop。
+- 完成後不再保留過渡啟動器或內嵌副本；重新開啟不會再次移轉。後續 Release 即使只提供 FilmDevelop，已移轉的使用者仍可正常更新。
+- 過渡入口在後續數個正式版本繼續保留，之後再於發布整理時移除。移除時須在多國語言說明公告：一直未更新的舊 Swift 使用者需要手動安裝新版；不能僅將過渡包留在歷史 Release 就宣稱舊版仍可直接更新。
+
+### 本輪驗證
+
+- Go updater／application race、vet、Shell／Python 語法通過；Mac 原生 16 項、真實 Wails 45 項 Smoke 通過。
+- 正式簽章過渡 App 通過同磁碟準備、取消清理、重複呼叫、單向識別限制；將來源改為 ad-hoc 或破壞內嵌內容時均拒絕。
+- 從本機舊 Swift App 的隔離副本出發，實際舊 Swift 選包／驗證／暫存，透過 LaunchServices 啟動過渡 App，再由真正的安裝 helper 替換並開啟標準 App。16 份既有資料（含照片紀錄、設定、分類、自訂底片及遮罩）雜湊保持一致，再次開啟標準 App 通過；未變更使用中的 App 或正式資料。
+- 另外以 build 1243 原始 Go 更新器驗證新過渡 DMG，可正常接受其舊識別與引擎路徑。真實移轉後的 App 在「下一版只有標準安裝檔」的測試中成功選包，已解除對 FilmYourPhoto 的依賴。
+- 標準 DMG 與過渡 DMG 均完成 Developer ID 簽章、公證、附票及 Gatekeeper 驗證。標準 DMG 掛載後的 GUI 啟動與兩組 Go→原生匯出通過，影像與既有參考逐像素一致。
+- Windows x64 Beta 同步版本並重新交叉編譯、通過 11 項封裝 Smoke 與 159 檔解壓雜湊校驗。本輪變更限於 Mac 移轉及共用版本資訊，未重跑 Windows 實機套件；前輪驗證仍按其 build 分開記錄。
+- 發布隱私檢查通過；`pack.command` 繼續僅留本機，不納入 Git 或安裝檔。
+
+標準 Mac DMG 為 87,184,071 bytes（83.1 MiB），過渡 DMG 為 92,177,270 bytes（87.9 MiB）；額外約 4.8 MiB 用於過渡啟動器及封裝。Windows 安裝檔為 255,605,022 bytes（243.8 MiB）。
+
+兩平台主程式與 Mac 過渡啟動器由乾淨的 `f2edbaf` 建置；後續只增加驗證與文件。完整公證 ID、安裝檔 SHA-256、舊版／新移轉驗證分別寫入 Release 的 `release-validation.json`；本機證據在 `build/identity-migration-20261002`。
