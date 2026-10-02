@@ -8,12 +8,19 @@ import re
 from windows_resources import ROOT, project_version
 
 SOURCE = ROOT / 'desktop/internal/releasenotes/history.json'
+PUBLICATIONS = ROOT / 'scripts/release-publications.json'
 REPOSITORY = 'https://github.com/VaderChen/FilmDevelop'
 LANGUAGES = {
     'traditionalChinese': ('繁體中文', '', '更新紀錄', '本次更新', '原始碼差異', '驗證紀錄'),
     'english': ('English', '.en', 'Changelog', 'What changed', 'Source comparison', 'Validation record'),
     'japanese': ('日本語', '.ja', '変更履歴', '今回の更新', 'ソースの差分', '検証記録'),
     'korean': ('한국어', '.ko', '변경 기록', '이번 업데이트', '소스 변경 비교', '검증 기록'),
+}
+MERGE_LABELS = {
+    'traditionalChinese': ('此發布說明已合併 {versions} 的更新，以下按版本列出差異。', '本版更新', '合併自 {version}'),
+    'english': ('These release notes include the changes from {versions}, grouped by version below.', 'Changes in this release', 'Included from {version}'),
+    'japanese': ('このリリースノートには {versions} の更新内容を統合し、以下にバージョン別の差分を記載しています。', '今回の更新', '{version} から統合した変更'),
+    'korean': ('이 릴리스 노트는 {versions}의 변경 사항을 통합하며, 아래에 버전별 차이를 표시합니다.', '이번 릴리스의 변경 사항', '{version}에서 통합한 변경 사항'),
 }
 
 
@@ -105,10 +112,35 @@ def generated_files(data):
     return files
 
 
-def release_body(data, tag):
-    entry = next((r for r in data['releases'] if r['tag'] == tag), None)
-    if not entry:
+def publication_entries(data, tag, configuration=None):
+    """發布說明可合併多版；逐版紀錄與程式摘要仍保留各自的比較基準。"""
+    entries = {entry['tag']: entry for entry in data['releases']}
+    if tag not in entries:
         raise ValueError('找不到指定版本的更新紀錄')
+    settings = json.loads(PUBLICATIONS.read_text()) if configuration is None else configuration
+    if settings.get('schema') != 1 or not isinstance(settings.get('includes'), dict):
+        raise ValueError('發布合併設定無效')
+    includes = settings['includes']
+    for target, sources in includes.items():
+        if target not in entries or not isinstance(sources, list) or any(not isinstance(source, str) for source in sources):
+            raise ValueError('發布合併設定包含未知版本')
+        if len(sources) != len(set(sources)):
+            raise ValueError('發布合併設定包含重複版本')
+        if any(source not in entries or version_key(source) >= version_key(target) for source in sources):
+            raise ValueError('只能合併既有的較早版本')
+    selected = set()
+    def include(target):
+        if target in selected:
+            return
+        selected.add(target)
+        for source in includes.get(target, []):
+            include(source)
+    include(tag)
+    return [entries[key] for key in sorted(selected, key=version_key, reverse=True)]
+
+
+def release_body(data, tag):
+    entries = publication_entries(data, tag)
     version, build = tag[1:].split('-build-')
     portable = version_key(tag) >= version_key('v1.26.1002-build-2330')
     windows = f'FilmDevelop-{version}-build{build}-windows-x64-' + ('portable.zip' if portable else 'setup.exe')
@@ -119,7 +151,16 @@ def release_body(data, tag):
              f'[Swift Mac upgrade]({download}FilmYourPhoto-{version}-build-{build}-arm64.dmg) · '
              f'[SHA-256]({download}SHA256SUMS.txt)', '']
     for language, (name, suffix, _, _, _, verification) in LANGUAGES.items():
-        parts += [f'## {name}', '', release_section(data, entry, language), '',
+        parts += [f'## {name}', '']
+        if len(entries) > 1:
+            introduction, current_title, included_title = MERGE_LABELS[language]
+            versions = ', '.join('**' + display(entry['tag']) + '**' for entry in entries[1:])
+            parts += [introduction.format(versions=versions), '', f'### {current_title}', '']
+        for index, entry in enumerate(entries):
+            if index:
+                parts += [f"### {included_title.format(version=display(entry['tag']))}", '']
+            parts += [release_section(data, entry, language), '']
+        parts += [
                   f"[{data['labels']['changelog'][language]}]({REPOSITORY}/blob/{data['releases'][0]['tag']}/CHANGELOG{suffix}.md) · "
                   f'[README]({REPOSITORY}/blob/{tag}/README{suffix}.md) · '
                   f'[{verification} (JSON)]({download}release-validation.json)', '']
