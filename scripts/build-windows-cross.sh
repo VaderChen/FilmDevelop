@@ -16,7 +16,22 @@ python3 "$ROOT/scripts/export-color-profiles.py" --check
 python3 "$ROOT/scripts/prepare-desktop.py"
 CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go -C "$ROOT/desktop" build -trimpath -ldflags '-s -w' -o "$BUILD/bin/filmdevelop.exe" ./cmd/filmdevelop
 python3 "$ROOT/scripts/windows_resources.py" --output "$BUILD/bin/FilmDevelopGo.exe" --resources "$BUILD/resources"
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go -C "$ROOT/desktop" build -trimpath \
+  -ldflags '-s -w -H windowsgui' -o "$BUILD/bin/filmdevelop-update.exe" ./cmd/filmdevelop-update
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go -C "$ROOT/desktop" build -trimpath -tags desktop,production,enginesmoke \
+  -ldflags '-s -w -H windowsgui' -o "$BUILD/bin/windows-ui-smoke.exe" ./cmd/filmdevelop-desktop
 CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go -C "$ROOT/desktop" test -trimpath -c -o "$BUILD/bin/engine-tests.exe" ./internal/engine
+# 交叉編譯的 Go 測試仍需要原套件的工作目錄與測資；不把這些檔案封裝進產品。
+python3 - "$ROOT/desktop/internal" "$BUILD/bin/go-tests" <<'PY'
+from pathlib import Path
+import shutil,sys
+source,destination=map(Path,sys.argv[1:])
+if destination.exists():shutil.rmtree(destination)
+for package in source.iterdir():
+    if not package.is_dir():continue
+    target=destination/package.name;target.mkdir(parents=True)
+    if (package/'testdata').is_dir():shutil.copytree(package/'testdata',target/'testdata')
+PY
 cmake -S "$ROOT/engine/cpp" -B "$BUILD/contract" -G Ninja \
   -DCMAKE_TOOLCHAIN_FILE="$ROOT/experiments/PhotoCoreCpp/cmake/windows-x64-mingw.cmake" -DCMAKE_BUILD_TYPE=Release
 cmake --build "$BUILD/contract" -j4
@@ -39,6 +54,7 @@ cmake --build "$BUILD/core" -j4
 python3 "$ROOT/scripts/build-raw-windows.py" "$BUILD/raw"
 python3 "$ROOT/scripts/build-webp-windows.py" "$BUILD/webp"
 python3 "$ROOT/scripts/prepare-neural-windows.py" "$BUILD/neural"
+python3 "$ROOT/scripts/prepare-vc-runtime-windows.py" "$BUILD/vc-runtime"
 python3 "$ROOT/scripts/prepare-vision-windows.py" "$BUILD/vision"
 bash "$ROOT/scripts/build-llama-windows.sh" "$BUILD/llama"
 cmake -S "$ROOT/engine/windows" -B "$BUILD/native" -G Ninja \

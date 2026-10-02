@@ -34,7 +34,7 @@ type updateState struct {
 	Acknowledged string `json:"acknowledged"`
 }
 
-func (a *App) loadUpdates() error {
+func (a *App) loadUpdates(engineReady bool) error {
 	var state updateState
 	found, err := a.store.LoadState("updates.json", &state)
 	if err != nil {
@@ -48,12 +48,17 @@ func (a *App) loadUpdates() error {
 	if e == nil && currentVersion.After(previous) {
 		state.Pending = currentVersion.Tag()
 	}
-	if err = updater.Confirm(os.Args, currentVersion); err != nil {
-		return err
+	if runtime.GOOS != "windows" || engineReady {
+		if err = updater.Confirm(os.Args, currentVersion); err != nil {
+			return err
+		}
 	}
 	for _, arg := range os.Args {
 		if arg == "--finish-update" {
 			state.Pending = currentVersion.Tag()
+		}
+		if arg == "--update-rollback" {
+			a.toast(errors.New("更新未完成，已還原原本的程式；照片與設定均保留。"))
 		}
 	}
 	state.Last = currentVersion.Tag()

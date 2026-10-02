@@ -77,34 +77,37 @@ func (r Release) SelectForBundle(current Version, platform, identifier string) (
 	if r.Draft || r.Prerelease || !version.After(current) {
 		return version, nil, nil
 	}
-	suffix := ""
+	suffixes := []string{}
 	switch platform {
 	case "darwin":
-		suffix = "macos-arm64.dmg"
+		suffixes = []string{"macos-arm64.dmg"}
 	case "windows":
-		suffix = "windows-x64-setup.exe"
+		// 新版優先使用 ZIP；仍可下載過渡期僅提供 EXE 的舊發行。
+		suffixes = []string{"windows-x64-portable.zip", "windows-x64-setup.exe"}
 	default:
 		return version, nil, errors.New("此平台未提供安裝套件")
 	}
-	name := "FilmDevelop-" + version.Version + "-build" + version.Build + "-" + suffix
-	if platform == "darwin" {
-		switch identifier {
-		case "", MacBundleIdentifier:
-		case LegacyMacBundleIdentifier:
-			name = "FilmYourPhoto-" + version.Version + "-build-" + version.Build + "-arm64.dmg"
-		default:
-			return version, nil, errors.New("目前 Mac App 的識別碼不支援自動更新")
+	for _, suffix := range suffixes {
+		name := "FilmDevelop-" + version.Version + "-build" + version.Build + "-" + suffix
+		if platform == "darwin" {
+			switch identifier {
+			case "", MacBundleIdentifier:
+			case LegacyMacBundleIdentifier:
+				name = "FilmYourPhoto-" + version.Version + "-build-" + version.Build + "-arm64.dmg"
+			default:
+				return version, nil, errors.New("目前 Mac App 的識別碼不支援自動更新")
+			}
 		}
-	}
-	for _, asset := range r.Assets {
-		if asset.Name != name {
-			continue
+		for _, asset := range r.Assets {
+			if asset.Name != name {
+				continue
+			}
+			u, e := url.Parse(asset.URL)
+			if e != nil || u.Scheme != "https" || u.Host != "github.com" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || u.Path != "/"+Repository+"/releases/download/"+r.Tag+"/"+name || asset.Size <= 0 || asset.Size > 8*1024*1024*1024 || !digestPattern.MatchString(asset.Digest) {
+				return version, nil, errors.New("更新檔案網址、大小或 SHA-256 資訊不完整")
+			}
+			return version, &asset, nil
 		}
-		u, e := url.Parse(asset.URL)
-		if e != nil || u.Scheme != "https" || u.Host != "github.com" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || u.Path != "/"+Repository+"/releases/download/"+r.Tag+"/"+name || asset.Size <= 0 || asset.Size > 8*1024*1024*1024 || !digestPattern.MatchString(asset.Digest) {
-			return version, nil, errors.New("更新檔案網址、大小或 SHA-256 資訊不完整")
-		}
-		return version, &asset, nil
 	}
 	return version, nil, fmt.Errorf("新版 %s 尚未提供此平台的 Go 混合安裝套件", version.Tag())
 }

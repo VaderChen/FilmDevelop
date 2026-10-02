@@ -12,7 +12,7 @@
   "generator": "engine/verification/frame-sampling-reference.swift",
   "generatorSHA256": "23213fd9e293de58ea6ea066d8c3f2e8ea269ac49d7701f9ae7073a5de01d018",
   "referenceSources": {
-    "PhotoStyleApp/PhotoImage.swift": "55fcdca2a49cd21042ca3c9dfd121a0ed8e7686bc5cfe32e0a979abe4babc1f4",
-    "PhotoStyleApp/PhotoStyleProcessor.swift": "92537438ae35152fe5966c3643494099b3fc4d80073a865f16e72e45e58eca5c"
+    "PhotoStyleApp/PhotoImage.swift": "10a0ed8c4858ac8a708e3deebb6ed2bb0602f4f859ffaf8aa75c9d18cbd0a6b9",
+    "PhotoStyleApp/PhotoStyleProcessor.swift": "1a9d50036cb1f5d540043b3222f2945b5676c232c4b8bdb521308716d90dc0b7"
   }
 }

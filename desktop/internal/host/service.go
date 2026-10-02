@@ -85,7 +85,7 @@ func (s *Service) Thumbnail(ctx context.Context, path string) ([]byte, error) {
 	if err != nil || !photos.ValidThumbnail(image) || result.Width < 1 || result.Height < 1 || result.Width > 256 || result.Height > 256 {
 		return nil, errors.New("原生縮圖格式或大小不符")
 	}
-	return image, nil
+	return photos.NormalizeThumbnail(path, image), nil
 }
 
 // Call 供 CLI／自動化共用；桌面程式使用上方具型別的介面。

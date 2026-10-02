@@ -9,7 +9,7 @@ SYSTEM_DLLS = set('''kernel32.dll kernelbase.dll ntdll.dll user32.dll gdi32.dll
 advapi32.dll ole32.dll oleaut32.dll shell32.dll shlwapi.dll version.dll bcrypt.dll
 crypt32.dll secur32.dll ws2_32.dll iphlpapi.dll winmm.dll winhttp.dll wininet.dll
 userenv.dll ucrtbase.dll msvcrt.dll setupapi.dll comdlg32.dll comctl32.dll dwmapi.dll
-dxgi.dll d3d11.dll d3d12.dll propsys.dll rpcrt4.dll wtsapi32.dll imm32.dll
+dxgi.dll d3d11.dll d3d12.dll d3dcompiler_47.dll propsys.dll rpcrt4.dll wtsapi32.dll imm32.dll
 opengl32.dll usp10.dll powrprof.dll shcore.dll windowscodecs.dll dbghelp.dll'''.split())
 
 # 驅動相依與系統 DLL 分開記錄；僅已知的 GPU 模組可使用此例外。

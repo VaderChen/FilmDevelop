@@ -5,6 +5,14 @@ import PhotoRAW
 /// The software option retains Float32 working storage, but LibRaw 0.22.2
 /// clips its RGB16 intermediate. It must not advertise scene HDR headroom.
 enum PhotoSoftwareRAWDecoder {
+    static func dimensions(data: Data) -> CGSize? {
+        var width: UInt32 = 0, height: UInt32 = 0
+        let status = data.withUnsafeBytes { bytes in
+            photo_raw_dimensions(bytes.bindMemory(to: UInt8.self).baseAddress, bytes.count, &width, &height)
+        }
+        guard status == 0, width > 0, height > 0 else { return nil }
+        return CGSize(width: Int(width), height: Int(height))
+    }
     /// 只補讀 RAW 拍攝資訊，不進行解馬賽克；與 Windows 使用相同 LibRaw 入口。
     static func metadata(data: Data) -> [String: Any]? {
         var value = PhotoRAWMetadata()

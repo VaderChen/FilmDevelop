@@ -224,14 +224,41 @@
     await nextFrame();
     const opacity=Number(getComputedStyle(image).opacity), frame=image.parentElement;
     if(opacity<=0||opacity>=1||!reveal.base.isConnected)throw new Error('顯影中途未保留縮圖底層');
+    function visibleRect(img) {
+      const box=img.getBoundingClientRect(), scale=Math.min(box.width/img.naturalWidth,box.height/img.naturalHeight);
+      const width=img.naturalWidth*scale,height=img.naturalHeight*scale;
+      return {width,height,left:box.left+(box.width-width)/2,top:box.top+(box.height-height)/2};
+    }
+    function verifyGeometry() {
+      const front=visibleRect(image),base=visibleRect(reveal.base);
+      if(Object.keys(front).some(key=>Math.abs(front[key]-base[key])>1))throw new Error('縮圖與編輯預覽的顯示範圍不一致：'+JSON.stringify({front,base,style:reveal.base.getAttribute('style')}));
+    }
+    verifyGeometry();
     verifyInlineFeedback();
     command('getState');
     for(let i=0;i<60&&image.parentElement===frame;i++) await nextFrame();
     if(document.querySelector('.preview-image')!==image||image._previewReveal!==reveal||!reveal.base.isConnected)throw new Error('狀態更新中斷顯影動畫');
+    verifyGeometry();
+    document.querySelector('.preview-pane').style.paddingBottom='53px';
+    await nextFrame();await nextFrame();
+    verifyGeometry();
+    document.querySelector('.preview-pane').style.paddingBottom='';
+    await nextFrame();await nextFrame();
+    verifyGeometry();
+    document.querySelector('.preview-pane').style.width='70%';
+    await nextFrame();await nextFrame();
+    verifyGeometry();
+    document.querySelector('[data-zoom="zoomIn"]').click();
+    verifyGeometry();
+    document.querySelector('[data-zoom="zoomFit"]').click();
+    document.querySelector('.preview-pane').style.width='';
+    await nextFrame();await nextFrame();
+    verifyGeometry();
     reveal.animation.play();await reveal.animation.finished;await nextFrame();
     if(reveal.base.isConnected||Number(getComputedStyle(image).opacity)!==1)throw new Error('顯影完成後未釋放縮圖底層');
     if(!document.querySelector('[data-preview-feedback]').hidden||document.querySelector('.preview-status').hidden)throw new Error('完成顯影後進度提示未結束');
     completed.push('完成影像 0→100% 淡入、狀態更新延續動畫及底圖釋放');
+    completed.push('縮圖與編輯圖共用顯示範圍：淡入中改變寬高、放大及符合視窗均同步');
   }
   async function setting(action,field,value) {command(action,{enabled:value});await idle(s=>s[field]===value)}
   async function verifyCropEditing() {

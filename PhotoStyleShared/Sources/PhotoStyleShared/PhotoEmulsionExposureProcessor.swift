@@ -34,7 +34,10 @@ public enum PhotoEmulsionExposureProcessor {
             .transformed(by: .init(scaleX: 1 / scale, y: 1 / scale))
         let canonical = CGRect(x: 0, y: 0, width: extent.width / scale, height: extent.height / scale)
         let radius = 12 * physicalSize / samplePitch
-        guard let captureGraph = field.apply(extent: canonical, roiCallback: { _, r in r.insetBy(dx: -radius, dy: -radius) },
+        // 四個子樣本最多跨一格時，共用鄰格的晶體幾何；更細的晶體仍走
+        // 原路徑，避免把四個分離的小鄰域擴成很大的搜尋矩形。
+        let capture = 3.6 * physicalSize >= samplePitch * 0.5 ? (sharedField ?? field) : field
+        guard let captureGraph = capture.apply(extent: canonical, roiCallback: { _, r in r.insetBy(dx: -radius, dy: -radius) },
             arguments: [source.clampedToExtent(), physicalSize, e.grainClumping / 100,
                         monochrome ? 0 : e.grainChroma / 100, Double(seed & 0xffff), Double(seed >> 16), e.grainDistribution / 100, samplePitch]) else { return image }
         // 紅暈與成品共用同一個捕獲場，避免分支重算晶體取樣。
@@ -89,7 +92,7 @@ public enum PhotoEmulsionExposureProcessor {
             float4 c=src.sample(src.transform(p));
             return c.a>0.0 ? max(float3(0.0),c.rgb/c.a) : float3(0.0);
         }
-        [[ stitchable ]] float4 emulsionCapture(coreimage::sampler src, float size, float clumping,
+        float4 emulsionCaptureReference(coreimage::sampler src, float size, float clumping,
             float chroma, float seedLo, float seedHi, float spread, float samplePitch, destination dest) {
             float2 p=dest.coord()*samplePitch; float4 original=src.sample(src.transform(dest.coord()));
             if (!(original.a>0.0)) return float4(0.0);
@@ -141,6 +144,71 @@ public enum PhotoEmulsionExposureProcessor {
             // including unexposed grains. Final output restores source alpha.
             return float4(total*(0.25f*original.a),opacity*(0.25f*original.a));
         }
+        [[ stitchable ]] float4 emulsionCapture(coreimage::sampler src, float size, float clumping,
+            float chroma, float seedLo, float seedHi, float spread, float samplePitch, destination dest) {
+            return emulsionCaptureReference(src,size,clumping,chroma,seedLo,seedHi,spread,samplePitch,dest);
+        }
+        [[ stitchable ]] float4 emulsionCaptureShared(coreimage::sampler src, float size, float clumping,
+            float chroma, float seedLo, float seedHi, float spread, float samplePitch, destination dest) {
+            float2 p=dest.coord()*samplePitch; float4 original=src.sample(src.transform(dest.coord()));
+            if (!(original.a>0.0)) return float4(0.0);
+            float3 incident=max(original.rgb/original.a,float3(0.0));
+            if (!all(isfinite(incident))) return float4(0.0,0.0,0.0,original.a);
+            uint seed=uint(seedLo)|(uint(seedHi)<<16); float spacing=3.6f*size;
+            // 每個向量分量對應原本的一個子樣本；格子、晶體、圖層及最後
+            // 四個樣本的累加順序維持不變，不合併或減少取樣。
+            float4 qx=p.x+float4(-0.25f,0.25f,-0.25f,0.25f)*samplePitch;
+            float4 qy=p.y+float4(-0.25f,-0.25f,0.25f,0.25f)*samplePitch;
+            int4 cellsX=int4(floor(qx/spacing)),cellsY=int4(floor(qy/spacing));
+            int2 lo=int2(min(cellsX.x,cellsX.y),min(cellsY.x,cellsY.z));
+            int2 hi=int2(max(cellsX.x,cellsX.y),max(cellsY.x,cellsY.z));
+            float4 remainingR=incident.r,remainingG=incident.g,remainingB=incident.b,throughput=1.0f;
+            for(int layer=0;layer<3;++layer) {
+                float4 hits=0.0f,footprintR=0.0f,footprintG=0.0f,footprintB=0.0f;
+                uint layerSeed=seed ^ (0x243f6a88u+uint(layer)*0x9e3779b9u);
+                for(int cy=lo.y-1;cy<=hi.y+1;++cy) for(int cx=lo.x-1;cx<=hi.x+1;++cx) {
+                    int2 candidate=int2(cx,cy); uint key=cellSeed(candidate,layerSeed);
+                    float group=eu(cellSeed(int2(floor(float2(candidate)/5.0f)),layerSeed));
+                    float lambda=mix(1.2f,0.9f+0.6f*group,clumping); int count=countPoisson(key,lambda);
+                    bool4 nearby=(abs(cx-cellsX)<=1)&(abs(cy-cellsY)<=1);
+                    for(int j=0;j<count;++j) {
+                        uint h=eh(key ^ uint(j+1)*0x63d83595u);
+                        float2 center=(float2(candidate)+float2(eu(h),eu(h^0xa511e9b3u)))*spacing;
+                        float radius=(0.25f+0.10f*eu(h^0x3c6ef372u))*spacing;
+                        if(spread>0.0001f) radius*=exp(spread*(2*eu(h^0x91e10da5u)-1))/sqrt(sinh(2*spread)/(2*spread));
+                        float angle=6.2831853f*eu(h^0xbb67ae85u); float cs=cos(angle),sn=sin(angle);
+                        float4 dx=qx-center.x,dy=qy-center.y;
+                        float4 rx=cs*dx+sn*dy,ry=-sn*dx+cs*dy;
+                        float4 edge=max(abs(rx),max(abs(0.5f*rx+0.8660254f*ry),abs(-0.5f*rx+0.8660254f*ry)));
+                        // SIMD 與純量的乘加收縮可能在晶體邊界相差幾個 ULP。
+                        // 以座標尺度保守界定不確定區域，該像素改用原路徑；
+                        // 不擴張晶體、不改命中門檻，也不放寬成品誤差限制。
+                        float boundaryTolerance=0x1p-20f*(max(abs(p.x),abs(p.y))+spacing*3.0f+1.0f);
+                        if(any(nearby&(abs(edge-0.8660254f*radius)<=boundaryTolerance)))
+                            return emulsionCaptureReference(src,size,clumping,chroma,seedLo,seedHi,spread,samplePitch,dest);
+                        bool4 covered=nearby&(edge<=0.8660254f*radius);
+                        if(any(covered)) {
+                            float3 exposure=(radiance(src,center/samplePitch)+radiance(src,(center+float2(radius*0.5f,0))/samplePitch)+
+                                radiance(src,(center-float2(radius*0.5f,0))/samplePitch))/3.0f;
+                            footprintR+=select(float4(0.0f),float4(exposure.r),covered);
+                            footprintG+=select(float4(0.0f),float4(exposure.g),covered);
+                            footprintB+=select(float4(0.0f),float4(exposure.b),covered);
+                            hits+=select(float4(0.0f),float4(1.0f),covered);
+                        }
+                    }
+                }
+                float3 tau=mix(float3(0.70f),layer==0?float3(0.25f,0.5f,1.35f):
+                    (layer==1?float3(0.5f,1.35f,0.25f):float3(1.35f,0.25f,0.5f)),chroma);
+                throughput*=exp(-0.70f*hits);
+                float4 divisor=max(hits,1.0f);
+                remainingR-=min(remainingR,footprintR/divisor)*(1.0f-exp(-tau.r*hits));
+                remainingG-=min(remainingG,footprintG/divisor)*(1.0f-exp(-tau.g*hits));
+                remainingB-=min(remainingB,footprintB/divisor)*(1.0f-exp(-tau.b*hits));
+            }
+            float3 total=float3(0.0f); float opacity=0.0f;
+            for(int s=0;s<4;++s) { total+=incident-float3(remainingR[s],remainingG[s],remainingB[s]); opacity+=1.0f-throughput[s]; }
+            return float4(total*(0.25f*original.a),opacity*(0.25f*original.a));
+        }
         [[ stitchable ]] float4 emulsionTransmission(sample_t source,sample_t captured) {
             return float4(max(source.rgb-captured.rgb,float3(0.0)),source.a);
         }
@@ -179,6 +247,7 @@ public enum PhotoEmulsionExposureProcessor {
         catch { NSLog("Emulsion kernel: %@", String(describing: error)); return [] }
     }()
     private static let field = kernels.first { $0.name == "emulsionCapture" }
+    private static let sharedField = kernels.first { $0.name == "emulsionCaptureShared" }
     private static let transmission = kernels.first { $0.name == "emulsionTransmission" } as? CIColorKernel
     private static let returned = kernels.first { $0.name == "emulsionReturn" } as? CIColorKernel
     private static let composite = kernels.first { $0.name == "emulsionComposite" } as? CIColorKernel

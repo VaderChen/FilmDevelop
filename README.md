@@ -8,12 +8,14 @@
 
 ## 下載使用
 
-[下載 Mac 與 Windows 版](https://github.com/VaderChen/FilmDevelop/releases/latest)。目前版本：**1.26.1002 build 1323**，Windows 標示 **Beta**。
+[下載 Mac 與 Windows 版](https://github.com/VaderChen/FilmDevelop/releases/latest)。目前版本：**1.26.1002 build 2330**，Windows 標示 **Beta**。
 
 | 平台 | 安裝方式與需求 |
 | --- | --- |
 | macOS | Apple Silicon、macOS 14 以上。開啟 `macos-arm64.dmg`，將 FilmDevelop 拖進「應用程式」。本次 DMG 及內含 App 已完成 Developer ID 簽章、Apple 公證與票證附加。 |
-| Windows Beta | Windows 10／11 x64，執行 `windows-x64-setup.exe`。需要 WebView2 與 VC++ x64 Runtime；安裝程式未簽署 Authenticode。 |
+| Windows Beta | Windows 10／11 x64，完整解壓 `windows-x64-portable.zip` 後執行 `FilmDevelop.exe`。內附 VC++ x64 Runtime，仍需 WebView2；主程式未簽署 Authenticode。 |
+
+舊 Windows setup 版首次改用 ZIP 需手動下載並解壓至新資料夾；設定與照片調整會沿用，之後可在免安裝版內更新。ZIP 不保證消除 Windows 來源提示。
 
 兩個平台共用繁體中文、英文、日文與韓文介面。舊 Swift Mac 版可使用「檢查更新」直接升級；FilmYourPhoto 過渡包會在第一次開啟時，將原安裝位置轉為標準 FilmDevelop 身分，不需第二次下載。完成後，後續更新只使用 FilmDevelop；過渡期仍保留舊 Swift 與先前相容包的升級入口。安裝後會沿用可辨識的照片調整、星級、分類與自訂底片，既有新版資料優先。換電腦可在設定中「匯出資料庫／匯入並重新定位」；資料包不含原始照片，舊紀錄缺少原路徑時需重新定位。
 
@@ -60,7 +62,7 @@ RAW 與計算加速預設使用 **系統**，選項會保存並在啟動時重�
 <details>
 <summary>想從原始碼執行？</summary>
 
-`run.command` 建置並啟動 **Go／Wails 主程序 + Swift／C++ 影像引擎**。Go 管理 UI、照片、配方、設定、模型、MCP、更新及匯出；macOS 硬體計算由 Swift／C++ 負責，Windows 由 C++ 負責。一般本機建置使用 ad-hoc 簽章；正式簽章、公證與 Windows 安裝檔建置方式見 [Go 桌面說明](desktop/README.md)。
+`run.command` 建置並啟動 **Go／Wails 主程序 + Swift／C++ 影像引擎**。Go 管理 UI、照片、配方、設定、模型、MCP、更新及匯出；macOS 硬體計算由 Swift／C++ 負責，Windows 由 C++ 負責。一般本機建置使用 ad-hoc 簽章；正式簽章、公證與 Windows 免安裝 ZIP 建置方式見 [Go 桌面說明](desktop/README.md)。
 
 需要 Go 1.25 以上、Python 3.9 以上、完整 Xcode，以及 CMake、glslang、Vulkan headers／loader 和 MoltenVK；詳細相依項目見[建置說明](Vendor/PhotoCompute/README.md#建置與部署)。
 

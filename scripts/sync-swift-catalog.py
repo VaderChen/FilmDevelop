@@ -4,6 +4,7 @@ import argparse
 import json
 from pathlib import Path
 import subprocess
+from swift_package_product import build_product
 
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)
@@ -33,11 +34,11 @@ import PhotoStyleShared
  }
 }
 ''')
-products = ROOT / 'build/engine-macos/shared/arm64-apple-macosx/release'
-subprocess.run(['xcrun','swiftc','-O','-parse-as-library','-I',str(products/'Modules'),
+modules, objects = build_product(ROOT/'PhotoStyleShared', ROOT/'build/swift-tools/shared', 'PhotoStyleShared')
+subprocess.run(['xcrun','swiftc','-O','-parse-as-library','-I',modules,
     str(ROOT/'PhotoStyleApp/PhotoStyle.swift'),str(ROOT/'PhotoStyleApp/Comparable+Clamped.swift'),
     str(ROOT/'PhotoStyleApp/PhotoStylePromptCatalog.swift'),str(source),
-    *map(str,(products/'PhotoStyleShared.build').glob('*.o')),'-o',str(build/'export')],check=True)
+    *objects,'-o',str(build/'export')],check=True)
 reference = json.loads(subprocess.check_output([str(build/'export')]))
 (build/'reference.json').write_text(json.dumps(reference,ensure_ascii=False,indent=2)+'\n')
 catalog_path = ROOT/'desktop/internal/recipes/catalog.json'

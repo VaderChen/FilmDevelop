@@ -16,12 +16,26 @@ struct WorkerFailure: Error {
     final class PreviewCache {
         var key = ""
         var source: PhotoImage?
+        var sourcePurpose: PhotoRAWDecodePurpose?
         // 同時保留編輯縮圖與清晰處理圖；切換手勢不用反覆縮放同一張 RAW。
         // 每張照片至多兩份，來源或 RAW 設定改變時整個快取一起替換。
         var processing: [(size: Int, image: PhotoImage)] = []
         var mask: CIImage?
         var maskKey: String?
         var comparisons: [(key: String, image: String)] = []
+        var editors: [(key: String, image: String)] = []
+        let stages = PhotoProcessingPipeline.Cache()
+    }
+    // 不含裁切與裝飾，但保留所有會改變來源編輯圖的運算條件。
+    struct EditorCacheKey: Encodable {
+        let style: String
+        let adjustment: StyleAdjustment
+        let repairs: JSONValue
+        let maskKey: String?
+        let detectSubject: Bool
+        let computeBackend: String
+        let policy: RenderPolicy?
+        let maxPixel: Int
     }
     static var previewCache = PreviewCache()
     final class Completion: @unchecked Sendable {
@@ -378,10 +392,13 @@ struct WorkerFailure: Error {
                 && patch.width > 0 && patch.height > 0 && patch.linearGain > 0
                 && CIImage(data: patch.imageData) != nil && CIImage(data: patch.maskData) != nil
         }) else { throw WorkerFailure(code: "invalidRepair", message: "修復紀錄不完整或影像無法解碼") }
+        let decodePurpose: PhotoRAWDecodePurpose = job.preview && job.policy?.fullResolution != true ? .preview
+            : (job.preview && job.recipe.detectSubject && job.subjectMask == nil ? .completeWithPreview : .complete)
         let bytes = try Data(contentsOf: inputURL, options: .mappedIfSafe)
         let key = useCache ? SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
             + ":" + raw.rawValue + ":" + String(job.input.lensCorrection) + ":" + inputURL.pathExtension.lowercased() : ""
         let sourceCacheHit = useCache && previewCache.key == key && previewCache.source != nil
+            && (previewCache.source?.rawDecoderBackend != .software || previewCache.sourcePurpose == decodePurpose)
         let cache: PreviewCache
         if useCache {
             if !sourceCacheHit { previewCache = PreviewCache(); previewCache.key = key }
@@ -389,13 +406,14 @@ struct WorkerFailure: Error {
         } else { cache = PreviewCache() }
         if cache.source == nil {
             guard let decoded = PhotoBackendRouter.decode(data: bytes, url: inputURL, backend: raw,
-                                                          lensCorrection: job.input.lensCorrection) else {
+                                                          lensCorrection: job.input.lensCorrection, purpose: decodePurpose) else {
                 throw WorkerFailure(code: "decodeFailed", message: "無法解碼來源照片")
             }
             cache.source = decoded
+            cache.sourcePurpose = decodePurpose
         }
         var image = cache.source!
-        let sourceSize = image.size
+        let sourceSize = image.decodedSourceSize ?? image.size
         var processingCacheHit = false
         if job.preview && job.policy?.fullResolution != true {
             if let index = cache.processing.firstIndex(where: { $0.size == job.previewMaxPixel }) {
@@ -427,13 +445,22 @@ struct WorkerFailure: Error {
             }
             subjectMask = cache.mask
         }
+        let stageEncoder = JSONEncoder()
+        stageEncoder.outputFormatting = [.sortedKeys]
+        let stageScope = try stageEncoder.encode(EditorCacheKey(style: job.recipe.style,
+            adjustment: StyleAdjustment.default(for: .original), repairs: job.recipe.repairPatches,
+            maskKey: job.recipe.detectSubject ? cache.maskKey : nil, detectSubject: job.recipe.detectSubject,
+            computeBackend: job.computeBackend, policy: job.policy, maxPixel: job.previewMaxPixel))
+        let stageScopeKey = SHA256.hash(data: stageScope).map { String(format: "%02x", $0) }.joined()
+        let stageCache = useCache && job.preview ? cache.stages : nil
+        let previousStageHits = cache.stages.hits
         let completion = Completion()
         let rendered = try PhotoStyleProcessor.render(style: style, adjustment: adjustment, to: image,
             subjectMask: subjectMask, shouldDetectSubjectMask: !job.preview && job.recipe.detectSubject, repairPatches: patches, isPreview: job.preview,
             progress: { value in
                 completion.update(value)
                 try? emit(Response(version: 1, id: id, kind: "progress", payload: .number(value), error: nil))
-            }, compute: PhotoBackendRouter.compute(compute))
+            }, compute: PhotoBackendRouter.compute(compute), cache: stageCache, cacheScope: stageScopeKey)
         if job.preview, job.subjectMask == nil, let path = job.subjectMaskOutputPath, let mask = subjectMask {
             let width = Int(mask.extent.width), height = Int(mask.extent.height)
             guard mask.extent.origin == .zero, width > 0, height > 0, width <= 4096, height <= 4096 else { throw WorkerFailure(code:"invalidMask",message:"主體遮罩尺寸不符") }
@@ -456,14 +483,44 @@ struct WorkerFailure: Error {
         var previewFields: [String: Any] = [:]
         if job.preview {
             let editing = adjustment.forSourceEditingPreview
-            let editor = editing == adjustment ? rendered : try PhotoStyleProcessor.render(style: style,
-                adjustment: editing, to: image, subjectMask: subjectMask, shouldDetectSubjectMask: false,
-                repairPatches: patches, isPreview: true, compute: PhotoBackendRouter.compute(compute))
-            if editing == adjustment && format == .jpeg && job.output.quality == 0.88
-                && job.output.maxPixel == job.previewMaxPixel && colorSpace == .sRGB {
-                previewFields["cropImage"] = "data:image/jpeg;base64," + output.base64EncodedString()
-            } else if let data = editor.resizedForWebPreview(maxPixel: CGFloat(job.previewMaxPixel)).jpegData(compressionQuality: 0.88) {
-                previewFields["cropImage"] = "data:image/jpeg;base64," + data.base64EncodedString()
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.sortedKeys]
+            let editorSettings = EditorCacheKey(style: job.recipe.style, adjustment: editing,
+                repairs: job.recipe.repairPatches, maskKey: job.recipe.detectSubject ? cache.maskKey : nil,
+                detectSubject: job.recipe.detectSubject, computeBackend: job.computeBackend,
+                policy: job.policy, maxPixel: job.previewMaxPixel)
+            let editorKey = SHA256.hash(data: try encoder.encode(editorSettings)).map { String(format: "%02x", $0) }.joined()
+            var editorCacheHit = false
+            if editing != adjustment, let index = cache.editors.firstIndex(where: { $0.key == editorKey }) {
+                let entry = cache.editors.remove(at: index)
+                cache.editors.append(entry)
+                previewFields["cropImage"] = entry.image
+                editorCacheHit = true
+            } else {
+                let editor = editing == adjustment ? rendered : try PhotoStyleProcessor.render(style: style,
+                    adjustment: editing, to: image, subjectMask: subjectMask, shouldDetectSubjectMask: false,
+                    repairPatches: patches, isPreview: true, compute: PhotoBackendRouter.compute(compute),
+                    cache: stageCache, cacheScope: stageScopeKey)
+                let data: Data
+                if editing == adjustment && format == .jpeg && job.output.quality == 0.88
+                    && job.output.maxPixel == job.previewMaxPixel && colorSpace == .sRGB {
+                    data = output
+                } else {
+                    guard let encoded = editor.resizedForWebPreview(maxPixel: CGFloat(job.previewMaxPixel)).jpegData(compressionQuality: 0.88) else {
+                        throw WorkerFailure(code: "renderFailed", message: "無法產生來源編輯圖")
+                    }
+                    data = encoded
+                }
+                let editorPayload = "data:image/jpeg;base64," + data.base64EncodedString()
+                previewFields["cropImage"] = editorPayload
+                cache.editors.removeAll { $0.key == editorKey }
+                // 只保存顯示用 JPEG，避免持有額外的原尺寸 Float32 影像。
+                if editorPayload.utf8.count <= 16 * 1024 * 1024 {
+                    cache.editors.append((key: editorKey, image: editorPayload))
+                    while cache.editors.count > 2 || cache.editors.reduce(0, { $0 + $1.image.utf8.count }) > 16 * 1024 * 1024 {
+                        cache.editors.removeFirst()
+                    }
+                }
             }
             let comparisonKey = "\(job.policy?.fullResolution == true):\(job.previewMaxPixel):"
                 + "\(adjustment.cropAspectRatio):\(adjustment.cropRotation):\(adjustment.cropScale):"
@@ -491,7 +548,8 @@ struct WorkerFailure: Error {
                 "renderMilliseconds": (renderedAt - decodedAt) * 1000,
                 "encodeMilliseconds": (ProcessInfo.processInfo.systemUptime - renderedAt) * 1000,
                 "sourceCacheHit": sourceCacheHit, "processingCacheHit": processingCacheHit,
-                "maskCacheHit": maskCacheHit, "comparisonCacheHit": comparisonCacheHit] as [String: Any]
+                "maskCacheHit": maskCacheHit, "comparisonCacheHit": comparisonCacheHit,
+                "editorCacheHit": editorCacheHit, "stageCacheHits": cache.stages.hits - previousStageHits] as [String: Any]
         }
         let cropSize = adjustment.cropRect(in: CGRect(origin: .zero, size: sourceSize)).size
         let outputSize = PhotoStyleProcessor.renderedOutputSize(for: sourceSize, adjustment: adjustment)

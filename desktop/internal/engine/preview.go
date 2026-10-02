@@ -8,7 +8,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/VaderChen/FilmDevelop/internal/contract"
@@ -24,6 +27,56 @@ type previewProcess struct {
 	stop   chan struct{}
 	done   chan struct{}
 	err    error
+}
+
+// 只保留目前來源的不可變快照。內容雜湊在複製時取得，不能僅以尺寸與
+// 修改時間判斷；Windows 原生解碼快取還會檢查檔案路徑與 File ID。
+type previewSource struct {
+	key, path, directory string
+}
+
+func (c *Client) clearPreviewSource() {
+	if c.previewSource != nil {
+		_ = os.RemoveAll(c.previewSource.directory)
+		c.previewSource = nil
+	}
+}
+
+func (c *Client) renderPreview(ctx context.Context, job contract.RenderJob, fingerprint string, progress func(float64)) (json.RawMessage, error) {
+	select {
+	case c.gate <- struct{}{}:
+		defer func() { <-c.gate }()
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	key := fingerprint + ":" + strings.ToLower(filepath.Ext(job.Input.Path))
+	if c.previewSource == nil || c.previewSource.key != key {
+		// 宿主會刪除整個預覽輸出目錄，來源快照必須由 Client 獨立擁有。
+		// gate 保證舊引擎工作已完成，才替換來源。
+		directory, err := os.MkdirTemp("", "filmdevelop-source-")
+		if err != nil {
+			return nil, err
+		}
+		path := filepath.Join(directory, filepath.Base(job.Input.Path))
+		if err := os.Rename(job.Input.Path, path); err != nil {
+			// MCP 等入口可以把輸出放到另一顆磁碟；跨磁碟不能 rename。
+			if err := copySnapshot(ctx, job.Input.Path, path, nil); err != nil {
+				_ = os.RemoveAll(directory)
+				return nil, err
+			}
+		}
+		c.clearPreviewSource()
+		c.previewSource = &previewSource{key: key, path: path, directory: directory}
+	}
+	job.Input.Path = c.previewSource.path
+	result, err := c.callLocked(ctx, "preview", job, progress)
+	if err != nil && c.preview == nil {
+		c.clearPreviewSource()
+	}
+	return result, err
 }
 
 func (c *Client) startPreview() (*previewProcess, error) {
@@ -97,6 +150,7 @@ func (c *Client) Close() error {
 	c.gate <- struct{}{}
 	defer func() { <-c.gate }()
 	c.closePreview()
+	c.clearPreviewSource()
 	return nil
 }
 
@@ -157,6 +211,7 @@ func (c *Client) callPreview(ctx context.Context, id string, request []byte, pro
 				defer func() { <-c.gate }()
 				if c.preview == p {
 					c.closePreview()
+					c.clearPreviewSource()
 				}
 			default:
 			}

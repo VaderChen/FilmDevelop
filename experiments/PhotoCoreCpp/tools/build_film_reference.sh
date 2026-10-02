@@ -3,8 +3,14 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 OUTPUT="$ROOT/build/photocore-cpp"
 mkdir -p "$OUTPUT"
-swift build --build-system native --package-path "$ROOT/PhotoStyleShared" --scratch-path "$OUTPUT/shared" -c debug
-ACCESSOR="$(find "$OUTPUT/shared" -path '*/DerivedSources/resource_bundle_accessor.swift' -print -quit)"
+swift build --package-path "$ROOT/PhotoStyleShared" --scratch-path "$OUTPUT/shared" -c debug
+PRODUCTS="$(swift build --package-path "$ROOT/PhotoStyleShared" --scratch-path "$OUTPUT/shared" -c debug --show-bin-path)"
+# 只搜尋目前建置系統／組態的來源，避免取得切換前留下的舊 accessor。
+DERIVED="$PRODUCTS/PhotoStyleShared.build/DerivedSources"
+if [[ ! -d "$DERIVED" ]]; then
+  DERIVED="$(dirname "$(dirname "$PRODUCTS")")/Intermediates.noindex/PhotoStyleShared.build/$(basename "$PRODUCTS")"
+fi
+ACCESSOR="$(find "$DERIVED" -path '*/DerivedSources/resource_bundle_accessor.swift' -print -quit)"
 test -n "$ACCESSOR"
 python3 - "$ROOT" "$OUTPUT" <<'PYIN'
 from pathlib import Path

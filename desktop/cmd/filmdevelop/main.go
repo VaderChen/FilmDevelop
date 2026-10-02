@@ -34,6 +34,7 @@ func run() error {
 	ctx, deadline := context.WithTimeout(ctx, *timeout)
 	defer deadline()
 	client := engine.New(*binary)
+	defer client.Close()
 	services, err := host.New(client)
 	if err != nil {
 		return err

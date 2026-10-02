@@ -90,7 +90,7 @@ func Scan(ctx context.Context, path string) (Directory, error) {
 			}
 			entry := Entry{Name: candidate.Name(), Path: filepath.Join(path, candidate.Name()), Size: info.Size(), ModifiedNS: info.ModTime().UnixNano(), ModifiedAt: float64(info.ModTime().UnixMilli()) / 1000}
 			entry.ID = Identity(entry.Path)
-			entry.CacheKey = Identity(fmt.Sprintf("thumbnail-v1-256\n%s\n%d\n%d", entry.Path, entry.Size, entry.ModifiedNS))
+			entry.CacheKey = Identity(fmt.Sprintf("thumbnail-v2-content-256\n%s\n%d\n%d", entry.Path, entry.Size, entry.ModifiedNS))
 			result.Entries = append(result.Entries, entry)
 			result.ByID[entry.ID] = entry
 		}

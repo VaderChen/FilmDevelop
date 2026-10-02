@@ -59,6 +59,8 @@ struct PhotoImage {
     /// 偏好軟體解析但此檔案須改用系統解析。
     var softwareRAWFallback = false
     var softwareRAWPreview: (linear: CGImage, display: CGImage)?
+    /// 預覽可只解碼半尺寸感光資料；編輯座標與輸出規格仍使用完整尺寸。
+    var decodedSourceSize: CGSize?
 
     func processingPreview(maxPixel: CGFloat) -> PhotoImage {
         guard let preview = softwareRAWPreview else { return resizedForWebPreview(maxPixel: maxPixel) }

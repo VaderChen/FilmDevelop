@@ -17,6 +17,8 @@ typedef struct PhotoRAWMetadata {
 } PhotoRAWMetadata;
 // 只識別 RAW 與讀取 EXIF，不解馬賽克、不依賴顯影支援。
 int photo_raw_metadata(const unsigned char *data, size_t length, PhotoRAWMetadata *result);
+// 依照完整解碼的方向與像素比例回報輸出尺寸，不解馬賽克。
+int photo_raw_dimensions(const unsigned char *data, size_t length, unsigned *width, unsigned *height);
 // Linear RGB is Float32 storage of LibRaw's clipped RGB16 output, not HDR.
 // Calls are serialized inside the library, including all LibRaw destruction.
 int photo_raw_decode(const unsigned char *data, size_t length, int half_size,

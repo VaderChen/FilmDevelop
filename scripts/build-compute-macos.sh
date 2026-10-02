@@ -17,6 +17,12 @@ fi
 mkdir -p "$CONTENTS/Frameworks" "$CONTENTS/Resources/PhotoCompute"
 cp -f "$BUILD/libPhotoCompute.dylib" "$CONTENTS/Frameworks/"
 cp -f "$PREFIX/lib/libMoltenVK.dylib" "$CONTENTS/Frameworks/"
+# 只移除封裝副本的舊簽章；路徑調整完成後，再於下方統一簽署。
+for LIB in libMoltenVK.dylib libPhotoCompute.dylib; do
+  if codesign -d "$CONTENTS/Frameworks/$LIB" >/dev/null 2>&1; then
+    codesign --remove-signature "$CONTENTS/Frameworks/$LIB"
+  fi
+done
 # 所有動態依賴以 bundle 內相對路徑解析；不留下開發機 Homebrew 路徑。
 MVK_ID="$(otool -D "$PREFIX/lib/libMoltenVK.dylib" | tail -1)"
 install_name_tool -id '@rpath/libPhotoCompute.dylib' \

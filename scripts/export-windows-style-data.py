@@ -2,6 +2,7 @@
 """從現有 Swift 風格匯出跨平台色彩表；空間效果另外保留，不能烘焙進色彩表。"""
 import argparse,hashlib,json,re,subprocess
 from pathlib import Path
+from swift_package_product import build_product
 root=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser();parser.add_argument('--check',action='store_true');args=parser.parse_args()
 sources=['PhotoStyleApp/PhotoStyleProcessor.swift','PhotoStyleShared/Sources/PhotoStyleShared/PhotoCameraProcessor.swift']
@@ -214,8 +215,8 @@ code+='''
 }
 '''
 source=build/'Export.swift';source.write_text(code)
-products=root/'build/engine-macos/shared/arm64-apple-macosx/release'
-cmd=['xcrun','swiftc','-O','-parse-as-library','-I',str(products/'Modules'),str(source),*[str(p) for p in (products/'PhotoStyleShared.build').glob('*.o')],'-o',str(build/'export')]
+modules,objects=build_product(root/'PhotoStyleShared',root/'build/swift-tools/shared','PhotoStyleShared')
+cmd=['xcrun','swiftc','-O','-parse-as-library','-I',modules,str(source),*objects,'-o',str(build/'export')]
 subprocess.run(cmd,check=True);subprocess.run([str(build/'export'),str(output)],check=True)
 data=json.loads(manifest.read_text());data['sources']=fingerprint
 for style in data['styles']:

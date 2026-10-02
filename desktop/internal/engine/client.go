@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -22,11 +23,12 @@ import (
 )
 
 type Client struct {
-	Executable  string
-	gate        chan struct{}
-	command     func(context.Context) *exec.Cmd
-	preview     *previewProcess
-	previewIdle *time.Timer
+	Executable    string
+	gate          chan struct{}
+	command       func(context.Context) *exec.Cmd
+	preview       *previewProcess
+	previewIdle   *time.Timer
+	previewSource *previewSource
 }
 
 func New(executable string) *Client {
@@ -57,6 +59,11 @@ func (c *Client) Call(ctx context.Context, method string, value any, progress fu
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
+	return c.callLocked(ctx, method, value, progress)
+}
+
+// 呼叫方持有 gate；來源快照與原生解碼快取在同一個序列中更新。
+func (c *Client) callLocked(ctx context.Context, method string, value any, progress func(float64)) (json.RawMessage, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -191,7 +198,12 @@ func (c *Client) Render(ctx context.Context, job contract.RenderJob, progress fu
 	}
 	defer os.RemoveAll(work)
 	snapshot := filepath.Join(work, "source"+filepath.Ext(input))
-	if err := copySnapshot(ctx, input, snapshot); err != nil {
+	var fingerprint io.Writer
+	digest := sha256.New()
+	if job.Preview {
+		fingerprint = digest
+	}
+	if err := copySnapshot(ctx, input, snapshot, fingerprint); err != nil {
 		return nil, err
 	}
 	job.Input.Path = snapshot
@@ -199,11 +211,12 @@ func (c *Client) Render(ctx context.Context, job contract.RenderJob, progress fu
 	writeExif := !job.Preview && job.Output.WriteExif != nil && *job.Output.WriteExif
 	// EXIF 屬於 Go 的檔案處理；原生程序只接收像素輸出設定，亦相容既有引擎。
 	job.Output.WriteExif = nil
-	method := "render"
+	var result json.RawMessage
 	if job.Preview {
-		method = "preview"
+		result, err = c.renderPreview(ctx, job, hex.EncodeToString(digest.Sum(nil)), progress)
+	} else {
+		result, err = c.Call(ctx, "render", job, progress)
 	}
-	result, err := c.Call(ctx, method, job, progress)
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +280,7 @@ func (c *Client) Render(ctx context.Context, job contract.RenderJob, progress fu
 	return result, nil
 }
 
-func copySnapshot(ctx context.Context, source, target string) error {
+func copySnapshot(ctx context.Context, source, target string, fingerprint io.Writer) error {
 	input, err := os.Open(source)
 	if err != nil {
 		return err
@@ -294,6 +307,11 @@ func copySnapshot(ctx context.Context, source, target string) error {
 		if n > 0 {
 			if _, err := output.Write(buffer[:n]); err != nil {
 				return err
+			}
+			if fingerprint != nil {
+				if _, err := fingerprint.Write(buffer[:n]); err != nil {
+					return err
+				}
 			}
 		}
 		if errors.Is(readErr, io.EOF) {

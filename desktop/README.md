@@ -1,6 +1,6 @@
 # Go 桌面宿主與跨平台進度
 
-更新日期：2026-10-02，版本 **1.26.1002 build 1323**。`run.command` 建置並開啟 **Go／Wails 主程序＋Swift／C++ 影像引擎**。Go 共用 UI、照片、配方、設定、資料移轉、模型、MCP、更新與匯出流程；macOS 使用 Swift／Apple 框架及 C++，Windows 使用 C++／WIC／Vulkan。
+更新日期：2026-10-02，版本 **1.26.1002 build 2330**。`run.command` 建置並開啟 **Go／Wails 主程序＋Swift／C++ 影像引擎**。Go 共用 UI、照片、配方、設定、資料移轉、模型、MCP、更新與匯出流程；macOS 使用 Swift／Apple 框架及 C++，Windows 使用 C++／WIC／Vulkan。
 
 macOS 支援 Apple Silicon、macOS 14 以上；Windows 支援 10／11 x64，版本文字附 **Beta**。兩平台均已接通底片、編輯、RAW 備援、AI 分析與修復、匯出及資料移轉；平台差異與實測界線列於文末。
 ## 分工
@@ -29,7 +29,7 @@ Go 管理業務規則、資料、排程與程序生命週期；Swift／C++ 負�
 | 預覽顯影 | 先顯示列表同一張縮圖，再將已套用參數的影像由 0→100% 不透明度漸進顯露；等待文字、轉圈與主體偵測取消按鈕固定在照片下方。 |
 | 匯出 | JPEG、PNG、WebP、TIFF，8／16 bit 與色彩空間、尺寸、品質設定；從原圖重新計算，拍攝 EXIF 預設回填，可關閉。 |
 | MCP | 本機 HTTP 服務與 12 項工具，Bearer 權杖、來源檢查、取消、編輯序列化及 UI 完成確認。 |
-| 更新 | Go 查詢版本、驗證下載與平台套件；macOS 共用原有可回復安裝助手，Windows 呼叫 NSIS。 |
+| 更新 | Go 查詢版本、驗證下載與平台套件；macOS 共用原有可回復安裝助手，Windows 優先使用免安裝 ZIP，驗證後替換原目錄，新版啟動失敗時還原。 |
 
 ## 契約與資料
 
@@ -54,7 +54,7 @@ C++ 計算 ABI 維持頂列在前、預乘 RGBA Float32、extended-linear sRGB�
 
 ## 建置與驗證
 
-從儲存庫根目錄執行。需要 Go 1.25 以上、Python 3.9 以上、完整 Xcode，以及現有 C++／Vulkan 相依工具。macOS 首次建置會準備 llama.cpp 與 MLX。Windows 另需 MinGW-w64 x64、Ninja、Vulkan headers、glslangValidator、makensis／7zz。
+從儲存庫根目錄執行。需要 Go 1.25 以上、Python 3.9 以上、完整 Xcode，以及現有 C++／Vulkan 相依工具。macOS 首次建置會準備 llama.cpp 與 MLX。Windows 另需 MinGW-w64 x64、Ninja、Vulkan headers、glslangValidator、7zz 與 msiextract；只有舊 NSIS 封裝模式需要 makensis。
 
 ```sh
 ./run.command
@@ -63,8 +63,8 @@ C++ 計算 ABI 維持頂列在前、預乘 RGBA Float32、extended-linear sRGB�
 bash scripts/build-desktop-macos.sh
 python3 scripts/package-macos.py
 
-# Windows x64 交叉編譯、NSIS 封裝及靜態檢查
-bash scripts/build-windows-installer.sh
+# Windows x64 交叉編譯、免安裝 ZIP 封裝及靜態檢查
+bash scripts/build-windows-package.sh
 
 python3 scripts/prepare-desktop.py
 go -C desktop vet ./...
@@ -83,7 +83,7 @@ python3 engine/verification/preview-cache-smoke.py
 - `build/desktop/FilmDevelopGo.app`
 - `dist/macos-arm64/FilmDevelop-<版本>-build<組建>-macos-arm64.dmg`（現有混合版）
 - `dist/macos-arm64/FilmYourPhoto-<版本>-build-<組建>-arm64.dmg`（舊 Swift／舊識別 Go 的一次性移轉入口）
-- `dist/windows-x64/FilmDevelop-<版本>-build<組建>-windows-x64-setup.exe`
+- `dist/windows-x64/FilmDevelop-<版本>-build<組建>-windows-x64-portable.zip`
 
 配方移植以 **1,957 項 Swift 參考案例** 驗證。此次另執行真實原生渲染、Wails UI、MCP HTTP、實際 MLX 模型、Core ML 修復、PNG16 匯出及安裝套件驗證。逐項結果與限制見 [功能恢復紀錄](RESTORATION.md)。
 

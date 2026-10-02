@@ -38,7 +38,7 @@ Image gaussian(Image in, double sigma, bool clamp_edges) {
     const Image *current = &in;
     for (int axis = 0; axis < 2; ++axis) {
         Image &out = axis == 0 ? scratch : in;
-        for (std::size_t y = 0; y < in.height; ++y)
+        parallel_rows(in.height, in.width, [&](std::size_t y) {
             for (std::size_t x = 0; x < in.width; ++x) {
                 V sum = rgb(sample(*current, long(x), long(y))) * weights[0];
                 double alpha = sample(*current, long(x), long(y)).a * weights[0];
@@ -52,6 +52,7 @@ Image gaussian(Image in, double sigma, bool clamp_edges) {
                 }
                 out.pixels[y * in.width + x] = pixel(sum, float(alpha));
             }
+        });
         current = &out;
     }
     return in;
@@ -102,7 +103,7 @@ Image resize_lanczos(const Image &in, double scale, bool clamp_edges) {
                 tap.total += f;
             }
         }
-        for (std::size_t y = 0; y < out.height; ++y)
+        parallel_rows(out.height, out.width, [&](std::size_t y) {
             for (std::size_t x = 0; x < out.width; ++x) {
                 const auto &tap = taps[axis == 0 ? x : y];
                 V sum;
@@ -121,6 +122,7 @@ Image resize_lanczos(const Image &in, double scale, bool clamp_edges) {
                 }
                 out.pixels[y * out.width + x] = pixel(sum / tap.total, float(alpha / tap.total));
             }
+        });
         storage = std::move(out);
         current = &*storage;
     }

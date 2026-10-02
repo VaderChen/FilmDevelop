@@ -8,12 +8,13 @@ Check 'Windows 與使用者權限' {
       elevated=([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)}
 }
 Check 'JSONL 契約與中文路徑' {Run-Native 'filmdevelop-contract-smoke.exe' '--self-test'}
-Check 'Go 工作程序生命週期' {Run-Native 'engine-tests.exe' '-test.v -test.timeout=90s'}
+Check 'Go 工作程序生命週期' {Run-Native 'engine-tests.exe' '-test.v -test.timeout=90s' (Go-TestDirectory 'engine')}
 if(Test-Path (Join-Path $Build 'application-tests.exe')) {
-    Check 'Go 共用應用層 Windows Smoke' {Run-Native 'application-tests.exe' '-test.v -test.timeout=90s'}
+    Check 'Go 共用應用層 Windows Smoke' {Run-Native 'application-tests.exe' '-test.v -test.timeout=90s' (Go-TestDirectory 'application')}
 }
 Check 'C++ 像素不變量' {Run-Native 'photo_core_verify.exe'}
 Check 'C++ 顯影與取樣' {Run-Native 'photo_core_film_verify.exe'}
+Check 'C++ 有界工作池、巢狀呼叫與例外復原' {Run-Native 'photo_core_rows_verify.exe'}
 $capabilities=$null
 Check '系統解析器與 GPU 實際探測' {
     $reply=Invoke-Engine 'capabilities' @{}; Require ($reply.kind -eq 'result') ($reply|ConvertTo-Json -Depth 5)

@@ -18,6 +18,24 @@ std::map<std::filesystem::path, std::unique_ptr<Mapping>> mappings;
 void checked(int error) { if(error) throw std::runtime_error(libraw_strerror(error)); }
 }
 extern "C" const char* photo_raw_error() { return lastError.c_str(); }
+extern "C" int photo_raw_dimensions(const unsigned char* bytes, size_t length, unsigned* width, unsigned* height) {
+    if (!width || !height) return -1;
+    *width = *height = 0;
+    try {
+        if (!bytes || !length) throw std::runtime_error("Invalid RAW input");
+        std::lock_guard<std::mutex> lock(decoderMutex);
+        auto raw = std::make_unique<photoraw::CpuRaw>();
+        raw->imgdata.params.half_size = 0;
+        raw->imgdata.params.user_flip = -1;
+        checked(raw->open_buffer(const_cast<unsigned char*>(bytes), length));
+        checked(raw->adjust_sizes_info_only());
+        *width = raw->imgdata.sizes.iwidth;
+        *height = raw->imgdata.sizes.iheight;
+        if (!*width || !*height) throw std::runtime_error("Invalid RAW dimensions");
+        lastError.clear(); return 0;
+    } catch (const std::exception& e) { lastError = e.what(); *width = *height = 0; return -1; }
+    catch (...) { lastError = "Unknown RAW dimensions error"; *width = *height = 0; return -1; }
+}
 extern "C" int photo_raw_metadata(const unsigned char* bytes, size_t length, PhotoRAWMetadata* out) {
     if(!out) return -1;
     *out = {};

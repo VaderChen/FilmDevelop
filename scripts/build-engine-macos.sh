@@ -15,15 +15,17 @@ fi
 "$ROOT_DIR/scripts/build-raw-macos.sh"
 "$ROOT_DIR/scripts/build-llama-macos.sh"
 "$ROOT_DIR/scripts/build-mlx-macos.sh"
-swift build --build-system native --package-path "$ROOT_DIR/PhotoStyleShared" --scratch-path "$BUILD/shared" -c release \
+swift build --package-path "$ROOT_DIR/PhotoStyleShared" --scratch-path "$BUILD/shared" -c release \
   -Xswiftc -DFILMDEVELOP_BUNDLED_RESOURCES -Xswiftc -file-prefix-map -Xswiftc "$ROOT_DIR=." \
   -Xswiftc -debug-prefix-map -Xswiftc "$ROOT_DIR=."
-PRODUCTS="$(swift build --build-system native --package-path "$ROOT_DIR/PhotoStyleShared" --scratch-path "$BUILD/shared" -c release --show-bin-path)"
+PRODUCTS="$(swift build --package-path "$ROOT_DIR/PhotoStyleShared" --scratch-path "$BUILD/shared" -c release --show-bin-path)"
+source "$ROOT_DIR/scripts/swift-package-product.sh"
+resolve_swift_package_product "$PRODUCTS" PhotoStyleShared
 printf '%s' '<?xml version="1.0"?><plist version="1.0"><dict><key>CFBundleIdentifier</key><string>person.vader.FilmDevelop.Engine</string><key>CFBundleExecutable</key><string>filmdevelop-engine</string><key>CFBundlePackageType</key><string>APPL</string></dict></plist>' > "$APP/Contents/Info.plist"
 xcrun swiftc -O -D FILMDEVELOP_GO_HOST -parse-as-library -swift-version 5 -target arm64-apple-macosx14.0 \
   -file-prefix-map "$ROOT_DIR=." -debug-prefix-map "$ROOT_DIR=." -Xlinker -dead_strip \
   -I "$ROOT_DIR/Vendor/llama.cpp/macos/include" -L "$ROOT_DIR/Vendor/llama.cpp/macos/lib" \
-  -I "$PRODUCTS/Modules" -I "$ROOT_DIR/Vendor/libwebp/macos/include" \
+  -I "$SWIFT_PRODUCT_MODULES" -I "$ROOT_DIR/Vendor/libwebp/macos/include" \
   -L "$ROOT_DIR/Vendor/libwebp/macos/lib" -lphotowebp \
   -I "$ROOT_DIR/Vendor/PhotoRAW/macos/include" -L "$ROOT_DIR/Vendor/PhotoRAW/macos/lib" \
   "$ROOT_DIR/PhotoStyleApp/PhotoImage.swift" "$ROOT_DIR/PhotoStyleApp/PhotoWebPEncoder.swift" \
@@ -36,10 +38,13 @@ xcrun swiftc -O -D FILMDEVELOP_GO_HOST -parse-as-library -swift-version 5 -targe
   "$ROOT_DIR/PhotoStyleApp/PhotoStyleLLMRuntime.swift" "$ROOT_DIR/PhotoStyleApp/PhotoStyleAdjustmentMapper.swift" \
   "$ROOT_DIR/PhotoStyleApp/PhotoRepairService.swift" \
   "$ROOT_DIR/engine/macos/main.swift" \
-  "$PRODUCTS"/PhotoStyleShared.build/*.o -o "$APP/Contents/MacOS/filmdevelop-engine"
+  "${SWIFT_PRODUCT_LINK_INPUTS[@]}" -o "$APP/Contents/MacOS/filmdevelop-engine"
 # PhotoSharedResources 從封裝資源載入，不依賴 SwiftPM 建置機絕對路徑。
 for RESOURCE in "$PRODUCTS"/*.bundle; do
-  [[ -d "$RESOURCE" ]] && ditto "$RESOURCE" "$APP/Contents/Resources/$(basename "$RESOURCE")"
+  if [[ -d "$RESOURCE" ]]; then
+    # 切換建置系統時同步清除舊 bundle 配置，避免資源重複或載入舊檔。
+    rsync -a --delete "$RESOURCE/" "$APP/Contents/Resources/$(basename "$RESOURCE")/"
+  fi
 done
 ditto "$ROOT_DIR/Vendor/PhotoRAW/macos/RAWMapping" "$APP/Contents/Resources/RAWMapping"
 ditto "$ROOT_DIR/Vendor/PhotoRAW/macos/RAWLicenses" "$APP/Contents/Resources/RAWLicenses"

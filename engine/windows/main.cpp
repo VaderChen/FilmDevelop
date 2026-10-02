@@ -200,7 +200,13 @@ class Worker {
   std::string gpuFailure;
   std::string cachedKey;
   std::unique_ptr<Decoded> cached;
-  std::vector<std::pair<unsigned, Image>> processing;
+  struct ProcessingImage {
+    unsigned size;
+    Image linear;
+    std::optional<Image> original;
+    std::size_t bytes() const { return (linear.pixels.size() + (original ? original->pixels.size() : 0)) * sizeof(photocore::Pixel); }
+  };
+  std::vector<ProcessingImage> processing;
   std::string patchKey;
   std::vector<filmdevelop::RepairPatch> patches;
   film_cpu::Database &data() {
@@ -371,16 +377,30 @@ class Worker {
         job.preview && !(job.policy && job.policy->fullResolution)
             ? job.previewMaxPixel
             : 0;
-    auto found = std::find_if(processing.begin(), processing.end(),
-                              [&](const auto &p) { return p.first == size; });
-    const bool processingHit = found != processing.end();
-    if (!processingHit) {
-      if (processing.size() >= 2)
-        processing.erase(processing.begin());
-      processing.emplace_back(size, resized(cached->image, size));
-      found = processing.end() - 1;
+    const Image *linear = &cached->image;
+    const Image *source = cached->original ? &*cached->original : linear;
+    bool processingHit = size == 0 && cacheHit;
+    std::optional<ProcessingImage> transient;
+    if (size > 0) {
+      auto found = std::find_if(processing.begin(), processing.end(), [&](const auto &p) { return p.size == size; });
+      processingHit = found != processing.end();
+      if (!processingHit) {
+        transient.emplace(ProcessingImage{size, resized(cached->image, size), std::nullopt});
+        if (cached->original) transient->original = resized(*cached->original, size);
+        constexpr std::size_t budget = 128 * 1024 * 1024;
+        const auto cost = transient->bytes();
+        if (cost <= budget) {
+          auto used = [&] { std::size_t total = 0; for (const auto &entry : processing) total += entry.bytes(); return total; };
+          while (!processing.empty() && (processing.size() >= 2 || used() + cost > budget)) processing.erase(processing.begin());
+          processing.push_back(std::move(*transient));
+          transient.reset();
+          found = processing.end() - 1;
+        }
+      }
+      const auto &entry = transient ? *transient : *found;
+      linear = &entry.linear;
+      source = entry.original ? &*entry.original : linear;
     }
-    const Image source = cached->original ? resized(*cached->original, size) : found->second;
     patchesFor(job.recipe.repairPatches);
     const auto nextVisionKey=key+patchKey+(job.subjectMask?job.subjectMask->sha256:"");
     if(visionKey!=nextVisionKey){visionKey=nextVisionKey;subjectMask.reset();depthMap.reset();subjectProbed=false;}
@@ -404,18 +424,21 @@ class Worker {
     auto finish = [&](bool useGPU) {
       filmdevelop::ComputeImage compute;
       if (useGPU) compute = [&](const Image &input, const Json &plan, const std::vector<Image> &auxiliary) { return accelerator().apply(input, plan, auxiliary); };
-      return filmdevelop::render_style(found->second, source, job, neutral, catalog, monochromes, data(), compute, patches,subject,depth);
+      return filmdevelop::render_style(*linear, *source, job, neutral, catalog, monochromes, data(), compute, patches,subject,depth);
     };
-    Image image(source.width, source.height);
-    try { image = finish(accelerated); }
-    catch (const Failure &error) {
-      if (!accelerated || job.computeBackend != "system") throw;
-      gpuFailure = error.what(); gpu.reset(); gpuProbed = true; accelerated = false;
-      image = finish(false);
-    }
+    Image image = [&] {
+      try { return finish(accelerated); }
+      catch (const Failure &error) {
+        if (!accelerated || job.computeBackend != "system") throw;
+        gpuFailure = error.what(); gpu.reset(); gpuProbed = true; accelerated = false;
+        return finish(false);
+      }
+    }();
     emit(id, "progress", .8);
     const auto rendered = Clock::now();
-    auto output = resized(image, job.output.maxPixel);
+    std::optional<Image> outputStorage;
+    const Image &output = job.output.maxPixel && std::max(image.width, image.height) > std::size_t(job.output.maxPixel)
+        ? outputStorage.emplace(resized(image, job.output.maxPixel)) : image;
     auto bytes = codec.encode(output, job.output.format, job.output.bitDepth,
                               job.output.quality, job.output.tiffCompression,job.output.colorSpace,job.output.webPLossless);
     const filmdevelop::CropGeometry fullGeometry(cached->image.width,cached->image.height,job.recipe.adjustment);
@@ -439,27 +462,29 @@ class Worker {
                 {"softwareRAWFallback", false}};
     if (job.preview) {
       auto editing = job; editing.recipe.adjustment = filmdevelop::source_editing_adjustment(job.recipe.adjustment);
-      Image editor = image;
+      std::optional<Image> editor;
       if(editing.recipe.adjustment != job.recipe.adjustment) {
         filmdevelop::ComputeImage compute;
         if(accelerated)compute=[&](const Image &input,const Json &plan,const std::vector<Image> &auxiliary){return accelerator().apply(input,plan,auxiliary);};
-        try { editor=filmdevelop::render_style(found->second,source,editing,neutral,catalog,monochromes,data(),compute,patches,subject,depth); }
+        try { editor=filmdevelop::render_style(*linear,*source,editing,neutral,catalog,monochromes,data(),compute,patches,subject,depth); }
         catch(const Failure &error) {
           if(!accelerated || job.computeBackend!="system")throw;
           gpuFailure=error.what();gpu.reset();gpuProbed=true;accelerated=false;
-          editor=filmdevelop::render_style(found->second,source,editing,neutral,catalog,monochromes,data(),{},patches,subject,depth);
+          editor=filmdevelop::render_style(*linear,*source,editing,neutral,catalog,monochromes,data(),{},patches,subject,depth);
         }
       }
+      auto encodePreview = [&](const Image &value) {
+        if (std::max(value.width, value.height) <= std::size_t(job.previewMaxPixel)) return codec.encode(value, "jpeg", 8, .88);
+        return codec.encode(resized(value, job.previewMaxPixel), "jpeg", 8, .88);
+      };
       result["cropImage"] =
           "data:image/jpeg;base64," +
           base64(editing.recipe.adjustment == job.recipe.adjustment && job.output.format == "jpeg" && job.output.quality == .88 && job.output.maxPixel == job.previewMaxPixel && job.output.colorSpace == "sRGB"
                      ? bytes
-                     : codec.encode(resized(editor, job.previewMaxPixel), "jpeg",
-                                    8, .88));
-      result["sourceImage"] =
-          "data:image/jpeg;base64," +
-          base64(codec.encode(resized(filmdevelop::CropGeometry(source.width,source.height,job.recipe.adjustment).apply(source), job.previewMaxPixel), "jpeg", 8,
-                              .88));
+                     : encodePreview(editor ? *editor : image));
+      const filmdevelop::CropGeometry comparisonGeometry(source->width, source->height, job.recipe.adjustment);
+      result["sourceImage"] = "data:image/jpeg;base64," + base64(comparisonGeometry.is_identity(*source)
+          ? encodePreview(*source) : encodePreview(comparisonGeometry.apply(*source)));
       result["computeRoute"]=accelerated?"vulkan":"cpu";result["computeFallback"]=accelerated?"":gpuFailure;
       auto ms = [](auto a, auto b) {
         return std::chrono::duration<double, std::milli>(b - a).count();

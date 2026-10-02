@@ -29,6 +29,33 @@
   async function measure(name,action,expected) {
     const began=performance.now(), revision=latest.previewRevision, generation=latest.photoGeneration;
     measuring={case:name,stateUpdates:0,stateHandlerMilliseconds:0,imagePayloadBytes:0,thumbnailPayloadBytes:0};
+    const samples=[];
+    let sampling=true;
+    function fittedImage(img) {
+      const box=img.getBoundingClientRect(), area=img.parentElement.getBoundingClientRect();
+      const scale=Math.min(box.width/img.naturalWidth,box.height/img.naturalHeight);
+      const width=img.naturalWidth*scale,height=img.naturalHeight*scale;
+      return {width,height,left:box.left-area.left-img.parentElement.clientLeft+(box.width-width)/2,top:box.top-area.top-img.parentElement.clientTop+(box.height-height)/2};
+    }
+    function fitError(rect,area) {
+      return Math.max(
+        Math.abs(rect.left-(area.clientWidth-rect.width)/2),Math.abs(rect.top-(area.clientHeight-rect.height)/2),
+        Math.min(Math.abs(rect.width-area.clientWidth),Math.abs(rect.height-area.clientHeight)),
+        rect.width-area.clientWidth,rect.height-area.clientHeight);
+    }
+    function sample() {
+      const image=document.querySelector('.preview-image'), frame=image?.parentElement;
+      if(image?.complete&&image.naturalWidth&&frame) {
+        const front=fittedImage(image), base=image._previewReveal?.base;
+        const retained=base?.naturalWidth?fittedImage(base):null;
+        const measured={loading:!!image._isLoadingPreview,...front,frameWidth:frame.clientWidth,frameHeight:frame.clientHeight,naturalWidth:image.naturalWidth,naturalHeight:image.naturalHeight,base:retained};
+        if(JSON.stringify(samples[samples.length-1])!==JSON.stringify(measured)) samples.push(measured);
+        // 縮圖四捨五入可能改變不到一個像素的長寬比；每一層仍須置中並充分適應視窗。
+        if(fitError(front,frame)>2||(retained&&fitError(retained,frame)>2))failure='縮圖／編輯圖未充分適應視窗：'+JSON.stringify(measured);
+      }
+      if(sampling)requestAnimationFrame(sample);
+    }
+    requestAnimationFrame(sample);
     action();
     await until(()=>latest.previewRevision!==revision&&expected()&&!latest.isRenderingPreview&&!!latest.outputImage,name);
     measuring.resultReceivedMilliseconds=performance.now()-began;
@@ -44,6 +71,8 @@
     if(images.has(key)&&images.get(key)!==latest.outputImage)throw new Error('切回照片或底片後的成品不一致');
     measuring.reusedImageMatches=images.has(key);images.set(key,latest.outputImage);
     await until(()=>!document.querySelector('.preview-image')._previewReveal,'顯影動畫完成');
+    sampling=false;measuring.geometry=samples;
+    if(failure)throw new Error(failure);
     measuring.visibleMilliseconds=performance.now()-began;
     measuring.source=latest.sourceFileName;measuring.style=latest.selectedStyle;
     results.push(measuring);measuring=null;

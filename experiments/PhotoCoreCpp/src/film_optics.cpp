@@ -49,16 +49,7 @@ int poisson(uint32_t seed, float lambda) {
     for (int i = 1; i < 20 && u > sum; ++i) { p *= lambda / float(i); sum += p; k = i; }
     return k;
 }
-// 各列相互獨立；CPU 回退保持同一晶體種子，排程不影響輸出。
-template<class F> void parallel_rows(std::size_t rows, F f) {
-    unsigned count = std::min(8U, std::max(1U, std::thread::hardware_concurrency()));
-    std::atomic<std::size_t> next{0};
-    std::vector<std::thread> workers;
-    for (unsigned t = 0; t < count; ++t) workers.emplace_back([&] {
-        for (;;) { auto y = next.fetch_add(1); if (y >= rows) break; f(y); }
-    });
-    for (auto &worker : workers) worker.join();
-}
+
 }
 Image guided_smooth(Image masks, double epsilon) {
     const double scale = std::min(.5, 256. / std::min(masks.width, masks.height));
@@ -118,7 +109,7 @@ Image emulsion(Image source, const Effects &e, const Json &adjustment, double st
     const float pitch = float(s.pitch), scale = float(s.scale), spacing = 3.6f * float(s.size);
     auto sourceAt = [&](float x, float y) { return sample(source, x * scale - .5, source.height - y * scale - .5); };
     auto radiance = [&](float x, float y) { return max(straight(sourceAt(x / pitch, y / pitch)), 0); };
-    parallel_rows(s.height, [&](std::size_t y) {
+    parallel_rows(s.height, s.width, [&](std::size_t y) {
         for (std::size_t x = 0; x < s.width; ++x) {
             float px = (float(x) + .5f) * pitch, py = (float(s.height - y) - .5f) * pitch;
             auto original = sourceAt(float(x) + .5f, float(s.height - y) - .5f);

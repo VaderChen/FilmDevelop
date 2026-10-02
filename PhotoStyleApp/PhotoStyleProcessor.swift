@@ -59,13 +59,15 @@ enum PhotoStyleProcessor {
         repairPatches: [PhotoRepairPatch] = [],
         isPreview: Bool = false,
         progress: (@Sendable (Double) -> Void)? = nil,
-        compute: any PhotoComputeProvider
+        compute: any PhotoComputeProvider,
+        cache: PhotoProcessingPipeline.Cache? = nil,
+        cacheScope: String = ""
     ) throws -> PhotoImage {
         let defaultIntensity = StyleAdjustment.default(for: style).intensity
         guard style.filmStock != nil, adjustment.intensity < defaultIntensity else {
             return try applyPipeline(style: style, adjustment: adjustment, to: image,
                 subjectMask: subjectMask, shouldDetectSubjectMask: shouldDetectSubjectMask,
-                repairPatches: repairPatches, isPreview: isPreview, progress: progress, compute: compute)
+                repairPatches: repairPatches, isPreview: isPreview, progress: progress, compute: compute, cache: cache, cacheScope: cacheScope)
         }
 
         // Re-anchor only the lower half of film strength. The established default
@@ -84,7 +86,9 @@ enum PhotoStyleProcessor {
         let original = try applyPipeline(style: .original, adjustment: originalAdjustment, to: image,
             subjectMask: subjectMask, shouldDetectSubjectMask: false,
             repairPatches: repairPatches, isPreview: isPreview,
-            progress: progress.map { report in { report($0 * (amount > 0 ? 0.15 : 0.99)) } }, compute: compute)
+            progress: progress.map { report in
+                { @Sendable fraction in report(fraction * (amount > 0 ? 0.15 : 0.99)) }
+            }, compute: compute, cache: cache, cacheScope: cacheScope)
         guard amount > 0 else {
             let output = renderDecorations(on: original, adjustment: adjustment)
             progress?(1)
@@ -98,7 +102,9 @@ enum PhotoStyleProcessor {
         let film = try applyPipeline(style: style, adjustment: filmAdjustment, to: image,
             subjectMask: subjectMask, shouldDetectSubjectMask: shouldDetectSubjectMask,
             repairPatches: repairPatches, isPreview: isPreview,
-            progress: progress.map { report in { report(0.15 + $0 * 0.84) } }, compute: compute)
+            progress: progress.map { report in
+                { @Sendable fraction in report(0.15 + fraction * 0.84) }
+            }, compute: compute, cache: cache, cacheScope: cacheScope)
         guard let originalCI = CIImage(image: original), let filmCI = CIImage(image: film),
               let mixed = PhotoImageRenderPrecision.renderedImage(
                 from: originalCI.applyingFilter("CIDissolveTransition", parameters: [
@@ -121,7 +127,9 @@ enum PhotoStyleProcessor {
         repairPatches: [PhotoRepairPatch] = [],
         isPreview: Bool = false,
         progress: (@Sendable (Double) -> Void)? = nil,
-        compute: any PhotoComputeProvider
+        compute: any PhotoComputeProvider,
+        cache: PhotoProcessingPipeline.Cache? = nil,
+        cacheScope: String = ""
     ) throws -> PhotoImage {
         // 原片使用解碼器預設顯影；底片仍取線性 RAW。後續調整與匯出共用此入口。
         let image = style == .original ? image.originalRendering : image
@@ -148,131 +156,141 @@ enum PhotoStyleProcessor {
         let amounts = PhotoToneZoneProcessor.resolvedGrainAmounts(
             globalAmount: adjustment.grain / 100 * strength, highlightAmount: adjustment.highlightGrain / 100 * strength,
             midtoneAmount: adjustment.midtoneGrain / 100 * strength, shadowAmount: adjustment.shadowGrain / 100 * strength)
+        let cacheKey = try cache?.key(style: style, adjustment: adjustment, scope: cacheScope)
+        var resolvedSubjectMask: CIImage?
         do {
-            try pipeline.process("physical-input") {
-                // Patches stay in their saved original-image coordinates. Composite
-                // first, then crop/rotate the whole image once; never remap patches.
-                PhotoRepairPatch.applying(repairPatches, to: $0)
-                    .transformed(by: geometry.1).cropped(to: geometry.0)
-            }
-            try pipeline.process("input-calibration") {
-                PhotoColorCalibrationProcessor.apply(to: $0,
-                    calibration: adjustment.colorCalibration?.stage == .input ? adjustment.colorCalibration : nil)
-            }
-            let resolvedSubjectMask = try pipeline.inspect("subject-mask") { input in
-                subjectMask.map {
-                    let fitted = $0.extent == source.extent ? $0 : PhotoSubjectMaskGenerator.fitMask($0, to: source.extent)
-                    return fitted.transformed(by: geometry.1).cropped(to: input.extent)
+            if let cacheKey, let entry = cache?.get(cacheKey) {
+                pipeline.restore(entry.image)
+                resolvedSubjectMask = entry.mask
+            } else {
+                try pipeline.process("physical-input") {
+                    // Patches stay in their saved original-image coordinates. Composite
+                    // first, then crop/rotate the whole image once; never remap patches.
+                    PhotoRepairPatch.applying(repairPatches, to: $0)
+                        .transformed(by: geometry.1).cropped(to: geometry.0)
                 }
-                    ?? (shouldDetectSubjectMask ? makeSubjectMask(from: input, extent: input.extent) : nil)
-            }
-            let whitening = adjustment.skinWhitening / 100 * strength
-            let smoothing = adjustment.skinSmoothing / 100 * strength
-            let warmth = adjustment.skinWarmth / 100 * strength
-            let adjustsSkin = whitening > 0.005 || smoothing > 0.005 || abs(warmth) > 0.001
-            let adjustsSkinWB = strength > 0 && !style.isMonochrome && style != .original && resolvedSubjectMask != nil
-            var skinMask: CIImage?
-            if adjustsSkin || adjustsSkinWB {
-                // Both skin operations use the same pre-WB mask. Store just its
-                // scalar samples; retaining its lazy graph would retain an old buffer.
-                skinMask = try pipeline.inspect("skin-mask") {
-                    try pipeline.mask(makeSkinMask(from: $0, subjectMask: resolvedSubjectMask, extent: $0.extent))
+                try pipeline.process("input-calibration") {
+                    PhotoColorCalibrationProcessor.apply(to: $0,
+                        calibration: adjustment.colorCalibration?.stage == .input ? adjustment.colorCalibration : nil)
                 }
-                if adjustsSkinWB, let skinMask {
-                    try pipeline.process("skin-white-balance") {
-                        blend(applySkinWhiteBalance(to: $0, skinMask: skinMask, context: pipeline.context), with: $0, intensity: strength)
+                resolvedSubjectMask = try pipeline.inspect("subject-mask") { input in
+                    subjectMask.map {
+                        let fitted = $0.extent == source.extent ? $0 : PhotoSubjectMaskGenerator.fitMask($0, to: source.extent)
+                        return fitted.transformed(by: geometry.1).cropped(to: input.extent)
                     }
+                        ?? (shouldDetectSubjectMask ? makeSubjectMask(from: input, extent: input.extent) : nil)
                 }
-            }
-            try pipeline.process("white-balance") {
-                applyWhiteBalanceAdjustment(to: $0, warmth: adjustment.whiteBalanceWarmth * strength,
-                                            tint: adjustment.whiteBalanceTint * strength)
-            }
-            try pipeline.process("sensor-denoise") {
-                applyDenoise(to: $0, amount: adjustment.denoise / 100 * strength)
-            }
-            // User EV acts on scene light, before film curves or SDR companding.
-            // All four digital exposure controls share a chromaticity-preserving gain.
-            try pipeline.process("digital-exposure") { input in
-                let global = applyExposure(to: input, amount: adjustment.exposure * strength, renderContext: pipeline.context)
-                return PhotoExposureProcessor.apply(to: global,
-                    highlightsEV: PhotoExposureScale.ev(fromSlider: adjustment.highlightExposure * strength),
-                    midtonesEV: PhotoExposureScale.ev(fromSlider: adjustment.midtoneExposure * strength),
-                    shadowsEV: PhotoExposureScale.ev(fromSlider: adjustment.shadowExposure * strength))
-            }
-            try pipeline.process("luminance-exposure") {
-                PhotoFilmEffectsProcessor.applyExposure(to: $0, effects: effects, renderContext: pipeline.context)
-            }
-            try pipeline.process("light-scatter") {
-                PhotoFilmEffectsProcessor.applyLightScatter(to: $0, effects: effects, strength: strength)
-            }
-            try pipeline.process("emulsion") {
-                PhotoEmulsionExposureProcessor.apply(to: $0, effects: effects, amounts: amounts,
-                    strength: strength, monochrome: style.isMonochrome, renderContext: pipeline.context,
-                    sampling: isPreview ? .preview : .reference)
-            }
-            if compute.supportsResidentPlan {
-                try pipeline.process("development") { input in
-                    var plan = PhotoComputePlan()
-                    let origin = input.extent.integral.origin
-                    var current = plan.append(.development, source: 0, effects: effects,
-                        strength: strength, monochrome: style.isMonochrome, stock: style.filmStock, origin: origin)
-                    if style.filmStock != nil || style == .original {
-                        current = plan.append(.chemistry, source: current, effects: effects,
-                            strength: strength, monochrome: style.isMonochrome, stock: style.filmStock, origin: origin)
+                let whitening = adjustment.skinWhitening / 100 * strength
+                let smoothing = adjustment.skinSmoothing / 100 * strength
+                let warmth = adjustment.skinWarmth / 100 * strength
+                let adjustsSkin = whitening > 0.005 || smoothing > 0.005 || abs(warmth) > 0.001
+                let adjustsSkinWB = strength > 0 && !style.isMonochrome && style != .original && resolvedSubjectMask != nil
+                var skinMask: CIImage?
+                if adjustsSkin || adjustsSkinWB {
+                    // Both skin operations use the same pre-WB mask. Store just its
+                    // scalar samples; retaining its lazy graph would retain an old buffer.
+                    skinMask = try pipeline.inspect("skin-mask") {
+                        try pipeline.mask(makeSkinMask(from: $0, subjectMask: resolvedSubjectMask, extent: $0.extent))
                     }
-                    if let stock = style.filmStock {
-                        let base = current
-                        var filmEffects = effects
-                        filmEffects.clearPrintExposure()
-                        // 曝光已由共用階段完成，清除後為精確 identity。
-                        filmEffects.modernFilmExposureEnabled = false
-                        if filmEffects.scannerProfile == .off { filmEffects.scannerProfile = .neutral }
-                        current = plan.append(.spectral, source: current, effects: filmEffects,
-                            strength: strength, monochrome: style.isMonochrome, stock: stock, origin: origin)
-                        current = plan.append(.character, source: current, effects: filmEffects,
-                            strength: strength, monochrome: style.isMonochrome, stock: stock, origin: origin)
-                        if strength < 1 {
-                            var neutral = base
-                            if image.requiresRAWDisplayMapping { neutral = plan.append(.rawMapping, source: neutral) }
-                            if style.isMonochrome { neutral = plan.append(.monochrome, source: neutral) }
-                            plan.append(.blend, source: neutral, secondary: current, strength: strength)
+                    if adjustsSkinWB, let skinMask {
+                        try pipeline.process("skin-white-balance") {
+                            blend(applySkinWhiteBalance(to: $0, skinMask: skinMask, context: pipeline.context), with: $0, intensity: strength)
                         }
                     }
-                    return try compute.apply(plan, to: input)
                 }
-            } else {
-                try pipeline.process("development") { input in
-                    try compute.apply(.development, to: input, effects: effects, strength: strength,
-                        monochrome: style.isMonochrome, stock: style.filmStock) {
-                        PhotoFilmDevelopmentProcessor.apply(to: input, effects: effects, strength: strength)
+                try pipeline.process("white-balance") {
+                    applyWhiteBalanceAdjustment(to: $0, warmth: adjustment.whiteBalanceWarmth * strength,
+                                                tint: adjustment.whiteBalanceTint * strength)
+                }
+                try pipeline.process("sensor-denoise") {
+                    applyDenoise(to: $0, amount: adjustment.denoise / 100 * strength)
+                }
+                // User EV acts on scene light, before film curves or SDR companding.
+                // All four digital exposure controls share a chromaticity-preserving gain.
+                try pipeline.process("digital-exposure") { input in
+                    let global = applyExposure(to: input, amount: adjustment.exposure * strength, renderContext: pipeline.context)
+                    return PhotoExposureProcessor.apply(to: global,
+                        highlightsEV: PhotoExposureScale.ev(fromSlider: adjustment.highlightExposure * strength),
+                        midtonesEV: PhotoExposureScale.ev(fromSlider: adjustment.midtoneExposure * strength),
+                        shadowsEV: PhotoExposureScale.ev(fromSlider: adjustment.shadowExposure * strength))
+                }
+                try pipeline.process("luminance-exposure") {
+                    PhotoFilmEffectsProcessor.applyExposure(to: $0, effects: effects, renderContext: pipeline.context)
+                }
+                try pipeline.process("light-scatter") {
+                    PhotoFilmEffectsProcessor.applyLightScatter(to: $0, effects: effects, strength: strength)
+                }
+                try pipeline.process("emulsion") {
+                    PhotoEmulsionExposureProcessor.apply(to: $0, effects: effects, amounts: amounts,
+                        strength: strength, monochrome: style.isMonochrome, renderContext: pipeline.context,
+                        sampling: isPreview ? .preview : .reference)
+                }
+                if compute.supportsResidentPlan {
+                    try pipeline.process("development") { input in
+                        var plan = PhotoComputePlan()
+                        let origin = input.extent.integral.origin
+                        var current = plan.append(.development, source: 0, effects: effects,
+                            strength: strength, monochrome: style.isMonochrome, stock: style.filmStock, origin: origin)
+                        if style.filmStock != nil || style == .original {
+                            current = plan.append(.chemistry, source: current, effects: effects,
+                                strength: strength, monochrome: style.isMonochrome, stock: style.filmStock, origin: origin)
+                        }
+                        if let stock = style.filmStock {
+                            let base = current
+                            var filmEffects = effects
+                            filmEffects.clearPrintExposure()
+                            // 曝光已由共用階段完成，清除後為精確 identity。
+                            filmEffects.modernFilmExposureEnabled = false
+                            if filmEffects.scannerProfile == .off { filmEffects.scannerProfile = .neutral }
+                            current = plan.append(.spectral, source: current, effects: filmEffects,
+                                strength: strength, monochrome: style.isMonochrome, stock: stock, origin: origin)
+                            current = plan.append(.character, source: current, effects: filmEffects,
+                                strength: strength, monochrome: style.isMonochrome, stock: stock, origin: origin)
+                            if strength < 1 {
+                                var neutral = base
+                                if image.requiresRAWDisplayMapping { neutral = plan.append(.rawMapping, source: neutral) }
+                                if style.isMonochrome { neutral = plan.append(.monochrome, source: neutral) }
+                                plan.append(.blend, source: neutral, secondary: current, strength: strength)
+                            }
+                        }
+                        return try compute.apply(plan, to: input)
+                    }
+                } else {
+                    try pipeline.process("development") { input in
+                        try compute.apply(.development, to: input, effects: effects, strength: strength,
+                            monochrome: style.isMonochrome, stock: style.filmStock) {
+                            PhotoFilmDevelopmentProcessor.apply(to: input, effects: effects, strength: strength)
+                        }
+                    }
+                    try pipeline.process("developer-chemistry") { input in
+                        guard style.filmStock != nil || style == .original else { return input }
+                        return try compute.apply(.chemistry, to: input, effects: effects, strength: strength,
+                            monochrome: style.isMonochrome, stock: style.filmStock) {
+                            PhotoDeveloperChemistryProcessor.apply(to: input, settings: effects.developerChemistry,
+                                strength: strength, monochrome: style.isMonochrome)
+                        }
                     }
                 }
-                try pipeline.process("developer-chemistry") { input in
-                    guard style.filmStock != nil || style == .original else { return input }
-                    return try compute.apply(.chemistry, to: input, effects: effects, strength: strength,
-                        monochrome: style.isMonochrome, stock: style.filmStock) {
-                        PhotoDeveloperChemistryProcessor.apply(to: input, settings: effects.developerChemistry,
-                            strength: strength, monochrome: style.isMonochrome)
+                try pipeline.process("raw-display-mapping") {
+                    image.requiresRAWDisplayMapping && style.filmStock == nil && style != .original
+                        ? PhotoRAWDynamicRangeProcessor.prepareForDisplayAdjustments($0) : $0
+                }
+                try pipeline.process("film-look") {
+                    if compute.supportsResidentPlan && style.filmStock != nil {
+                        // 底片與強度混合已在 GPU 圖完成；此處只執行尚未移植的輸出校色。
+                        return PhotoColorCalibrationProcessor.apply(to: $0,
+                            calibration: adjustment.colorCalibration?.stage == .output ? adjustment.colorCalibration : nil)
+                    }
+                    return try applyLook(to: $0, style: style, adjustment: adjustment, strength: strength, isRAW: image.requiresRAWDisplayMapping, compute: compute)
+                }
+                if adjustsSkin, let skinMask {
+                    try pipeline.process("skin-enhancement") {
+                        PhotoSkinEnhancementProcessor.apply(to: $0, skinMask: skinMask, whitening: whitening,
+                            smoothing: smoothing, profile: .app, warmth: warmth)
                     }
                 }
-            }
-            try pipeline.process("raw-display-mapping") {
-                image.requiresRAWDisplayMapping && style.filmStock == nil && style != .original
-                    ? PhotoRAWDynamicRangeProcessor.prepareForDisplayAdjustments($0) : $0
-            }
-            try pipeline.process("film-look") {
-                if compute.supportsResidentPlan && style.filmStock != nil {
-                    // 底片與強度混合已在 GPU 圖完成；此處只執行尚未移植的輸出校色。
-                    return PhotoColorCalibrationProcessor.apply(to: $0,
-                        calibration: adjustment.colorCalibration?.stage == .output ? adjustment.colorCalibration : nil)
-                }
-                return try applyLook(to: $0, style: style, adjustment: adjustment, strength: strength, isRAW: image.requiresRAWDisplayMapping, compute: compute)
-            }
-            if adjustsSkin, let skinMask {
-                try pipeline.process("skin-enhancement") {
-                    PhotoSkinEnhancementProcessor.apply(to: $0, skinMask: skinMask, whitening: whitening,
-                        smoothing: smoothing, profile: .app, warmth: warmth)
+                if let cacheKey {
+                    cache?.put(cacheKey, image: try pipeline.checkpoint(), mask: resolvedSubjectMask)
                 }
             }
             try pipeline.process("tone") {

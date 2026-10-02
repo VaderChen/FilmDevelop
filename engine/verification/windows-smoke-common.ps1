@@ -8,22 +8,22 @@ $results = [Collections.Generic.List[object]]::new()
 $output = Join-Path $Build ('results-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $output | Out-Null
 
-function Check([string]$Name, [scriptblock]$Body) {
-    if($Only -and $Name -notmatch $Only){return}
+function Check([string]$CheckName, [scriptblock]$Body) {
+    if($Only -and $CheckName -notmatch $Only){return}
     $clock = [Diagnostics.Stopwatch]::StartNew()
-    try { $detail = & $Body; $script:results.Add([pscustomobject]@{name=$Name;passed=$true;milliseconds=$clock.ElapsedMilliseconds;detail=$detail}) }
-    catch { $script:results.Add([pscustomobject]@{name=$Name;passed=$false;milliseconds=$clock.ElapsedMilliseconds;error=$_.Exception.Message}) }
+    try { $detail = & $Body; $script:results.Add([pscustomobject]@{name=$CheckName;passed=$true;milliseconds=$clock.ElapsedMilliseconds;detail=$detail}) }
+    catch { $script:results.Add([pscustomobject]@{name=$CheckName;passed=$false;milliseconds=$clock.ElapsedMilliseconds;error=$_.Exception.Message}) }
     $script:results | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath (Join-Path $output 'checks.json') -Encoding UTF8
 }
-function Start-Native([string]$Name, [string]$Arguments='') {
+function Start-Native([string]$Name, [string]$Arguments='', [string]$WorkingDirectory=$Build) {
     $info = [Diagnostics.ProcessStartInfo]::new((Join-Path $Build $Name), $Arguments)
-    $info.WorkingDirectory=$Build; $info.UseShellExecute=$false; $info.CreateNoWindow=$true
+    $info.WorkingDirectory=$WorkingDirectory; $info.UseShellExecute=$false; $info.CreateNoWindow=$true
     $info.RedirectStandardInput=$true; $info.RedirectStandardOutput=$true; $info.RedirectStandardError=$true
     $info.StandardOutputEncoding=[Text.UTF8Encoding]::new($false); $info.StandardErrorEncoding=[Text.UTF8Encoding]::new($false)
     $process=[Diagnostics.Process]::new(); $process.StartInfo=$info; [void]$process.Start(); $process | Add-Member -NotePropertyName ErrorRead -NotePropertyValue ($process.StandardError.ReadToEndAsync()); return $process
 }
-function Run-Native([string]$Name, [string]$Arguments='') {
-    $process=Start-Native $Name $Arguments
+function Run-Native([string]$Name, [string]$Arguments='', [string]$WorkingDirectory=$Build) {
+    $process=Start-Native $Name $Arguments $WorkingDirectory
     try {
         $process.StandardInput.Close(); $stdout=$process.StandardOutput.ReadToEndAsync(); $stderr=$process.ErrorRead
         if(!$process.WaitForExit(120000)){ $process.Kill();throw '原生測試逾時' }
@@ -31,6 +31,11 @@ function Run-Native([string]$Name, [string]$Arguments='') {
         if($process.ExitCode -ne 0){throw ($Name+'：'+$process.ExitCode+' '+$text)}
         return $text
     } finally {$process.Dispose()}
+}
+function Go-TestDirectory([string]$Package) {
+    $directory=Join-Path $Build ('go-tests\'+$Package)
+    if(Test-Path -LiteralPath $directory -PathType Container){return $directory}
+    return $Build
 }
 function Request($Process, [string]$Method, $Payload) {
     $id=[guid]::NewGuid().ToString('N')

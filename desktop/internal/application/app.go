@@ -248,7 +248,7 @@ func (a *App) Startup(ctx context.Context) {
 					a.migrationProblem("模型設定", e, "")
 				}
 			}
-			if e := a.loadUpdates(); e != nil {
+			if e := a.loadUpdates(nativeError == nil); e != nil {
 				a.migrationProblem("更新設定", e, "")
 			}
 		}

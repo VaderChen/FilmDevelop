@@ -5,10 +5,14 @@ import ImageIO
 import UniformTypeIdentifiers
 import PhotoStyleShared
 
+enum PhotoRAWDecodePurpose: String {
+    case complete, preview, completeWithPreview
+}
 struct PhotoRAWDecodeRequest {
     let data: Data
     let url: URL
     let lensCorrection: Bool
+    let purpose: PhotoRAWDecodePurpose
 }
 protocol PhotoRAWDecodeProvider {
     var route: String { get }
@@ -23,7 +27,7 @@ struct PhotoSystemRAWProvider: PhotoRAWDecodeProvider {
 struct PhotoSoftwareRAWProvider: PhotoRAWDecodeProvider {
     let route = "portable-libraw"
     func decode(_ request: PhotoRAWDecodeRequest) -> PhotoImage? {
-        PhotoImageDecoder.decodeSoftwareRAWImage(data: request.data)
+        PhotoImageDecoder.decodeSoftwareRAWImage(data: request.data, purpose: request.purpose)
     }
 }
 extension PhotoBackendRouter {
@@ -33,16 +37,16 @@ extension PhotoBackendRouter {
         case .software: return PhotoSoftwareRAWProvider()
         }
     }
-    static func decodeRAW(data: Data, url: URL, backend: PhotoRAWBackend, lensCorrection: Bool) -> PhotoImage? {
-        let request = PhotoRAWDecodeRequest(data: data, url: url, lensCorrection: lensCorrection)
+    static func decodeRAW(data: Data, url: URL, backend: PhotoRAWBackend, lensCorrection: Bool, purpose: PhotoRAWDecodePurpose = .completeWithPreview) -> PhotoImage? {
+        let request = PhotoRAWDecodeRequest(data: data, url: url, lensCorrection: lensCorrection, purpose: purpose)
         if let result = raw(backend).decode(request) { return result }
         let alternative: PhotoRAWBackend = backend == .system ? .software : .system
         guard var fallback = raw(alternative).decode(request) else { return nil }
         fallback.softwareRAWFallback = backend == .software
         return fallback
     }
-    static func decode(data: Data, url: URL, backend: PhotoRAWBackend, lensCorrection: Bool) -> PhotoImage? {
-        PhotoImageDecoder.decode(data: data, url: url, backend: backend, lensCorrection: lensCorrection)
+    static func decode(data: Data, url: URL, backend: PhotoRAWBackend, lensCorrection: Bool, purpose: PhotoRAWDecodePurpose = .completeWithPreview) -> PhotoImage? {
+        PhotoImageDecoder.decode(data: data, url: url, backend: backend, lensCorrection: lensCorrection, purpose: purpose)
     }
 }
 
@@ -51,7 +55,7 @@ enum PhotoImageDecoder {
     private static let imageDecodeContext = PhotoImageRenderPrecision.makeContext()
     // UTI 登錄受系統版本及其他 App 影響，已知 RAW 副檔名仍須走感光資料解碼。
     private static let rawExtensions = Set("3fr arw cr2 cr3 crw dng erf fff iiq kdc mef mos mrw nef nrw orf pef raf raw rw2 rwl sr2 srf srw x3f".split(separator: " ").map(String.init))
-    static func decode(data: Data, url: URL, backend: PhotoRAWBackend, lensCorrection: Bool) -> PhotoImage? {
+    static func decode(data: Data, url: URL, backend: PhotoRAWBackend, lensCorrection: Bool, purpose: PhotoRAWDecodePurpose = .completeWithPreview) -> PhotoImage? {
         let correctLens = lensCorrection
         let selectedBackend = backend
         let isRAWFile = rawExtensions.contains(url.pathExtension.lowercased())
@@ -60,14 +64,14 @@ enum PhotoImageDecoder {
             // Nikon NEF can be reported as public.tiff with a tiny embedded JPEG
             // at index zero. Decode camera RAW before accepting that raster image.
             if sourceContainsRAWData(source) || isRAWFile {
-                return PhotoBackendRouter.decodeRAW(data: data, url: url, backend: selectedBackend, lensCorrection: correctLens)
+                return PhotoBackendRouter.decodeRAW(data: data, url: url, backend: selectedBackend, lensCorrection: correctLens, purpose: purpose)
             }
             if let image = decodeImageSource(source) {
                 return image
             }
         }
 
-        if let image = PhotoBackendRouter.decodeRAW(data: data, url: url, backend: selectedBackend, lensCorrection: correctLens) { return image }
+        if let image = PhotoBackendRouter.decodeRAW(data: data, url: url, backend: selectedBackend, lensCorrection: correctLens, purpose: purpose) { return image }
         if isRAWFile { return nil }
 
         if let image = PhotoImage(data: data) {
@@ -86,11 +90,21 @@ enum PhotoImageDecoder {
         )
     }
 
-    static func decodeSoftwareRAWImage(data: Data) -> PhotoImage? {
-        guard var full = PhotoSoftwareRAWDecoder.decode(data: data, halfSize: false),
-              let half = PhotoSoftwareRAWDecoder.decode(data: data, halfSize: true),
-              let linear = half.cgImage, let display = half.cameraOriginal else { return nil }
-        full.softwareRAWPreview = (linear, display)
+    static func decodeSoftwareRAWImage(data: Data, purpose: PhotoRAWDecodePurpose = .completeWithPreview) -> PhotoImage? {
+        if purpose == .preview, let dimensions = PhotoSoftwareRAWDecoder.dimensions(data: data),
+           var half = PhotoSoftwareRAWDecoder.decode(data: data, halfSize: true),
+           let linear = half.cgImage, let display = half.cameraOriginal {
+            // 與舊版 processingPreview 使用同一份 LibRaw 半尺寸感光解碼。
+            half.softwareRAWPreview = (linear, display)
+            half.decodedSourceSize = dimensions
+            return half
+        }
+        guard var full = PhotoSoftwareRAWDecoder.decode(data: data, halfSize: false) else { return nil }
+        if purpose != .complete {
+            guard let half = PhotoSoftwareRAWDecoder.decode(data: data, halfSize: true),
+                  let linear = half.cgImage, let display = half.cameraOriginal else { return nil }
+            full.softwareRAWPreview = (linear, display)
+        }
         return full
     }
 

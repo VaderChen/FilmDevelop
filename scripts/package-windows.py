@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""建置、封裝並在本機驗證 FilmDevelop Windows x64 NSIS 安裝檔。"""
+"""建置並驗證 Windows x64 免安裝 ZIP；NSIS 僅保留為舊流程相容選項。"""
 import argparse
 from datetime import datetime, timezone
 import hashlib
@@ -10,6 +10,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import zipfile
 
 from windows_payload import PE, validate_gui, validate_payload
 from windows_resources import ROOT, project_version
@@ -109,7 +110,7 @@ def nsis_license(makensis):
     return license_
 
 
-def stage_payload(build, stage, info, makensis):
+def stage_payload(build, stage, info, makensis=None, portable=True):
     expected = json.loads((build / 'resources/build-info.json').read_text())
     if expected != info:
         raise ValueError('Windows 程式版本與目前專案不同；請移除 --no-build 後重試')
@@ -118,6 +119,7 @@ def stage_payload(build, stage, info, makensis):
         'bin/FilmDevelopGo.exe': 'FilmDevelop.exe',
         # Windows 不區分大小寫，CLI 不可和 FilmDevelop.exe 共用名稱。
         'bin/filmdevelop.exe': 'filmdevelop-cli.exe',
+        'bin/filmdevelop-update.exe': 'filmdevelop-update.exe',
         'core/libPhotoCompute.dll': 'engine/libPhotoCompute.dll',
         'core/photo_core_film.exe': 'engine/photo_core_film.exe',
         'core/film.comp.spv': 'engine/film.comp.spv',
@@ -142,18 +144,26 @@ def stage_payload(build, stage, info, makensis):
     copy_tree(build / 'Licenses/Go', stage / 'Licenses/Go')
     copy(ROOT / 'experiments/PhotoCoreCpp/third_party/nlohmann/LICENSE', stage / 'Licenses/nlohmann-json.txt')
     copy_tree(ROOT / 'packaging/windows/licenses', stage / 'Licenses/Windows')
-    for name in ('ensure-prerequisites.ps1', 'prerequisites.json'):
-        copy(ROOT / 'packaging/windows' / name, stage / 'Prerequisites' / name)
-    copy(nsis_license(makensis), stage / 'Licenses/Windows/NSIS.txt')
+    if portable:
+        copy_tree(build / 'vc-runtime/bin', stage / 'engine')
+        copy_tree(build / 'vc-runtime/Licenses', stage / 'Licenses/Windows/VisualCpp')
+    else:
+        for name in ('ensure-prerequisites.ps1', 'prerequisites.json'):
+            copy(ROOT / 'packaging/windows' / name, stage / 'Prerequisites' / name)
+        copy(nsis_license(makensis), stage / 'Licenses/Windows/NSIS.txt')
     for name in ('LICENSE.md', 'LICENSE.en.md', 'LICENSE.ja.md', 'LICENSE.ko.md', 'THIRD_PARTY_NOTICES.md'):
         copy(ROOT / name, stage / name)
-    readme = (ROOT / 'packaging/windows/README.txt').read_text().replace('@DISPLAY_VERSION@', info['displayVersion'])
+    readme_name = 'README.txt' if portable else 'README-installer.txt'
+    readme = (ROOT / 'packaging/windows' / readme_name).read_text().replace('@DISPLAY_VERSION@', info['displayVersion'])
     (stage / 'README.txt').write_bytes(b'\xef\xbb\xbf' + readme.replace('\n', '\r\n').encode('utf-8'))
-    (stage / '.filmdevelop-installed.ini').write_bytes(
-        b'[Install]\r\nProduct=person.vader.FilmDevelop.Windows\r\nArchitecture=x64\r\n')
+    if not portable:
+        (stage / '.filmdevelop-installed.ini').write_bytes(
+            b'[Install]\r\nProduct=person.vader.FilmDevelop.Windows\r\nArchitecture=x64\r\n')
     commit = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()
     dirty = bool(subprocess.check_output(['git', '-C', str(ROOT), 'status', '--porcelain']))
-    metadata = dict(info, gitCommit=commit, sourceTreeDirty=dirty,
+    metadata = dict(info, product='person.vader.FilmDevelop.Windows',
+                    distribution='portable' if portable else 'installer',
+                    gitCommit=commit, sourceTreeDirty=dirty,
                     builtAtUTC=datetime.now(timezone.utc).isoformat(),
                     windowsExecutionVerified=False, windowsGPUVerified=False)
     write_json(stage / 'build-info.json', metadata)
@@ -161,6 +171,28 @@ def stage_payload(build, stage, info, makensis):
     write_json(stage / 'files.json', {'schema': 1, 'algorithm': 'SHA-256', 'files': files})
     # files.json 不記錄自己的雜湊；外部報告再完整記錄整個安裝內容。
     return gui, validate_payload(stage), inventory(stage)
+
+
+def portable_zip(stage, destination, files):
+    # 固定一層產品目錄；只使用受驗證清單，不掃入舊安裝器、暫存檔或設定。
+    with zipfile.ZipFile(destination, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
+        for entry in files:
+            archive.write(stage / entry['path'], 'FilmDevelop/' + entry['path'])
+    with zipfile.ZipFile(destination) as archive:
+        expected = {'FilmDevelop/' + entry['path']: entry for entry in files}
+        if len(archive.infolist()) != len(expected) or set(archive.namelist()) != set(expected):
+            raise ValueError('免安裝 ZIP 檔案清單不符')
+        for item in archive.infolist():
+            entry = expected[item.filename]
+            checksum = hashlib.sha256()
+            with archive.open(item) as stream:
+                for block in iter(lambda: stream.read(1024 * 1024), b''):
+                    checksum.update(block)
+            if item.file_size != entry['size'] or checksum.hexdigest() != entry['sha256']:
+                raise ValueError(f'免安裝 ZIP 解壓內容不符：{entry["path"]}')
+    return {'archiveIntegrityPassed': True, 'payloadHashRoundTripPassed': True,
+            'verifiedFileCount': len(files), 'payloadArchitecture': 'x64',
+            'requiresProductInstallation': False, 'appLocalVCRuntime': True}
 
 
 def verify_archive(sevenzip, setup, files, temporary):
@@ -197,12 +229,14 @@ def verify_archive(sevenzip, setup, files, temporary):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--no-build', action='store_true', help='使用既有交叉編譯產物；仍檢查版本與完整性')
+    parser.add_argument('--format', choices=('zip', 'installer'), default='zip',
+                        help='預設免安裝 ZIP；installer 僅供舊流程相容')
     parser.add_argument('--build-dir', type=Path, default=Path(os.environ.get('WINDOWS_CROSS_BUILD_DIR', ROOT / 'build/windows-cross')))
     parser.add_argument('--output-dir', type=Path, default=ROOT / 'dist/windows-x64')
     args = parser.parse_args()
     makensis = shutil.which('makensis')
     sevenzip = shutil.which('7zz') or shutil.which('7z')
-    if not makensis or not sevenzip:
+    if args.format == 'installer' and (not makensis or not sevenzip):
         raise ValueError('需要 NSIS（makensis）與 7-Zip（7zz 或 7z）')
     build, output = args.build_dir.resolve(), args.output_dir.resolve()
     if not args.no_build:
@@ -212,14 +246,32 @@ def main():
                     '--build-dir', str(build)], check=True)
     info = project_version()
     output.mkdir(parents=True, exist_ok=True)
-    name = f'FilmDevelop-{info["version"]}-build{info["build"]}-windows-x64-setup.exe'
+    portable = args.format == 'zip'
+    suffix = 'portable.zip' if portable else 'setup.exe'
+    name = f'FilmDevelop-{info["version"]}-build{info["build"]}-windows-x64-{suffix}'
     # 同一檔案系統的暫存目錄：完整檢查通過後才以原子替換交付產物。
     with tempfile.TemporaryDirectory(prefix='.filmdevelop-package-', dir=output) as directory:
         temporary = Path(directory)
         stage = temporary / 'payload'
         stage.mkdir()
-        gui, binaries, files = stage_payload(build, stage, info, makensis)
+        gui, binaries, files = stage_payload(build, stage, info, makensis, portable)
         privacy = audit(stage)
+        if portable:
+            archive = temporary / name
+            checks = portable_zip(stage, archive, files)
+            report = dict(info, **checks, distribution='portable', guiResources=gui,
+                          binaries=binaries, files=files, privacyAudit=privacy,
+                          packagingSmoke=json.loads((build / 'installer-smoke.json').read_text()),
+                          archive=name, archiveBytes=archive.stat().st_size, archiveSHA256=digest(archive),
+                          crossCompilationPassed=True, windowsExecutionVerified=False,
+                          windowsGPUVerified=False, authenticodeSigned=False, releasePublished=False)
+            write_json(temporary / 'verification.json', report)
+            (temporary / 'SHA256SUMS').write_text(f'{digest(archive)}  {name}\n', encoding='ascii')
+            for filename in ('verification.json', 'SHA256SUMS', name):
+                os.replace(temporary / filename, output / filename)
+            print(f'Windows x64 免安裝 ZIP 已建立：{output / name}')
+            print(f'已驗證 {len(files)} 個產品檔案、x64 相依、解壓雜湊與私密資料；尚未執行本次 ZIP 的實機測試。')
+            return
         include = temporary / 'payload.nsh'
         payload_include(files, include)
         setup = temporary / name

@@ -1,5 +1,6 @@
 #pragma once
 #include "photocore/core.hpp"
+#include "parallel_rows.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -106,16 +107,18 @@ inline V multiply(const Matrix &m, V v) {
 }
 template <class Function> Image transform(const Image &in, const Function &fn) {
     Image out(in.width, in.height);
-    for (std::size_t y = 0; y < in.height; ++y)
+    parallel_rows(in.height, in.width, [&](std::size_t y) {
         for (std::size_t x = 0; x < in.width; ++x)
             out.pixels[y * in.width + x] = fn(in.pixels[y * in.width + x], x, y);
+    });
     return out;
 }
 // 僅限每個輸出依賴自己的輸入像素；鄰域濾波仍使用獨立來源。
 template <class Function> Image transform_owned(Image in, const Function &fn) {
-    for (std::size_t y = 0; y < in.height; ++y)
+    parallel_rows(in.height, in.width, [&](std::size_t y) {
         for (std::size_t x = 0; x < in.width; ++x)
             in.pixels[y * in.width + x] = fn(in.pixels[y * in.width + x], x, y);
+    });
     return in;
 }
 Image gaussian(Image in, double sigma, bool clamp_edges = true);

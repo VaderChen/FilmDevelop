@@ -3685,10 +3685,23 @@
     previewTransform.x = clamp(previewTransform.x, -maxX, maxX);
     previewTransform.y = clamp(previewTransform.y, -maxY, maxY);
 
-    image.style.width = Math.round(displayWidth) + "px";
-    image.style.height = Math.round(displayHeight) + "px";
-    image.style.left = Math.round((previewFit.frameWidth - displayWidth) / 2 + previewTransform.x) + "px";
-    image.style.top = Math.round((previewFit.frameHeight - displayHeight) / 2 + previewTransform.y) + "px";
+    positionPreviewLayer(image, displayWidth, displayHeight);
+    // 淡入底圖也須適應目前視窗；複製的像素尺寸會在外框重排後造成縮放跳動。
+    var base = image._previewReveal && image._previewReveal.base;
+    if (base) {
+      var size = base._previewGeometry;
+      var scale = Math.min(previewFit.frameWidth / size.width, previewFit.frameHeight / size.height) * previewTransform.scale;
+      positionPreviewLayer(base, size.width * scale, size.height * scale);
+    }
+  }
+
+  function positionPreviewLayer(image, width, height) {
+    var maxX = Math.max(0, (width - previewFit.frameWidth) / 2);
+    var maxY = Math.max(0, (height - previewFit.frameHeight) / 2);
+    image.style.width = width + "px";
+    image.style.height = height + "px";
+    image.style.left = ((previewFit.frameWidth - width) / 2 + clamp(previewTransform.x, -maxX, maxX)) + "px";
+    image.style.top = ((previewFit.frameHeight - height) / 2 + clamp(previewTransform.y, -maxY, maxY)) + "px";
   }
 
   function setPreviewScaleAt(nextScale, clientX, clientY, fromScale, fromX, fromY) {
@@ -3904,11 +3917,14 @@
       var frame = image.parentElement;
       var revealingPhoto = image._isLoadingPreview;
       cancelPreviewReveal(image);
+      // 快取解碼可能早於 load／ResizeObserver；先讓底圖填滿當前可用範圍。
+      fitPreviewImage();
       var handoff = !loadingPreview && nextSource === state.outputImage && !state.repairEditing
         && image.complete && image.naturalWidth
         && !window.matchMedia("(prefers-reduced-motion: reduce)").matches ? image.cloneNode(false) : null;
       if (handoff) {
         handoff.className = "preview-handoff";
+        handoff._previewGeometry = { width: previewFit.baseWidth, height: previewFit.baseHeight };
         handoff.removeAttribute("alt");
         handoff.setAttribute("aria-hidden", "true");
         handoff.style.position = "absolute";
@@ -3919,7 +3935,6 @@
       image._isLoadingPreview = loadingPreview;
       image.src = nextSource;
       image._hasDisplayedPreview = true;
-      fitPreviewImage();
       if (handoff) {
         var animation = image.animate([{ opacity: 0 }, { opacity: 1 }], { duration: revealingPhoto ? 650 : 180, easing: "ease-in-out" });
         var reveal = { animation: animation, base: handoff };
@@ -3930,6 +3945,7 @@
           if (image.isConnected) updatePreviewFeedback();
         };
       }
+      fitPreviewImage();
     }).catch(function () {
       if (image.isConnected && image._requestedPreviewSource === nextSource) image._previewError = true;
     }).then(function () {
