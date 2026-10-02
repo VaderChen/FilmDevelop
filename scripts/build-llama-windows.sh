@@ -18,7 +18,8 @@ x86_64-w64-mingw32-dlltool -d "$BUILD/imports/vulkan.def" -l "$BUILD/imports/lib
 cmake -S "$SOURCE" -B "$BUILD" -G Ninja \
  -DCMAKE_TOOLCHAIN_FILE="$ROOT/experiments/PhotoCoreCpp/cmake/windows-x64-mingw.cmake" \
  -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc -DCMAKE_BUILD_TYPE=Release \
- -DCMAKE_CXX_FLAGS="-isystem $SPIRV_HEADERS" \
+ "-DCMAKE_C_FLAGS=-ffile-prefix-map=$ROOT=." \
+ -DCMAKE_CXX_FLAGS="-isystem $SPIRV_HEADERS -ffile-prefix-map=$ROOT=." \
  -DCMAKE_PROJECT_INCLUDE="$ROOT/scripts/llama-build-sources.cmake" \
  -DCMAKE_SHARED_LINKER_FLAGS='-static -static-libgcc -static-libstdc++ -Wl,--exclude-libs,ALL' \
  -DCMAKE_MODULE_LINKER_FLAGS='-static -static-libgcc -static-libstdc++ -Wl,--exclude-libs,ALL' \
