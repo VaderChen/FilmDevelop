@@ -38,7 +38,7 @@ def sign_app(app, identity):
                 run('codesign','--force','--timestamp','--options','runtime','--sign',identity,path)
     run('codesign','--force','--timestamp','--options','runtime','--sign',identity,app)
     run('codesign','--verify','--deep','--strict',app)
-    privacy = audit(app)
+    audit(app)
 
 
 def notarize(path, profile, log):
@@ -86,6 +86,7 @@ def main():
     assert info['CFBundleShortVersionString'] == version['version'] and info['CFBundleVersion'] == version['build']
     assert (app/'Contents/Resources/Engine/FilmDevelopEngine.app/Contents/MacOS/filmdevelop-engine').is_file()
     run('codesign','--verify','--deep','--strict',app)
+    privacy = audit(app)
     destination = ROOT/'dist/macos-arm64'
     destination.mkdir(parents=True,exist_ok=True)
     variants = ('current', 'legacy') if args.variant == 'all' else (args.variant,)
