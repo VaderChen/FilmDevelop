@@ -129,4 +129,33 @@ func TestPackagedIdentityMigration(t *testing.T) {
 	if _, err = os.Stat(p.Staged); !os.IsNotExist(err) {
 		t.Fatal("取消移轉未清理暫存")
 	}
+	// 過渡來源改為 ad-hoc 後即使封裝結構仍有效，也不能跨識別安裝。
+	unsigned := filepath.Join(t.TempDir(), "Unsigned.app")
+	if _, err = run(ctx, "/usr/bin/ditto", target, unsigned); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = run(ctx, "/usr/bin/codesign", "--force", "--sign", "-", unsigned); err != nil {
+		t.Fatal(err)
+	}
+	if bad, e := prepareIdentityMigration(ctx, unsigned); e == nil || bad != nil {
+		if bad != nil {
+			bad.Discard()
+		}
+		t.Fatal("未正式簽章的來源不應允許識別移轉")
+	}
+	// 內含 App 被改動時，不能確認舊更新收據或移動原本安裝。
+	tampered := filepath.Join(t.TempDir(), "Tampered.app")
+	if _, err = run(ctx, "/usr/bin/ditto", target, tampered); err != nil {
+		t.Fatal(err)
+	}
+	info := filepath.Join(tampered, "Contents", "Resources", "Migration", "FilmDevelop.app", "Contents", "Info.plist")
+	if err = os.WriteFile(info, []byte("damaged"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if bad, e := prepareIdentityMigration(ctx, tampered); e == nil || bad != nil {
+		if bad != nil {
+			bad.Discard()
+		}
+		t.Fatal("被修改的內含 App 不應允許識別移轉")
+	}
 }

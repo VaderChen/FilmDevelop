@@ -70,8 +70,11 @@ try:
     staged.rename(target)
     env = dict(os.environ, FILMDEVELOP_DATA_DIR=str(out/'data'))
     with (out/'gui.log').open('w') as log:
-        process = subprocess.Popen([str(target/'Contents/MacOS/FilmDevelopGo'), '--finish-update', str(work)],
-                                   env=env, stdout=log, stderr=log)
+        command = [str(target/'Contents/MacOS/FilmDevelopGo'), '--finish-update', str(work)]
+        if args.expect_migration:
+            command = ['open', '-n', '-a', str(target), '--env', 'FILMDEVELOP_DATA_DIR='+str(out/'data'),
+                       '--stderr', str(out/'bridge.log'), '--args', '--finish-update', str(work)]
+        process = subprocess.Popen(command, env=env, stdout=log, stderr=log)
         if args.expect_migration:
             assert process.wait(timeout=60) == 0, '過渡啟動器失敗'
             deadline = time.monotonic()+60
