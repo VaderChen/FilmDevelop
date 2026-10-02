@@ -31,6 +31,9 @@ window.PhotoLocalizationData = {
   "無法重新讀取目前的 RAW，請重新開啟照片後再切換。": ["Cannot reread the current RAW. Reopen the photo before switching.", "現在の RAW を再読み込みできません。写真を開き直してから切り替えてください。", "현재 RAW를 다시 읽을 수 없습니다. 사진을 다시 연 후 전환하세요."],
   "RAW 解析失敗，已保留原本的解析方式與照片。": ["RAW decoding failed. The previous decoder and photo have been retained.", "RAW のデコードに失敗しました。元のデコーダーと写真を保持しました。", "RAW 디코딩에 실패했습니다. 이전 디코더와 사진을 유지했습니다."],
 
+  "GR III・晴空暖橙": ["GR III · Blue Sky, Warm Orange", "GR III・青空と暖橙", "GR III · 푸른 하늘과 따뜻한 주황"],
+  "青藍天空、暖橙色與柔白，保留深黑與中調反差": ["Cyan-blue skies, warm oranges and soft whites, with deep blacks and midtone contrast", "シアンブルーの空、暖かなオレンジ、柔らかな白。深い黒と中間調のコントラストを維持", "청록빛 하늘, 따뜻한 주황과 부드러운 흰색. 깊은 검정과 중간톤 대비 유지"],
+
   "底片強度 0 現在與原片一致；0～50 平順混合至既有底片效果。": ["Film strength 0 now matches Original; values from 0 to 50 smoothly blend into the existing film look.", "フィルム強度 0 はオリジナルと一致し、0～50 で従来のフィルム効果へ滑らかに変化します。", "필름 강도 0은 원본과 일치하며 0~50에서 기존 필름 효과로 부드럽게 전환됩니다."],
   "底片預設強度 50、50 以上的成像與所有預設參數維持不變。": ["The default film strength of 50, rendering above 50 and all preset parameters remain unchanged.", "初期強度 50 とそれ以上の描画、およびすべてのプリセット値は変更しません。", "기본 필름 강도 50, 50 이상의 렌더링 및 모든 기본 매개변수는 유지됩니다."],
   "強度調整保留裁切、旋轉與修復；外框和日期保持完整，預覽與匯出使用相同流程。": ["Strength adjustments retain cropping, rotation and repairs. Frames and dates remain fully visible, with the same pipeline for previews and exports.", "強度を変更しても切り抜き・回転・修復を保持し、フレームと日付は薄くなりません。プレビューと書き出しは同じ処理を使います。", "강도를 변경해도 자르기, 회전 및 복구를 유지합니다. 프레임과 날짜는 흐려지지 않으며 미리보기와 내보내기에 같은 처리를 사용합니다."],

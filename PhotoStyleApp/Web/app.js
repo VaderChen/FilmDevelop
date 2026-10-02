@@ -564,7 +564,7 @@
   }
 
   function catalogStyles() {
-    return (state.styles || []).filter(function (style) { return state.showAllFilms || !style.mergedInto; });
+    return (state.styles || []).filter(function (style) { return !style.isHiddenFromCatalog && (state.showAllFilms || !style.mergedInto); });
   }
 
   function readStyleOrder() {
@@ -1276,7 +1276,7 @@
   }
 
   function renderAdjustmentStyleSelect() {
-    var selected = enabledStyles().find(function (style) { return style.id === currentLookID(); });
+    var selected = state.styles.find(function (style) { return style.id === currentLookID(); });
     return '<strong class="inspector-style-name">' + escapeHtml(selected ? styleTitle(selected) : L.text("選擇風格")) + '</strong>';
   }
 
@@ -1475,7 +1475,7 @@
   }
 
   function renderToneAdjustmentCard(title, prefix, exposure, intensity, warmth, grain, planTone) {
-    var selected = enabledStyles().find(function (style) { return style.id === currentLookID(); });
+    var selected = state.styles.find(function (style) { return style.id === currentLookID(); });
     var monochrome = !!(selected && selected.isMonochrome);
     var controls = [
       renderRange(L.text("曝光"), prefix + "Exposure", exposure || 0, -100, 100),
@@ -1505,7 +1505,7 @@
   }
 
   function renderChemistryAdjustmentCard(adjustment) {
-    var selected = enabledStyles().find(function (style) { return style.id === currentLookID(); });
+    var selected = state.styles.find(function (style) { return style.id === currentLookID(); });
     var monochrome = !!(selected && selected.isMonochrome);
     var disabled = !!(selected && selected.filmFamily === "camera");
     var value = function (key, fallback) { return adjustment[key] == null ? fallback : adjustment[key]; };
@@ -1533,7 +1533,7 @@
   }
 
   function renderFilmAdjustmentCard(adjustment) {
-    var selected = enabledStyles().find(function (style) { return style.id === currentLookID(); });
+    var selected = state.styles.find(function (style) { return style.id === currentLookID(); });
     var monochrome = !!(selected && selected.isMonochrome);
     var value = function (key, fallback) { return adjustment[key] == null ? fallback : adjustment[key]; };
     var grainHelp = L.text("以多層晶體捕光呈現顆粒、細節遮蔽與底片返照。") + text("grainBaselineHint") + L.text("尺寸以長邊 3000 像素為基準，預覽與匯出依原圖比例調整；聚集程度控制晶體聚集，彩色比例控制各色層差異。黑白風格維持中性顆粒。");
@@ -1628,7 +1628,7 @@
   }
 
   function renderScannerAdjustmentCard(adjustment) {
-    var selected = enabledStyles().find(function (style) { return style.id === currentLookID(); });
+    var selected = state.styles.find(function (style) { return style.id === currentLookID(); });
     var film = !!(selected && selected.supportsScanner);
     var monochrome = !!(selected && selected.isMonochrome);
     var reversal = selected && selected.filmFamily === "reversal";
