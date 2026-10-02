@@ -1,6 +1,6 @@
 # Go 桌面宿主與跨平台進度
 
-更新日期：2026-10-02，版本 **1.26.1002 build 1208**。`run.command` 建置並開啟 **Go／Wails 主程序＋Swift／C++ 影像引擎**。Go 共用 UI、照片、配方、設定、資料移轉、模型、MCP、更新與匯出流程；macOS 使用 Swift／Apple 框架及 C++，Windows 使用 C++／WIC／Vulkan。
+更新日期：2026-10-02，版本 **1.26.1002 build 1243**。`run.command` 建置並開啟 **Go／Wails 主程序＋Swift／C++ 影像引擎**。Go 共用 UI、照片、配方、設定、資料移轉、模型、MCP、更新與匯出流程；macOS 使用 Swift／Apple 框架及 C++，Windows 使用 C++／WIC／Vulkan。
 
 macOS 支援 Apple Silicon、macOS 14 以上；Windows 支援 10／11 x64，版本文字附 **Beta**。兩平台均已接通底片、編輯、RAW 備援、AI 分析與修復、匯出及資料移轉；平台差異與實測界線列於文末。
 ## 分工
@@ -81,7 +81,8 @@ python3 engine/verification/preview-cache-smoke.py
 產物：
 
 - `build/desktop/FilmDevelopGo.app`
-- `dist/macos-arm64/FilmDevelop-<版本>-build<組建>-macos-arm64.dmg`
+- `dist/macos-arm64/FilmDevelop-<版本>-build<組建>-macos-arm64.dmg`（現有混合版）
+- `dist/macos-arm64/FilmYourPhoto-<版本>-build-<組建>-arm64.dmg`（舊 Swift 更新器及保留舊 App 識別的混合版）
 - `dist/windows-x64/FilmDevelop-<版本>-build<組建>-windows-x64-setup.exe`
 
 配方移植以 **1,957 項 Swift 參考案例** 驗證。此次另執行真實原生渲染、Wails UI、MCP HTTP、實際 MLX 模型、Core ML 修復、PNG16 匯出及安裝套件驗證。逐項結果與限制見 [功能恢復紀錄](RESTORATION.md)。
@@ -123,3 +124,9 @@ python3 scripts/package-macos.py --identity 'Developer ID Application: 姓名 (T
 Windows 建置與安裝細節見[封裝說明](../packaging/windows/README.md)。發布時核對安裝包內的版本、所有檔案雜湊及 GitHub 資產 digest。舊 Swift 更新器使用不同套件命名與 bundle ID，第一次升級混合版需手動下載；新版保留自己的資料路徑與更新介面。
 
 Swift 風格變更後，先建置 `PhotoStyleShared`，執行 `python3 scripts/sync-swift-catalog.py`、`python3 scripts/export-windows-style-data.py`；可用 `--check` 核對。Go 靜態目錄涵蓋隱藏配方以還原舊照片，前端只在選用入口隱藏，自訂底片不繼承隱藏狀態。原有 1,957 項 Swift 金樣本保持不變，新增相容配方使用獨立的 Swift 擷取資料驗證。
+
+## Mac 封裝相容性與體積
+
+正式封裝預設產生兩種安裝包，共用同一份 Go 可執行檔與原生引擎，只保留各自既有的 App 識別碼。舊 Swift 更新器仍核對 FilmYourPhoto 檔名、版本、SHA-256、App 身分與 Developer Team；Go 後續依安裝身分選擇相符的套件，不降低驗證要求。`--variant current` 或 `--variant legacy` 可單獨封裝其中一種，完整 Release 必須包含兩種。
+
+macOS 的 Swift／Core Image 管線不使用 Windows 完整 C++ 管線的 `digital-looks` 與 `editor` 查表，因此封裝時排除這兩組資料；RAW 校色表及授權完整保留。Core ML 模型先從來源編譯，只封裝執行用模型與授權，避免重複攜帶同一份權重。Go 正式建置移除除錯符號。資源同步會刪除舊建置殘留，避免增量建置將已排除內容帶回。

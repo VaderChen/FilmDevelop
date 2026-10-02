@@ -112,7 +112,7 @@ END
             binary = Path(temporary) / output.name
             env = dict(os.environ, GOOS='windows', GOARCH='amd64', CGO_ENABLED='0')
             subprocess.run(['go', '-C', str(ROOT / 'desktop'), 'build', '-trimpath', '-tags', 'desktop,production',
-                            '-ldflags', '-H windowsgui', '-o', str(binary), './cmd/filmdevelop-desktop'], env=env, check=True)
+                            '-ldflags', '-s -w -H windowsgui', '-o', str(binary), './cmd/filmdevelop-desktop'], env=env, check=True)
             os.replace(binary, output)
     finally:
         resource.unlink()

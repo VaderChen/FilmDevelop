@@ -14,9 +14,10 @@ APP="$ROOT_DIR/build/desktop/FilmDevelopGo.app"
 python3 "$ROOT_DIR/scripts/prepare-desktop.py"
 bash "$ROOT_DIR/scripts/build-engine-macos.sh"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources/Engine"
-go -C "$ROOT_DIR/desktop" build -tags desktop,production -o "$APP/Contents/MacOS/FilmDevelopGo" ./cmd/filmdevelop-desktop
+go -C "$ROOT_DIR/desktop" build -trimpath -ldflags '-s -w' -tags desktop,production -o "$APP/Contents/MacOS/FilmDevelopGo" ./cmd/filmdevelop-desktop
 python3 "$ROOT_DIR/scripts/macos-bundle.py" "$APP"
-ditto "$ROOT_DIR/build/engine-macos/FilmDevelopEngine.app" "$APP/Contents/Resources/Engine/FilmDevelopEngine.app"
+mkdir -p "$APP/Contents/Resources/Engine/FilmDevelopEngine.app"
+rsync -a --delete "$ROOT_DIR/build/engine-macos/FilmDevelopEngine.app/" "$APP/Contents/Resources/Engine/FilmDevelopEngine.app/"
 python3 "$ROOT_DIR/scripts/collect-desktop-licenses.py" "$APP/Contents/Resources/Licenses/Go"
 cp "$ROOT_DIR/LICENSE.md" "$ROOT_DIR/THIRD_PARTY_NOTICES.md" "$APP/Contents/Resources/Licenses/"
 cp "$ROOT_DIR/aiTest2/ThirdParty/llama.cpp/LICENSE" "$APP/Contents/Resources/Licenses/llama.cpp-LICENSE"

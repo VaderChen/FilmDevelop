@@ -7,6 +7,8 @@ import (
 
 type Prepared struct{ Path string }
 
+func InstalledIdentifier(context.Context) (string, error) { return "", nil }
+
 func Prepare(ctx context.Context, path string, version Version) (*Prepared, error) {
 	return &Prepared{Path: path}, ctx.Err()
 }

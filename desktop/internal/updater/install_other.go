@@ -9,6 +9,8 @@ import (
 
 type Prepared struct{}
 
+func InstalledIdentifier(context.Context) (string, error) { return "", nil }
+
 func Prepare(context.Context, string, Version) (*Prepared, error) {
 	return nil, errors.New("此平台未提供更新安裝")
 }

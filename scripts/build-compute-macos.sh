@@ -24,8 +24,10 @@ install_name_tool -id '@rpath/libPhotoCompute.dylib' \
 install_name_tool -id '@rpath/libMoltenVK.dylib' "$CONTENTS/Frameworks/libMoltenVK.dylib"
 cp "$BUILD/film.comp.spv" "$CONTENTS/Resources/PhotoCompute/"
 mkdir -p "$CONTENTS/Resources/PhotoCompute/film-data"
-# 只同步執行資料；修改前的備份與舊建置殘留不得進入 App。
+# macOS 的色彩、白平衡與編輯仍由 Swift／Core Image 處理。
+# C ABI 僅接收 PhotoComputeStage 的底片運算，不封裝 Windows 專用查表。
 rsync -a --delete --delete-excluded --exclude '*.bak' --exclude '.DS_Store' \
+  --exclude '/digital-looks/' --exclude '/editor/' \
   "$ROOT/experiments/PhotoCoreCpp/data/" "$CONTENTS/Resources/PhotoCompute/film-data/"
 mkdir -p "$CONTENTS/Resources/PhotoCompute/Licenses"
 cp "$PREFIX/opt/molten-vk/LICENSE" "$CONTENTS/Resources/PhotoCompute/Licenses/MoltenVK.txt"

@@ -83,7 +83,11 @@ func (a *App) checkUpdate(manual bool) error {
 		var asset *updater.Asset
 		var version updater.Version
 		if err == nil {
-			version, asset, err = release.Select(currentVersion, runtime.GOOS)
+			var identifier string
+			identifier, err = updater.InstalledIdentifier(ctx)
+			if err == nil {
+				version, asset, err = release.SelectForBundle(currentVersion, runtime.GOOS, identifier)
+			}
 		}
 		a.mu.Lock()
 		a.checkingUpdate = false

@@ -32,6 +32,9 @@ type Release struct {
 
 const Repository = "VaderChen/FilmDevelop"
 
+const MacBundleIdentifier = "person.vader.FilmDevelop.GoDevelopment"
+const LegacyMacBundleIdentifier = "person.vader.PhotoStyleApp"
+
 var versionTag = regexp.MustCompile(`^v?(\d+\.\d+\.\d+)-build-?(\d+)$`)
 var digestPattern = regexp.MustCompile(`^sha256:[a-fA-F0-9]{64}$`)
 
@@ -62,6 +65,11 @@ func (v Version) After(other Version) bool {
 	return false
 }
 func (r Release) Select(current Version, platform string) (Version, *Asset, error) {
+	return r.SelectForBundle(current, platform, "")
+}
+
+// 同一份 Go 程式支援既有兩種 Mac 身分；選擇相符簽章套件，維持後續更新。
+func (r Release) SelectForBundle(current Version, platform, identifier string) (Version, *Asset, error) {
 	version, err := Parse(r.Tag)
 	if err != nil {
 		return Version{}, nil, err
@@ -79,6 +87,15 @@ func (r Release) Select(current Version, platform string) (Version, *Asset, erro
 		return version, nil, errors.New("此平台未提供安裝套件")
 	}
 	name := "FilmDevelop-" + version.Version + "-build" + version.Build + "-" + suffix
+	if platform == "darwin" {
+		switch identifier {
+		case "", MacBundleIdentifier:
+		case LegacyMacBundleIdentifier:
+			name = "FilmYourPhoto-" + version.Version + "-build-" + version.Build + "-arm64.dmg"
+		default:
+			return version, nil, errors.New("目前 Mac App 的識別碼不支援自動更新")
+		}
+	}
 	for _, asset := range r.Assets {
 		if asset.Name != name {
 			continue

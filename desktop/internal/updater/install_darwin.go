@@ -18,6 +18,22 @@ type Prepared struct {
 	Version                      Version
 }
 
+func InstalledIdentifier(ctx context.Context) (string, error) {
+	target, err := Bundle()
+	if err != nil {
+		return "", err
+	}
+	info, err := metadata(ctx, target)
+	if err != nil {
+		return "", err
+	}
+	identifier, ok := info["CFBundleIdentifier"].(string)
+	if !ok || identifier == "" {
+		return "", errors.New("無法辨識目前 App")
+	}
+	return identifier, nil
+}
+
 func Bundle() (string, error) {
 	exe, err := os.Executable()
 	if err != nil {

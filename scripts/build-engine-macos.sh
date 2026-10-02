@@ -41,7 +41,7 @@ done
 ditto "$ROOT_DIR/Vendor/PhotoRAW/macos/RAWMapping" "$APP/Contents/Resources/RAWMapping"
 ditto "$ROOT_DIR/Vendor/PhotoRAW/macos/RAWLicenses" "$APP/Contents/Resources/RAWLicenses"
 if [[ -d "$ROOT_DIR/PhotoStyleApp/Models" ]]; then
-  ditto "$ROOT_DIR/PhotoStyleApp/Models" "$APP/Contents/Resources/Models"
+  python3 "$ROOT_DIR/scripts/stage-macos-models.py" "$ROOT_DIR/PhotoStyleApp/Models" "$APP/Contents/Resources/Models"
 fi
 TARGET_BUILD_DIR="$BUILD" CONTENTS_FOLDER_PATH="FilmDevelopEngine.app/Contents" \
   bash "$ROOT_DIR/scripts/build-compute-macos.sh"
