@@ -39,6 +39,9 @@ xcodebuild -scheme PhotoStyleMLXRuntime -configuration Release \
   -clonedSourcePackagesDirPath "$PACKAGE_ROOT/.build" \
   -onlyUsePackageVersionsFromResolvedFile \
   -skipMacroValidation -skipPackagePluginValidation \
+  "OTHER_CFLAGS=\$(inherited) -ffile-prefix-map=$PROJECT_ROOT=." \
+  "OTHER_CPLUSPLUSFLAGS=\$(inherited) -ffile-prefix-map=$PROJECT_ROOT=." \
+  "OTHER_SWIFT_FLAGS=\$(inherited) -file-prefix-map $PROJECT_ROOT=. -debug-prefix-map $PROJECT_ROOT=." \
   CODE_SIGNING_ALLOWED=NO ARCHS=arm64 ONLY_ACTIVE_ARCH=YES MACOSX_DEPLOYMENT_TARGET=14.0 build
 
 PRODUCTS="$DERIVED_DATA/Build/Products/Release"

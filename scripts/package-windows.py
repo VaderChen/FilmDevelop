@@ -13,6 +13,7 @@ import tempfile
 
 from windows_payload import PE, validate_gui, validate_payload
 from windows_resources import ROOT, project_version
+from release_audit import audit
 
 
 def digest(path):
@@ -218,6 +219,7 @@ def main():
         stage = temporary / 'payload'
         stage.mkdir()
         gui, binaries, files = stage_payload(build, stage, info, makensis)
+        privacy = audit(stage)
         include = temporary / 'payload.nsh'
         payload_include(files, include)
         setup = temporary / name
@@ -239,7 +241,7 @@ def main():
                       installer=name, installerBytes=setup.stat().st_size, installerSHA256=digest(setup),
                       crossCompilationPassed=True, windowsExecutionVerified=False,
                       windowsInstallUninstallVerified=False, windowsGPUVerified=False,
-                      authenticodeSigned=False, releasePublished=False)
+                      authenticodeSigned=False, releasePublished=False, privacyAudit=privacy)
         write_json(temporary / 'verification.json', report)
         (temporary / 'SHA256SUMS').write_text(f'{digest(setup)}  {name}\n', encoding='ascii')
         for filename in ('verification.json', 'SHA256SUMS', 'nsis-build.log', 'archive-check.log', 'payload.nsh', name):

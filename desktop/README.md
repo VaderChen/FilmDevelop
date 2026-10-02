@@ -130,3 +130,5 @@ Swift 風格變更後，先建置 `PhotoStyleShared`，執行 `python3 scripts/s
 正式封裝預設產生兩種安裝包，共用同一份 Go 可執行檔與原生引擎，只保留各自既有的 App 識別碼。舊 Swift 更新器仍核對 FilmYourPhoto 檔名、版本、SHA-256、App 身分與 Developer Team；Go 後續依安裝身分選擇相符的套件，不降低驗證要求。`--variant current` 或 `--variant legacy` 可單獨封裝其中一種，完整 Release 必須包含兩種。
 
 macOS 的 Swift／Core Image 管線不使用 Windows 完整 C++ 管線的 `digital-looks` 與 `editor` 查表，因此封裝時排除這兩組資料；RAW 校色表及授權完整保留。Core ML 模型先從來源編譯，只封裝執行用模型與授權，避免重複攜帶同一份權重。Go 正式建置移除除錯符號。資源同步會刪除舊建置殘留，避免增量建置將已排除內容帶回。
+
+正式建置為 Go 啟用 `-trimpath`，為 Swift／C++ 啟用來源路徑映射，移除原生連結器的 OSO 除錯路徑；已封裝的 SwiftPM 資源不回退到建置機路徑。`scripts/release_audit.py` 在 Mac／Windows 封裝前掃描 ASCII 與 UTF-16 的私人路徑、私鑰及常見存取權杖，只回報相對檔名，不輸出疑似敏感值。`pack.command` 保持本機忽略，若意外進入安裝內容，封裝檢查會拒絕發布。

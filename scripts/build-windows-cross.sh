@@ -14,9 +14,9 @@ python3 "$ROOT/scripts/export-windows-style-data.py" --check
 python3 "$ROOT/scripts/export-windows-editor-data.py" --check
 python3 "$ROOT/scripts/export-color-profiles.py" --check
 python3 "$ROOT/scripts/prepare-desktop.py"
-CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go -C "$ROOT/desktop" build -o "$BUILD/bin/filmdevelop.exe" ./cmd/filmdevelop
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go -C "$ROOT/desktop" build -trimpath -ldflags '-s -w' -o "$BUILD/bin/filmdevelop.exe" ./cmd/filmdevelop
 python3 "$ROOT/scripts/windows_resources.py" --output "$BUILD/bin/FilmDevelopGo.exe" --resources "$BUILD/resources"
-CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go -C "$ROOT/desktop" test -c -o "$BUILD/bin/engine-tests.exe" ./internal/engine
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go -C "$ROOT/desktop" test -trimpath -c -o "$BUILD/bin/engine-tests.exe" ./internal/engine
 cmake -S "$ROOT/engine/cpp" -B "$BUILD/contract" -G Ninja \
   -DCMAKE_TOOLCHAIN_FILE="$ROOT/experiments/PhotoCoreCpp/cmake/windows-x64-mingw.cmake" -DCMAKE_BUILD_TYPE=Release
 cmake --build "$BUILD/contract" -j4

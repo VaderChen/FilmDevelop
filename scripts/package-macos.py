@@ -9,6 +9,7 @@ import subprocess
 import tempfile
 import time
 from windows_resources import ROOT, project_version
+from release_audit import audit
 
 
 def run(*args, capture=False):
@@ -37,6 +38,7 @@ def sign_app(app, identity):
                 run('codesign','--force','--timestamp','--options','runtime','--sign',identity,path)
     run('codesign','--force','--timestamp','--options','runtime','--sign',identity,app)
     run('codesign','--verify','--deep','--strict',app)
+    privacy = audit(app)
 
 
 def notarize(path, profile, log):
@@ -130,7 +132,8 @@ def main():
             'version':version['version'],'build':version['build'],'asset':name,
             'variant':variant,'bundleIdentifier':('person.vader.PhotoStyleApp' if legacy else info['CFBundleIdentifier']),
             'sha256':digest.hexdigest(),'developerIDSigned':bool(args.identity),
-            'appleNotarized':bool(args.notary_profile),'stapled':bool(args.notary_profile)
+            'appleNotarized':bool(args.notary_profile),'stapled':bool(args.notary_profile),
+            'privacyAudit':privacy
         },ensure_ascii=False,indent=2)+'\n')
         print(destination/name)
 

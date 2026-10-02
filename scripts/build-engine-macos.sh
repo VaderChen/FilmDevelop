@@ -15,10 +15,13 @@ fi
 "$ROOT_DIR/scripts/build-raw-macos.sh"
 "$ROOT_DIR/scripts/build-llama-macos.sh"
 "$ROOT_DIR/scripts/build-mlx-macos.sh"
-swift build --build-system native --package-path "$ROOT_DIR/PhotoStyleShared" --scratch-path "$BUILD/shared" -c release
+swift build --build-system native --package-path "$ROOT_DIR/PhotoStyleShared" --scratch-path "$BUILD/shared" -c release \
+  -Xswiftc -DFILMDEVELOP_BUNDLED_RESOURCES -Xswiftc -file-prefix-map -Xswiftc "$ROOT_DIR=." \
+  -Xswiftc -debug-prefix-map -Xswiftc "$ROOT_DIR=."
 PRODUCTS="$(swift build --build-system native --package-path "$ROOT_DIR/PhotoStyleShared" --scratch-path "$BUILD/shared" -c release --show-bin-path)"
 printf '%s' '<?xml version="1.0"?><plist version="1.0"><dict><key>CFBundleIdentifier</key><string>person.vader.FilmDevelop.Engine</string><key>CFBundleExecutable</key><string>filmdevelop-engine</string><key>CFBundlePackageType</key><string>APPL</string></dict></plist>' > "$APP/Contents/Info.plist"
 xcrun swiftc -O -D FILMDEVELOP_GO_HOST -parse-as-library -swift-version 5 -target arm64-apple-macosx14.0 \
+  -file-prefix-map "$ROOT_DIR=." -debug-prefix-map "$ROOT_DIR=." -Xlinker -dead_strip \
   -I "$ROOT_DIR/Vendor/llama.cpp/macos/include" -L "$ROOT_DIR/Vendor/llama.cpp/macos/lib" \
   -I "$PRODUCTS/Modules" -I "$ROOT_DIR/Vendor/libwebp/macos/include" \
   -L "$ROOT_DIR/Vendor/libwebp/macos/lib" -lphotowebp \
@@ -46,5 +49,7 @@ fi
 TARGET_BUILD_DIR="$BUILD" CONTENTS_FOLDER_PATH="FilmDevelopEngine.app/Contents" \
   bash "$ROOT_DIR/scripts/build-compute-macos.sh"
 ditto "$ROOT_DIR/Vendor/MLXRuntime" "$APP/Contents/Resources/MLX"
+# 連結器的 OSO 除錯符號會另外記錄物件檔的絕對路徑；簽章前移除。
+xcrun strip -S "$APP/Contents/MacOS/filmdevelop-engine"
 codesign --force --sign - "$APP/Contents/MacOS/filmdevelop-engine"
 printf '原生引擎已建置：%s\n' "$APP/Contents/MacOS/filmdevelop-engine"

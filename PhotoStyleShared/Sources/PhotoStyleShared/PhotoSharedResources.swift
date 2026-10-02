@@ -7,6 +7,10 @@ enum PhotoSharedResources {
             if let url = Bundle.main.url(forResource: name, withExtension: "bundle"),
                let bundle = Bundle(url: url) { return bundle }
         }
+        #if FILMDEVELOP_BUNDLED_RESOURCES
+        preconditionFailure("缺少已封裝的 PhotoStyleShared 資源")
+        #else
         return .module
+        #endif
     }()
 }

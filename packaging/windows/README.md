@@ -53,8 +53,8 @@ NSIS 啟動器本身為 x86 Unicode，可在 x64 Windows 執行；內含的主�
 靜默命令（`/D=` 必須放最後，路徑不另外加引號）：
 
 ```text
-FilmDevelop-<版本>-build<組建>-windows-x64-setup.exe /S /D=C:\Users\使用者\AppData\Local\Programs\FilmDevelop
-"C:\Users\使用者\AppData\Local\Programs\FilmDevelop\Uninstall.exe" /S
+FilmDevelop-<版本>-build<組建>-windows-x64-setup.exe /S /D=%LOCALAPPDATA%\Programs\FilmDevelop
+"%LOCALAPPDATA%\Programs\FilmDevelop\Uninstall.exe" /S
 ```
 
 退出碼：`0` 成功、`2` 檔案占用／另一個安裝程序、`3` 目錄或檔案寫入失敗、`4` 不支援的 Windows／CPU 架構；一般使用者取消由 NSIS 回傳取消狀態。
