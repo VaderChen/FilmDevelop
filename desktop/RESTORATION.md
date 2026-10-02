@@ -1,6 +1,6 @@
 # Go 桌面功能恢復紀錄
 
-更新日期：2026-10-02。驗收依據為舊 macOS 桌面的實際操作、原始碼及保存資料。預設入口為 `run.command`，Go／Wails 管理 UI、主程序及共用業務；Swift／C++ 負責原生影像、推論與硬體計算。
+更新日期：2026-10-03。驗收依據為舊 macOS 桌面的實際操作、原始碼及保存資料。預設入口為 `run.command`，Go／Wails 管理 UI、主程序及共用業務；Swift／C++ 負責原生影像、推論與硬體計算。逐版的使用者可見差異另見 [CHANGELOG](../CHANGELOG.md)，本文件保留各輪驗證範圍與限制。
 
 ## 已依序接回
 
@@ -680,3 +680,29 @@ Windows 交付改為完整解壓後即可執行的 ZIP，內附原廠 VC++ x64 R
 | `FilmDevelop-1.26.1002-build2330-windows-x64-portable.zip` | 342,981,808 bytes | `dba50026ea2a31fc7652d0155faabb6c1c2be4fb0ba267d9586380742e542d35` |
 
 建置來源提交為 `5d43152e7e66b66d43ead95e4899b944c0cc48e6`；最後的發布提交只補文件與驗證紀錄，不變更產品原始碼。Release 附上三個正式成品的 `SHA256SUMS.txt` 與不含私人路徑的 `release-validation.json`。本機完整證據保存在 `build/release-20261002-2330`，不納入 Git。
+
+## 1.26.1003 build 0018：逐版差異、乾淨封裝與 Windows 縮包（2026-10-03）
+
+本次基準為上一個公開 Release **1.26.1002 build 2330**。本輪修改更新摘要、文件產生與封裝流程；影像演算、RAW 解碼器、LUT、模型及精度均未變更。完整的新增／修正／改善及四語翻譯見 [CHANGELOG](../CHANGELOG.md)。另外補列 build 2330 相較 build 1323 的差異，原有 Swift 歷史紀錄完整保存在 [CHANGELOG.swift.md](../CHANGELOG.swift.md)。
+
+- 更新完成視窗不再使用固定架構介紹。程式保存升級前版本，依平台與介面語言顯示逐版差異；其他對話框關閉後重送，讀取確認後不再重複出現。四語 README、CHANGELOG 與 Release 使用同一份版本資料，缺少目前版本紀錄會停止建置。
+- 完整發布入口已實際清空 `dist`，再依序重建兩種 Mac DMG 與 Windows ZIP；有執行鎖、連結與掛載點保護，並產生本輪明確的成品清單。
+- Windows 只從封裝副本移除九個 C++ PE 的 DWARF 除錯資料，逐一比較所有非除錯區段、RVA、旗標、進入點、匯入及匯出。Microsoft Runtime 原檔保留。ZIP 從 **327.09 MiB 降為 300.61 MiB**，減少 **26.48 MiB／8.1%**；原始檔案總量減少約 83.9 MiB，沒有降低影像或模型精度。
+
+| 本次重新執行的驗證 | 結果 |
+| --- | --- |
+| 受影響的 Go 套件 | application、releasenotes、updater 的 race 測試；internal 套件 vet、Python／JavaScript／Bash 語法通過。 |
+| Mac 桌面 | 原有 46 項 Wails Smoke、4 語更新摘要、16 項原生 Smoke 通過；摘要測試涵蓋比較基準、完整文字、阻擋後重送、確認及視窗範圍。 |
+| Mac 正式成品 | 兩種 DMG 與 App 簽章、公證、票證及 Gatekeeper 通過；正式標準 App 啟動，原片與 Portra 匯出像素一致。過渡包內嵌標準 App 的 110 個檔案相同。 |
+| 舊 Swift 升級 | 實際選包、準備、過渡包啟動、helper 替換及標準 App 再開通過，16 份資料保留。 |
+| Windows 10 x64／GTX 1060 | 六組正式 ZIP 實機驗證通過：解壓、逐檔驗證、12 個 Runtime 簽章與實際載入、更新、正式 GUI、WebView2 操作。170 個封裝檔案含清單本身，更新器驗證其中 169 個受管理內容。 |
+| Windows 更新與介面 | 更新 9 組、含子案例 23 項通過且未略過；14 項 UI 包含四語摘要、JPEG、配方、曝光、Vulkan 與 RAW 切換。測試完成後無本輪程序殘留。 |
+| 封裝與私密資料 | 4 項發布流程 Smoke 通過，665 份追蹤檔案完成檢查；`pack.command` 仍僅留本機，未追蹤或封裝。 |
+
+| 正式附件 | 大小 | SHA-256 |
+| --- | ---: | --- |
+| `FilmDevelop-1.26.1003-build0018-macos-arm64.dmg` | 87,290,484 bytes | `0142ccc18d586816fca5f903254a9d9a0183b2a3678e9b7858775b9adb4ae567` |
+| `FilmYourPhoto-1.26.1003-build-0018-arm64.dmg` | 92,229,054 bytes | `3b45a9dede6d88eebb90a5ccca60502db393ed33ceba0067c22be3125ba7f9cf` |
+| `FilmDevelop-1.26.1003-build0018-windows-x64-portable.zip` | 315,212,352 bytes | `3f91fc22af847abba883a3ff20d9ca64fd1832233bc64a5dc5785835b6dac5cc` |
+
+建置來源提交為 `4ad539e97cec1ff39679125c5f957af453f7a6a3`；此後只補本文件的實測紀錄。完整證據在本機 `build/release-notes-20261003`；Release 提供成品 SHA-256 與不含私人路徑的驗證摘要。Windows 實機驗證為 10 x64，沒有把 Windows 11、乾淨系統或其他 GPU 列為已測。完整 RAW／CPU／GPU 金樣本矩陣本輪未重跑，先前的 RAW 缺口、平台差異及 Swift XCTest 失敗基線仍依前文保留。
