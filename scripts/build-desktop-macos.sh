@@ -15,6 +15,7 @@ python3 "$ROOT_DIR/scripts/prepare-desktop.py"
 bash "$ROOT_DIR/scripts/build-engine-macos.sh"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources/Engine"
 go -C "$ROOT_DIR/desktop" build -trimpath -ldflags '-s -w' -tags desktop,production -o "$APP/Contents/MacOS/FilmDevelopGo" ./cmd/filmdevelop-desktop
+go -C "$ROOT_DIR/desktop" build -trimpath -ldflags '-s -w' -o "$ROOT_DIR/build/desktop/FilmDevelopBridge" ./cmd/filmdevelop-bridge
 python3 "$ROOT_DIR/scripts/macos-bundle.py" "$APP"
 mkdir -p "$APP/Contents/Resources/Engine/FilmDevelopEngine.app"
 rsync -a --delete "$ROOT_DIR/build/engine-macos/FilmDevelopEngine.app/" "$APP/Contents/Resources/Engine/FilmDevelopEngine.app/"

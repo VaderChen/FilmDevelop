@@ -5,6 +5,7 @@ import hashlib
 import json
 from pathlib import Path
 import plistlib
+import shutil
 import subprocess
 import tempfile
 import time
@@ -86,57 +87,87 @@ def main():
     assert info['CFBundleShortVersionString'] == version['version'] and info['CFBundleVersion'] == version['build']
     assert (app/'Contents/Resources/Engine/FilmDevelopEngine.app/Contents/MacOS/filmdevelop-engine').is_file()
     run('codesign','--verify','--deep','--strict',app)
-    privacy = audit(app)
+    audit(app)
+    bridge = ROOT/'build/desktop/FilmDevelopBridge'
+    if args.variant != 'current' and not bridge.is_file():
+        raise ValueError('請先建置 FilmDevelopBridge 過渡啟動器')
     destination = ROOT/'dist/macos-arm64'
     destination.mkdir(parents=True,exist_ok=True)
     variants = ('current', 'legacy') if args.variant == 'all' else (args.variant,)
-    for variant in variants:
-        legacy = variant == 'legacy'
-        prefix = 'legacy-' if legacy else ''
-        name = (f"FilmYourPhoto-{version['version']}-build-{version['build']}-arm64.dmg" if legacy else
-                f"FilmDevelop-{version['version']}-build{version['build']}-macos-arm64.dmg")
-        with tempfile.TemporaryDirectory(prefix='filmdevelop-package-',dir=ROOT/'build') as temporary:
-            work = Path(temporary)
-            payload = work/'payload'
-            payload.mkdir()
-            staged = payload/'FilmDevelop.app'
-            run('ditto',app,staged)
-            if legacy:
-                staged_info = dict(info, CFBundleIdentifier='person.vader.PhotoStyleApp')
-                (staged/'Contents/Info.plist').write_bytes(plistlib.dumps(staged_info))
-            if args.identity:
-                sign_app(staged,args.identity)
-                archive = work/'notarize.zip'
-                run('ditto','-c','-k','--sequesterRsrc','--keepParent',staged,archive)
-                notarize(archive,args.notary_profile,destination/(prefix+'notary-app.json'))
-                staple(staged)
-                run('spctl','--assess','--type','execute','--verbose=2',staged)
-            else:
-                run('codesign','--force','--sign','-',staged)
-                run('codesign','--verify','--deep','--strict',staged)
-            (payload/'Applications').symlink_to('/Applications',target_is_directory=True)
-            output = work/name
-            run('hdiutil','create','-volname','FilmDevelop','-srcfolder',payload,'-format','UDZO',output)
-            if args.identity:
-                run('codesign','--force','--timestamp','--sign',args.identity,output)
-                notarize(output,args.notary_profile,destination/(prefix+'notary-dmg.json'))
-                staple(output)
-                run('spctl','--assess','--type','open','--context','context:primary-signature','--verbose=2',output)
-            run('hdiutil','verify',output)
-            output.replace(destination/name)
-        digest = hashlib.sha256()
-        with (destination/name).open('rb') as file:
-            for block in iter(lambda:file.read(1024*1024),b''):
-                digest.update(block)
-        (destination/(prefix+'SHA256SUMS')).write_text(f'{digest.hexdigest()}  {name}\n')
-        (destination/(prefix+'verification.json')).write_text(json.dumps({
-            'version':version['version'],'build':version['build'],'asset':name,
-            'variant':variant,'bundleIdentifier':('person.vader.PhotoStyleApp' if legacy else info['CFBundleIdentifier']),
-            'sha256':digest.hexdigest(),'developerIDSigned':bool(args.identity),
-            'appleNotarized':bool(args.notary_profile),'stapled':bool(args.notary_profile),
-            'privacyAudit':privacy
-        },ensure_ascii=False,indent=2)+'\n')
-        print(destination/name)
+    # 標準 App 只簽章、公證一次；相容包直接內含完全相同的成品。
+    with tempfile.TemporaryDirectory(prefix='filmdevelop-canonical-',dir=ROOT/'build') as canonical_work:
+        canonical = Path(canonical_work)/'FilmDevelop.app'
+        run('ditto',app,canonical)
+        if args.identity:
+            sign_app(canonical,args.identity)
+            archive = Path(canonical_work)/'notarize.zip'
+            run('ditto','-c','-k','--sequesterRsrc','--keepParent',canonical,archive)
+            notarize(archive,args.notary_profile,destination/'notary-app.json')
+            staple(canonical)
+            run('spctl','--assess','--type','execute','--verbose=2',canonical)
+        for variant in variants:
+            legacy = variant == 'legacy'
+            prefix = 'legacy-' if legacy else ''
+            name = (f"FilmYourPhoto-{version['version']}-build-{version['build']}-arm64.dmg" if legacy else
+                    f"FilmDevelop-{version['version']}-build{version['build']}-macos-arm64.dmg")
+            with tempfile.TemporaryDirectory(prefix='filmdevelop-package-',dir=ROOT/'build') as temporary:
+                work = Path(temporary)
+                payload = work/'payload'
+                payload.mkdir()
+                staged = payload/'FilmDevelop.app'
+                if legacy:
+                    resources = staged/'Contents/Resources'
+                    (staged/'Contents/MacOS').mkdir(parents=True)
+                    (resources/'Migration').mkdir(parents=True)
+                    run('ditto',canonical,resources/'Migration/FilmDevelop.app')
+                    shutil.copy2(bridge,staged/'Contents/MacOS/FilmDevelopGo')
+                    shutil.copy2(canonical/'Contents/Resources/FilmDevelop.icns',resources/'FilmDevelop.icns')
+                    (resources/'Updater').mkdir()
+                    shutil.copy2(canonical/'Contents/Resources/Updater/install.sh',resources/'Updater/install.sh')
+                    # 舊 Go 1243 的驗證器也需要標準引擎路徑；指向包內同一份引擎。
+                    (resources/'Engine').symlink_to('Migration/FilmDevelop.app/Contents/Resources/Engine',target_is_directory=True)
+                    staged_info = dict(info, CFBundleIdentifier='person.vader.PhotoStyleApp',
+                                       FilmDevelopIdentityMigration=True, LSUIElement=True,
+                                       LSMultipleInstancesProhibited=True)
+                    (staged/'Contents/Info.plist').write_bytes(plistlib.dumps(staged_info))
+                    # 不重簽內嵌標準 App，保留其相同簽章與公證票證。
+                    options = ['--timestamp','--options','runtime'] if args.identity else []
+                    for item in [staged/'Contents/MacOS/FilmDevelopGo',staged]:
+                        run('codesign','--force',*options,'--sign',args.identity or '-',item)
+                    run('codesign','--verify','--deep','--strict',staged)
+                    if args.identity:
+                        archive = work/'notarize.zip'
+                        run('ditto','-c','-k','--sequesterRsrc','--keepParent',staged,archive)
+                        notarize(archive,args.notary_profile,destination/'legacy-notary-app.json')
+                        staple(staged)
+                        run('spctl','--assess','--type','execute','--verbose=2',staged)
+                else:
+                    run('ditto',canonical,staged)
+                privacy = audit(staged)
+                (payload/'Applications').symlink_to('/Applications',target_is_directory=True)
+                output = work/name
+                run('hdiutil','create','-volname','FilmDevelop','-srcfolder',payload,'-format','UDZO',output)
+                if args.identity:
+                    run('codesign','--force','--timestamp','--sign',args.identity,output)
+                    notarize(output,args.notary_profile,destination/(prefix+'notary-dmg.json'))
+                    staple(output)
+                    run('spctl','--assess','--type','open','--context','context:primary-signature','--verbose=2',output)
+                run('hdiutil','verify',output)
+                output.replace(destination/name)
+            digest = hashlib.sha256()
+            with (destination/name).open('rb') as file:
+                for block in iter(lambda:file.read(1024*1024),b''):
+                    digest.update(block)
+            (destination/(prefix+'SHA256SUMS')).write_text(f'{digest.hexdigest()}  {name}\n')
+            (destination/(prefix+'verification.json')).write_text(json.dumps({
+                'version':version['version'],'build':version['build'],'asset':name,
+                'variant':variant,'bundleIdentifier':('person.vader.PhotoStyleApp' if legacy else info['CFBundleIdentifier']),
+                'identityMigration':legacy,'installedBundleIdentifier':info['CFBundleIdentifier'],
+                'sha256':digest.hexdigest(),'developerIDSigned':bool(args.identity),
+                'appleNotarized':bool(args.notary_profile),'stapled':bool(args.notary_profile),
+                'privacyAudit':privacy
+            },ensure_ascii=False,indent=2)+'\n')
+            print(destination/name)
 
 
 if __name__ == '__main__':

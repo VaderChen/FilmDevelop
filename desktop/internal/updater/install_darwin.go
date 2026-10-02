@@ -214,46 +214,110 @@ func prepareBundle(ctx context.Context, target, assetPath string, version Versio
 	if candidate == "" {
 		return nil, errors.New("找不到相符的 Go 混合 App")
 	}
-	if err = ValidateBundle(ctx, candidate, id, version); err != nil {
-		return nil, err
-	}
-	team, err := signingTeam(ctx, target)
-	if err != nil {
-		return nil, err
-	}
-	newTeam, err := signingTeam(ctx, candidate)
-	if err != nil {
-		return nil, err
-	}
-	if team != "" && team != newTeam {
-		return nil, errors.New("新版開發者簽章與已安裝版本不符")
-	}
-	staged, err := os.MkdirTemp(filepath.Dir(target), ".FilmYourPhoto-*.app")
-	if err != nil {
-		return nil, err
-	}
-	p.Staged = staged
-	p.Backup = staged + ".bak"
-	if _, err = run(ctx, "/usr/bin/ditto", "--norsrc", candidate, staged); err != nil {
-		return nil, err
-	}
-	if err = ValidateBundle(ctx, staged, id, version); err != nil {
-		return nil, err
-	}
-	helper, err := os.ReadFile(filepath.Join(target, "Contents", "Resources", "Updater", "install.sh"))
-	if err != nil {
-		return nil, err
-	}
-	if err = os.WriteFile(filepath.Join(work, "install.sh"), helper, 0700); err != nil {
-		return nil, err
-	}
-	receipt, _ := json.Marshal(map[string]string{"target": target, "staged": p.Staged, "backup": p.Backup, "tag": version.Tag(), "identifier": id})
-	if err = os.WriteFile(filepath.Join(work, "receipt.json"), receipt, 0600); err != nil {
+	if err = stageReplacement(ctx, p, candidate, id, id); err != nil {
 		return nil, err
 	}
 	success = true
 	return p, nil
 }
+
+// 只有相容啟動器可以進行 legacy → current 的單向身分移轉。
+// 一般更新仍要求識別一致；跨識別必須由相同的正式 Developer Team 簽章。
+func replacementIdentityAllowed(source, destination string, migration bool) bool {
+	if migration {
+		return source == LegacyMacBundleIdentifier && destination == MacBundleIdentifier
+	}
+	return source == destination && (source == MacBundleIdentifier || source == LegacyMacBundleIdentifier)
+}
+
+func stageReplacement(ctx context.Context, p *Prepared, candidate, sourceID, destinationID string) error {
+	migration := sourceID != destinationID
+	if !replacementIdentityAllowed(sourceID, destinationID, migration) {
+		return errors.New("不允許此 App 識別移轉")
+	}
+	if err := ValidateBundle(ctx, candidate, destinationID, p.Version); err != nil {
+		return err
+	}
+	team, err := signingTeam(ctx, p.Target)
+	if err != nil {
+		return err
+	}
+	newTeam, err := signingTeam(ctx, candidate)
+	if err != nil {
+		return err
+	}
+	if (migration && (team == "" || newTeam == "")) || (team != "" && team != newTeam) {
+		return errors.New("新版開發者簽章與已安裝版本不符")
+	}
+	staged, err := os.MkdirTemp(filepath.Dir(p.Target), ".FilmYourPhoto-*.app")
+	if err != nil {
+		return err
+	}
+	p.Staged, p.Backup = staged, staged+".bak"
+	if _, err = run(ctx, "/usr/bin/ditto", "--norsrc", candidate, staged); err != nil {
+		return err
+	}
+	if err = ValidateBundle(ctx, staged, destinationID, p.Version); err != nil {
+		return err
+	}
+	helper, err := os.ReadFile(filepath.Join(candidate, "Contents", "Resources", "Updater", "install.sh"))
+	if err != nil {
+		return err
+	}
+	if err = os.WriteFile(filepath.Join(p.Work, "install.sh"), helper, 0700); err != nil {
+		return err
+	}
+	receipt, _ := json.Marshal(map[string]string{"target": p.Target, "staged": p.Staged, "backup": p.Backup, "tag": p.Version.Tag(), "identifier": destinationID})
+	return os.WriteFile(filepath.Join(p.Work, "receipt.json"), receipt, 0600)
+}
+
+func PrepareIdentityMigration(ctx context.Context) (*Prepared, error) {
+	target, err := Bundle()
+	if err != nil {
+		return nil, err
+	}
+	return prepareIdentityMigration(ctx, target)
+}
+
+func prepareIdentityMigration(ctx context.Context, target string) (*Prepared, error) {
+	if strings.Contains(target, "/AppTranslocation/") {
+		return nil, errors.New("請先將 FilmDevelop 移入可寫入的應用程式資料夾，再開啟以完成升級")
+	}
+	info, err := metadata(ctx, target)
+	if err != nil {
+		return nil, err
+	}
+	if info["CFBundleIdentifier"] == MacBundleIdentifier {
+		return nil, nil // 已移轉的安裝不再執行。
+	}
+	if info["CFBundleIdentifier"] != LegacyMacBundleIdentifier || info["FilmDevelopIdentityMigration"] != true {
+		return nil, errors.New("找不到有效的 FilmDevelop 過渡安裝包")
+	}
+	version, vok := info["CFBundleShortVersionString"].(string)
+	build, bok := info["CFBundleVersion"].(string)
+	if !vok || !bok {
+		return nil, errors.New("過渡安裝包版本不符")
+	}
+	v := Version{version, build}
+	if _, err = Parse(v.Tag()); err != nil {
+		return nil, err
+	}
+	if err = ValidateBundle(ctx, target, LegacyMacBundleIdentifier, v); err != nil {
+		return nil, err
+	}
+	work, err := os.MkdirTemp("", "FilmYourPhoto-update-")
+	if err != nil {
+		return nil, err
+	}
+	p := &Prepared{Work: work, Target: target, Version: v}
+	candidate := filepath.Join(target, "Contents", "Resources", "Migration", "FilmDevelop.app")
+	if err = stageReplacement(ctx, p, candidate, LegacyMacBundleIdentifier, MacBundleIdentifier); err != nil {
+		p.Discard()
+		return nil, err
+	}
+	return p, nil
+}
+
 func (p *Prepared) Discard() {
 	if p.Staged != "" {
 		_ = os.RemoveAll(p.Staged)

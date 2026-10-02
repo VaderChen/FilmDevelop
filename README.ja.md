@@ -8,11 +8,11 @@
 
 ## ダウンロード
 
-[Mac・Windows 版をダウンロード](https://github.com/VaderChen/FilmDevelop/releases/latest)。バージョンは **1.26.1002 build 1243**、Windows は **Beta** 表記です。
+[Mac・Windows 版をダウンロード](https://github.com/VaderChen/FilmDevelop/releases/latest)。バージョンは **1.26.1002 build 1323**、Windows は **Beta** 表記です。
 
 Mac は Apple Silicon・macOS 14 以降に対応。DMG から FilmDevelop を「アプリケーション」に移動します。今回の DMG と内包アプリは Developer ID 署名・Apple 公証・公証チケット添付済みです。Windows は 10／11 x64、WebView2 と VC++ x64 Runtime が必要です。x64 setup EXE を実行してください。Authenticode 署名はありません。
 
-旧 Swift Mac 版は「アップデートを確認」から直接更新できます。旧 App 識別子を保持する FilmYourPhoto 互換パッケージも提供します。2 種類の Mac パッケージは同じ Go 実行ファイルを使用し、インストール済みの識別子に応じて次の更新を選択します。認識できる編集、星評価、カテゴリ、カスタムフィルムを引き継ぎ、新版のデータを優先します。データベースの書き出し・読み込みと再配置で別の PC へ移せますが、元写真は含みません。繁体字中国語・英語・日本語・韓国語に対応します。
+旧 Swift Mac 版は「アップデートを確認」から直接更新できます。FilmYourPhoto 移行パッケージは初回起動時に同じインストール先を標準 FilmDevelop 識別子へ移行します。追加ダウンロードは不要で、以後の更新は FilmDevelop を使用します。移行期間中は旧 Swift 版と従来の互換インストール向けの入口を維持します。認識できる編集、星評価、カテゴリ、カスタムフィルムを引き継ぎ、新版のデータを優先します。データベースの書き出し・読み込みと再配置で別の PC へ移せますが、元写真は含みません。繁体字中国語・英語・日本語・韓国語に対応します。
 
 ## 特長
 

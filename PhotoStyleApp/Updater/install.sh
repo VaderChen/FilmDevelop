@@ -20,6 +20,15 @@ end run
 APPLESCRIPT
 }
 
+open_updated_app() {
+  update_open_args=(-n -a "$update_target")
+  # 保留明確指定的隔離資料目錄，避免重新啟動後改用正式使用者資料。
+  if [[ -n "${FILMDEVELOP_DATA_DIR:-}" ]]; then
+    update_open_args+=(--env "FILMDEVELOP_DATA_DIR=$FILMDEVELOP_DATA_DIR")
+  fi
+  /usr/bin/open "${update_open_args[@]}" "$@"
+}
+
 # Wait for the app's normal save / GPU shutdown sequence. Do not force-quit it.
 for ((attempt=0; attempt<120; attempt++)); do
   if ! /bin/kill -0 "$update_pid" 2>/dev/null; then break; fi
@@ -35,7 +44,7 @@ restore() {
   if [[ "$status" -ne 0 ]]; then
     if [[ "$update_installed" -eq 1 ]]; then /bin/mv "$update_target" "$update_staged" || true; fi
     if [[ "$update_moved" -eq 1 && ! -e "$update_target" ]]; then /bin/mv "$update_backup" "$update_target" || true; fi
-    /usr/bin/open -n -a "$update_target" || true
+    open_updated_app || true
     show_update_alert "$update_failure_title" "$update_failure_message" || true
   fi
   exit "$status"
@@ -47,7 +56,7 @@ trap restore EXIT
 update_moved=1
 /bin/mv "$update_staged" "$update_target"
 update_installed=1
-/usr/bin/open -n -a "$update_target" --args --finish-update "$update_work"
+open_updated_app --args --finish-update "$update_work"
 # Keep the backup until the new app has actually started and accepted the receipt.
 for ((attempt=0; attempt<60; attempt++)); do
   if [[ -f "$update_work/confirmed" ]]; then

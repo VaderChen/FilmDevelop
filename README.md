@@ -8,14 +8,14 @@
 
 ## 下載使用
 
-[下載 Mac 與 Windows 版](https://github.com/VaderChen/FilmDevelop/releases/latest)。目前版本：**1.26.1002 build 1243**，Windows 標示 **Beta**。
+[下載 Mac 與 Windows 版](https://github.com/VaderChen/FilmDevelop/releases/latest)。目前版本：**1.26.1002 build 1323**，Windows 標示 **Beta**。
 
 | 平台 | 安裝方式與需求 |
 | --- | --- |
 | macOS | Apple Silicon、macOS 14 以上。開啟 `macos-arm64.dmg`，將 FilmDevelop 拖進「應用程式」。本次 DMG 及內含 App 已完成 Developer ID 簽章、Apple 公證與票證附加。 |
 | Windows Beta | Windows 10／11 x64，執行 `windows-x64-setup.exe`。需要 WebView2 與 VC++ x64 Runtime；安裝程式未簽署 Authenticode。 |
 
-兩個平台共用繁體中文、英文、日文與韓文介面。舊 Swift Mac 版可使用「檢查更新」直接升級；Release 同時提供保留舊 App 識別的 FilmYourPhoto 相容安裝包。兩種 Mac 安裝包共用同一份 Go 程式，會依目前安裝身分選擇後續更新。安裝後會沿用可辨識的照片調整、星級、分類與自訂底片，既有新版資料優先。換電腦可在設定中「匯出資料庫／匯入並重新定位」；資料包不含原始照片，舊紀錄缺少原路徑時需重新定位。
+兩個平台共用繁體中文、英文、日文與韓文介面。舊 Swift Mac 版可使用「檢查更新」直接升級；FilmYourPhoto 過渡包會在第一次開啟時，將原安裝位置轉為標準 FilmDevelop 身分，不需第二次下載。完成後，後續更新只使用 FilmDevelop；過渡期仍保留舊 Swift 與先前相容包的升級入口。安裝後會沿用可辨識的照片調整、星級、分類與自訂底片，既有新版資料優先。換電腦可在設定中「匯出資料庫／匯入並重新定位」；資料包不含原始照片，舊紀錄缺少原路徑時需重新定位。
 
 ## 特色
 
