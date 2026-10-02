@@ -1377,13 +1377,30 @@
     dialog.setAttribute('aria-labelledby', 'updateCompleteTitle');
     dialog.setAttribute('aria-describedby', 'updateCompleteVersion');
     var highlights = Array.isArray(payload.highlights) ? payload.highlights : [];
+    var notes = payload.notes;
+    var language = L.resolve(state.language);
+    var localized = function (value) { return value && (value[language] || value.english) || ''; };
+    var displayTag = function (tag) { return String(tag || '').replace(/^v/, '').replace(/-build-?/, ' build '); };
+    var details = '<ul>' + highlights.filter(function (item) { return typeof item === 'string'; }).map(function (item) {
+      return '<li>' + escapeHtml(L.text(item)) + '</li>';
+    }).join('') + '</ul>';
+    if (notes && Array.isArray(notes.releases) && notes.labels) {
+      details = '<p class="update-comparison">' + escapeHtml(localized(notes.labels.comparison) + displayTag(notes.previousTag)) + '</p>';
+      if (notes.baselineUnknown) details += '<p>' + escapeHtml(localized(notes.labels.fallback)) + '</p>';
+      if (notes.releases.length > 1) details += '<p>' + escapeHtml(localized(notes.labels.included)) + '</p>';
+      details += notes.releases.map(function (release) {
+        return '<section class="update-release"><h3>' + escapeHtml(displayTag(release.tag)) + '</h3><ul>' +
+          (release.changes || []).map(function (change) {
+            return '<li><strong>' + escapeHtml(localized(notes.labels[change.kind])) + '</strong> — ' + escapeHtml(localized(change.text)) + '</li>';
+          }).join('') + '</ul></section>';
+      }).join('');
+      if (notes.earlierHistory) details += '<p>' + escapeHtml(localized(notes.labels.older)) + '</p>';
+    }
     dialog.innerHTML = '<div class="prompt-dialog-head"><div><h2 id="updateCompleteTitle">' + escapeHtml(L.text('更新完成')) +
       '</h2><p id="updateCompleteVersion">' + escapeHtml(L.text('目前版本：' + (payload.version || ''))) +
       '</p></div><button type="button" class="collapse-button" data-update-close aria-label="' + escapeHtml(L.text('關閉')) + '">' +
-      iconSvg('x') + '</button></div><div class="update-complete-body selectable"><ul>' +
-      highlights.filter(function (item) { return typeof item === 'string'; }).map(function (item) {
-        return '<li>' + escapeHtml(L.text(item)) + '</li>';
-      }).join('') + '</ul></div><div class="prompt-dialog-actions"><button type="button" class="button primary" data-update-close autofocus>' +
+      iconSvg('x') + '</button></div><div class="update-complete-body selectable">' + details +
+      '</div><div class="prompt-dialog-actions"><button type="button" class="button primary" data-update-close autofocus>' +
       escapeHtml(L.text('好')) + '</button></div>';
     dialog.querySelectorAll('[data-update-close]').forEach(function (button) {
       button.addEventListener('click', function () { dialog.close(); });

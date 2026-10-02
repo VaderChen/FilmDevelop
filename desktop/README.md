@@ -1,6 +1,6 @@
 # Go 桌面宿主與跨平台進度
 
-更新日期：2026-10-02，版本 **1.26.1002 build 2330**。`run.command` 建置並開啟 **Go／Wails 主程序＋Swift／C++ 影像引擎**。Go 共用 UI、照片、配方、設定、資料移轉、模型、MCP、更新與匯出流程；macOS 使用 Swift／Apple 框架及 C++，Windows 使用 C++／WIC／Vulkan。
+更新日期：2026-10-03，版本 **1.26.1003 build 0018**。`run.command` 建置並開啟 **Go／Wails 主程序＋Swift／C++ 影像引擎**。Go 共用 UI、照片、配方、設定、資料移轉、模型、MCP、更新與匯出流程；macOS 使用 Swift／Apple 框架及 C++，Windows 使用 C++／WIC／Vulkan。
 
 macOS 支援 Apple Silicon、macOS 14 以上；Windows 支援 10／11 x64，版本文字附 **Beta**。兩平台均已接通底片、編輯、RAW 備援、AI 分析與修復、匯出及資料移轉；平台差異與實測界線列於文末。
 ## 分工
@@ -121,7 +121,7 @@ RAW 矩陣為 44 份、17 品牌、31 機型；共用 LibRaw 成功 38／44，�
 python3 scripts/package-macos.py --identity 'Developer ID Application: 姓名 (TEAMID)' --notary-profile '本機設定名稱'
 ```
 
-Windows 建置與安裝細節見[封裝說明](../packaging/windows/README.md)。發布時核對安裝包內的版本、所有檔案雜湊及 GitHub 資產 digest。舊 Swift 更新器使用不同套件命名與 bundle ID，第一次升級混合版需手動下載；新版保留自己的資料路徑與更新介面。
+Windows 建置與安裝細節見[封裝說明](../packaging/windows/README.md)。發布時核對安裝包內的版本、所有檔案雜湊及 GitHub 資產 digest。舊 Swift Mac 版可直接使用「檢查更新」；FilmYourPhoto 過渡包會完成一次性安裝識別移轉，後續使用標準 FilmDevelop 更新包。舊 Windows setup 版首次轉成免安裝 ZIP 才需要手動下載。
 
 Swift 風格變更後，先建置 `PhotoStyleShared`，執行 `python3 scripts/sync-swift-catalog.py`、`python3 scripts/export-windows-style-data.py`；可用 `--check` 核對。Go 靜態目錄涵蓋隱藏配方以還原舊照片，前端只在選用入口隱藏，自訂底片不繼承隱藏狀態。原有 1,957 項 Swift 金樣本保持不變，新增相容配方使用獨立的 Swift 擷取資料驗證。
 
@@ -132,3 +132,17 @@ Swift 風格變更後，先建置 `PhotoStyleShared`，執行 `python3 scripts/s
 macOS 的 Swift／Core Image 管線不使用 Windows 完整 C++ 管線的 `digital-looks` 與 `editor` 查表，因此封裝時排除這兩組資料；RAW 校色表及授權完整保留。Core ML 模型先從來源編譯，只封裝執行用模型與授權，避免重複攜帶同一份權重。Go 正式建置移除除錯符號。資源同步會刪除舊建置殘留，避免增量建置將已排除內容帶回。
 
 正式建置為 Go 啟用 `-trimpath`，為 Swift／C++ 啟用來源路徑映射，移除原生連結器的 OSO 除錯路徑；已封裝的 SwiftPM 資源不回退到建置機路徑。`scripts/release_audit.py` 在 Mac／Windows 封裝前掃描 ASCII 與 UTF-16 的私人路徑、私鑰及常見存取權杖，只回報相對檔名，不輸出疑似敏感值。`pack.command` 保持本機忽略，若意外進入安裝內容，封裝檢查會拒絕發布。
+
+## 逐版更新紀錄與完整發布
+
+程式的「更新完成」、四語 README 摘要、[CHANGELOG](../CHANGELOG.md) 與 GitHub Release 皆以 `desktop/internal/releasenotes/history.json` 為共同來源。每版記錄 `previousTag` 及實際新增／修正／改善；不得將累積功能清單當作此次變更。升版時必須填寫四語內容，再執行：
+
+```sh
+python3 scripts/release_notes.py --write
+python3 scripts/release_notes.py --check
+python3 scripts/package-release.py --identity 'Developer ID Application: 姓名 (TEAMID)' --notary-profile '本機設定名稱'
+```
+
+完整發布入口會鎖定這輪工作，先驗證版本紀錄與公證設定，再清空專案 `dist` 一次，依序重新建置 Mac 標準 DMG、Swift 過渡 DMG 與 Windows 免安裝 ZIP。只列出目前版本的三個成品，產生 SHA-256 與四語 Release 說明；實機 Smoke、驗證摘要與 GitHub 發布另行完成。`dist` 不應存放需要保留的資料。單平台封裝工具仍可用於開發，但完整 Release 必須走此入口，避免殘留舊版產物。
+
+更新收據另外保留升級前版本，跨版更新會逐版列出適用於目前平台的變更；讀取前被其他對話框擋住時會延後顯示，確認後才清除。沒有舊版收據時明確顯示比較基準，使用最近一次公開版的差異。

@@ -1,0 +1,44 @@
+# 変更履歴
+
+[繁體中文](CHANGELOG.md) · [English](CHANGELOG.en.md) · [日本語](CHANGELOG.ja.md) · [한국어](CHANGELOG.ko.md)
+
+<!-- 由 scripts/release_notes.py 產生；請修改 history.json。 -->
+
+## 1.26.1003 build 0018
+
+比較元：**1.26.1002 build 2330**。
+
+- **修正**：更新完了画面に今回の追加・修正・改善と比較元バージョンを表示し、選択した表示言語に合わせます。
+- **修正**：複数バージョンを飛ばして更新した場合は変更をバージョン別に表示します。他のダイアログが開いていても、閉じた後に更新内容を表示します。
+- **改善 · Windows**：Windows ポータブル ZIP から C++ のデバッグ情報を除き、画像処理、ルックアップテーブル、モデル、Microsoft Runtime は維持します。
+- **追加**：バージョン別の変更履歴を追加。README、アプリ内の更新内容、GitHub Release は同じ4言語データを使用し、build 1323 から build 2330 への変更も記載します。
+- **改善**：完全なリリース処理では最初にプロジェクトの dist を一度空にしてから Mac と Windows を順にビルドし、変更履歴と成果物一覧を検証します。
+
+[ソースの差分](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1002-build-2330...v1.26.1003-build-0018) · [検証記録](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-0018/desktop/RESTORATION.md)
+
+## 1.26.1002 build 2330
+
+比較元：**1.26.1002 build 1323**。
+
+- **修正**：一覧サムネイル、編集サムネイル、完全プレビューの表示範囲を統一し、写真切り替え時に突然拡大する問題を修正しました。
+- **改善**：容量制限付きキャッシュと C++ ワーカースレッドを再利用。Mac のソフトウェア RAW 編集プレビューは半解像度でデコードし、原寸プレビューと書き出しは完全デコードを維持します。
+- **改善**：乳剤結晶の計算を共有し、境界を再計算。4サンプル・3層・FP32 を維持し、指定条件の乳剤段階は約30～35%高速化しました。プレビュー全体の高速化率ではありません。
+- **追加 · Windows**：Windows をポータブル ZIP に変更。全ファイルを展開して実行できます。Microsoft 純正 VC++ x64 Runtime DLL を12個同梱し、WebView2 は引き続き必要です。
+- **追加 · Windows**：Windows ポータブル版はアプリ内更新に対応。ZIP と各ファイルの SHA-256 を検証し、追加ファイルを保持し、起動失敗時は復元します。旧 setup 版からの初回移行は ZIP の手動取得が必要です。
+- **修正**：Swift の Sendable 警告とビルドシステム互換性を修正し、Windows CPU／Vulkan の画像と更新処理を追加検証しました。
+
+[ソースの差分](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1002-build-1323...v1.26.1002-build-2330) · [検証記録](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1002-build-2330/desktop/RESTORATION.md)
+
+## 1.26.1002 build 1323
+
+比較元：**1.26.0930 build 1745**。
+
+- **追加**：共通の Go／Wails デスクトップと Windows x64 Beta を追加。Mac は Swift／C++ 画像エンジンを継続使用します。
+- **修正 · macOS**：旧 Swift Mac 版からの直接更新を修正。FilmYourPhoto 移行パッケージは初回起動時に識別子を移行し、以後は標準 FilmDevelop パッケージを使用します。
+- **追加**：Swift の編集、星評価、カテゴリ、カスタムフィルムを引き継ぎ、移行記録とデータベースの書き出し・読み込み・再配置を追加。新版の既存データを優先します。
+- **追加**：切り抜きの復元、既定で有効な EXIF 書き込み、Swift と同じ書き出し名を追加。通常の右クリックメニュー、操作別ボタン色、コンパクトな一覧、カスタムフィルム選択も整えました。
+- **改善**：RAW と演算方式はシステムを既定とし設定を保存。Windows は Vulkan GPU を検出し、利用できなければ CPU に切り替えます。重複リソースを削減し個人用パスを検査しました。
+
+[ソースの差分](https://github.com/VaderChen/FilmDevelop/compare/v1.26.0930-build-1745...v1.26.1002-build-1323) · [検証記録](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1002-build-1323/desktop/RESTORATION.md)
+
+[Swift · 変更履歴 (繁體中文)](CHANGELOG.swift.md)

@@ -4,8 +4,10 @@ from pathlib import Path
 import json
 import shutil
 from windows_resources import project_version
+from release_notes import load_history
 
 root = Path(__file__).resolve().parents[1]
+load_history()  # 升版時未填差異，立即停止建置，避免再次顯示舊摘要。
 source = root / 'PhotoStyleApp/Web'
 target = root / 'desktop/frontend/dist'
 target.mkdir(parents=True, exist_ok=True)

@@ -8,11 +8,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/VaderChen/FilmDevelop/internal/mcp"
+	"github.com/VaderChen/FilmDevelop/internal/releasenotes"
 	wruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	"net/http"
 	"os"
 	"path/filepath"
 )
+
+// 只在隔離 Smoke 建置建立更新收據，透過正式背景通知與前端確認流程驗證。
+func (a *App) RunUpdateNoticeSmoke() {
+	a.mu.Lock()
+	a.updateState = updateState{Version: 1, Last: currentVersion.Tag(), Pending: currentVersion.Tag(),
+		Previous: releasenotes.ForUpgrade(currentVersion, "", "").PreviousTag}
+	a.mu.Unlock()
+	a.startUpdateCheck()
+}
 
 // 測試版本只替換作業系統的路徑選擇；前端按鈕及 Go 指令仍走正式流程。
 func (a *App) ConfigureDirectorySmoke(path string) {

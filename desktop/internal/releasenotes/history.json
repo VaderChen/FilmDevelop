@@ -1,0 +1,245 @@
+{
+  "schema": 1,
+  "labels": {
+    "added": {
+      "traditionalChinese": "新增",
+      "english": "Added",
+      "japanese": "追加",
+      "korean": "추가"
+    },
+    "fixed": {
+      "traditionalChinese": "修正",
+      "english": "Fixed",
+      "japanese": "修正",
+      "korean": "수정"
+    },
+    "improved": {
+      "traditionalChinese": "改善",
+      "english": "Improved",
+      "japanese": "改善",
+      "korean": "개선"
+    },
+    "comparison": {
+      "traditionalChinese": "相較版本：",
+      "english": "Compared with: ",
+      "japanese": "比較元：",
+      "korean": "비교 버전: "
+    },
+    "included": {
+      "traditionalChinese": "本次升級包含以下版本的變更。",
+      "english": "This upgrade includes the following releases.",
+      "japanese": "今回の更新に含まれるバージョンごとの変更です。",
+      "korean": "이번 업데이트에 포함된 버전별 변경 사항입니다."
+    },
+    "fallback": {
+      "traditionalChinese": "未取得升級前的版本，以下顯示相較上一個發布版本的變更。",
+      "english": "The previous installed version is unavailable; changes below compare with the preceding published release.",
+      "japanese": "更新前のバージョンを取得できないため、直前の公開版との差分を表示します。",
+      "korean": "이전 설치 버전을 확인할 수 없어 직전 공개 버전과의 차이를 표시합니다."
+    },
+    "older": {
+      "traditionalChinese": "較早版本的細節請參考完整更新紀錄。",
+      "english": "See the full changelog for earlier version details.",
+      "japanese": "さらに古い版の詳細は変更履歴をご覧ください。",
+      "korean": "더 이전 버전의 자세한 내용은 전체 변경 기록을 확인하세요."
+    },
+    "changelog": {
+      "traditionalChinese": "完整更新紀錄",
+      "english": "Full changelog",
+      "japanese": "変更履歴",
+      "korean": "전체 변경 기록"
+    }
+  },
+  "releases": [
+    {
+      "tag": "v1.26.1003-build-0018",
+      "previousTag": "v1.26.1002-build-2330",
+      "changes": [
+        {
+          "kind": "fixed",
+          "text": {
+            "traditionalChinese": "更新完成視窗改為顯示本次新增、修正與改善，列出比較版本，並依介面語言顯示繁中、英文、日文或韓文。",
+            "english": "The update-complete dialog now lists actual additions, fixes and improvements, with a comparison version, in the selected interface language.",
+            "japanese": "更新完了画面に今回の追加・修正・改善と比較元バージョンを表示し、選択した表示言語に合わせます。",
+            "korean": "업데이트 완료 창에 실제 추가·수정·개선 사항과 비교 버전을 표시하고 선택한 UI 언어를 적용합니다."
+          },
+          "inApp": true
+        },
+        {
+          "kind": "fixed",
+          "text": {
+            "traditionalChinese": "跨版本升級會分版列出尚未看過的更新；其他對話框關閉後會再次顯示摘要，避免更新說明被略過。",
+            "english": "When skipping versions, changes are grouped by release. If another dialog is open, the update summary is delivered again after it closes.",
+            "japanese": "複数バージョンを飛ばして更新した場合は変更をバージョン別に表示します。他のダイアログが開いていても、閉じた後に更新内容を表示します。",
+            "korean": "여러 버전을 건너뛰면 변경 사항을 버전별로 표시합니다. 다른 대화상자가 열려 있으면 닫힌 후 업데이트 내용을 다시 표시합니다."
+          },
+          "inApp": true
+        },
+        {
+          "kind": "improved",
+          "text": {
+            "traditionalChinese": "Windows 免安裝 ZIP 縮減 C++ 除錯資料，保留原有影像演算、查表、模型與 Microsoft Runtime。",
+            "english": "The Windows portable ZIP omits C++ debug data while retaining the existing image algorithms, lookup tables, models and Microsoft runtime.",
+            "japanese": "Windows ポータブル ZIP から C++ のデバッグ情報を除き、画像処理、ルックアップテーブル、モデル、Microsoft Runtime は維持します。",
+            "korean": "Windows 포터블 ZIP에서 C++ 디버그 정보를 제거하고 기존 이미지 연산, 룩업 테이블, 모델과 Microsoft Runtime을 유지합니다."
+          },
+          "inApp": true,
+          "platforms": [
+            "windows"
+          ]
+        },
+        {
+          "kind": "added",
+          "text": {
+            "traditionalChinese": "新增逐版更新紀錄；README、程式摘要與 GitHub Release 使用同一份四語資料，並補列 build 2330 相較 build 1323 的差異。",
+            "english": "Added a version-by-version changelog. README summaries, in-app notes and GitHub releases share one four-language source, including the changes from build 1323 to build 2330.",
+            "japanese": "バージョン別の変更履歴を追加。README、アプリ内の更新内容、GitHub Release は同じ4言語データを使用し、build 1323 から build 2330 への変更も記載します。",
+            "korean": "버전별 변경 기록을 추가했습니다. README, 앱 내 요약과 GitHub Release가 4개 언어의 공통 데이터를 사용하며 build 1323 대비 build 2330의 차이도 기록합니다."
+          },
+          "inApp": true
+        },
+        {
+          "kind": "improved",
+          "text": {
+            "traditionalChinese": "完整發布流程先清空專案 dist，再依序建置 Mac 與 Windows；驗證版本紀錄與成品清單，避免混入舊版封裝。",
+            "english": "The full release workflow clears the project dist directory once before building Mac and Windows in sequence, and validates release notes and the artifact list.",
+            "japanese": "完全なリリース処理では最初にプロジェクトの dist を一度空にしてから Mac と Windows を順にビルドし、変更履歴と成果物一覧を検証します。",
+            "korean": "전체 릴리스 작업은 프로젝트의 dist를 먼저 한 번 비운 후 Mac과 Windows를 순서대로 빌드하고 버전 기록과 배포 파일 목록을 검증합니다."
+          },
+          "inApp": false
+        }
+      ]
+    },
+    {
+      "tag": "v1.26.1002-build-2330",
+      "previousTag": "v1.26.1002-build-1323",
+      "changes": [
+        {
+          "kind": "fixed",
+          "text": {
+            "traditionalChinese": "統一列表縮圖、編輯縮圖與完整預覽的顯示範圍，修正切換照片時過渡畫面突然放大的問題。",
+            "english": "Aligned framing across list thumbnails, editing thumbnails and full previews to prevent a sudden zoom during photo transitions.",
+            "japanese": "一覧サムネイル、編集サムネイル、完全プレビューの表示範囲を統一し、写真切り替え時に突然拡大する問題を修正しました。",
+            "korean": "목록 썸네일, 편집 썸네일과 전체 미리보기의 표시 범위를 맞춰 사진 전환 중 갑자기 확대되는 문제를 수정했습니다."
+          },
+          "inApp": true
+        },
+        {
+          "kind": "improved",
+          "text": {
+            "traditionalChinese": "重用有容量上限的快取與 C++ 工作執行緒；Mac 軟體 RAW 編輯預覽採半尺寸解碼，完整預覽與匯出維持完整解碼。",
+            "english": "Reused bounded caches and C++ worker threads. Mac software RAW editing previews use half-size decoding, while full-resolution previews and exports retain full decoding.",
+            "japanese": "容量制限付きキャッシュと C++ ワーカースレッドを再利用。Mac のソフトウェア RAW 編集プレビューは半解像度でデコードし、原寸プレビューと書き出しは完全デコードを維持します。",
+            "korean": "용량이 제한된 캐시와 C++ 작업 스레드를 재사용합니다. Mac 소프트웨어 RAW 편집 미리보기는 절반 크기로 디코딩하며 전체 해상도 미리보기와 내보내기는 전체 디코딩을 유지합니다."
+          },
+          "inApp": true
+        },
+        {
+          "kind": "improved",
+          "text": {
+            "traditionalChinese": "共用乳劑晶體計算並對邊界重新計算，維持四樣本、三層與 FP32；指定量測的乳劑階段約快 30–35%，不代表整體預覽等幅加速。",
+            "english": "Shared emulsion-crystal calculations with boundary recalculation, retaining four samples, three layers and FP32. The measured emulsion stage is about 30–35% faster; this is not an end-to-end preview speedup.",
+            "japanese": "乳剤結晶の計算を共有し、境界を再計算。4サンプル・3層・FP32 を維持し、指定条件の乳剤段階は約30～35%高速化しました。プレビュー全体の高速化率ではありません。",
+            "korean": "유제 결정 계산을 공유하고 경계를 다시 계산하며 4개 샘플·3개 층·FP32를 유지합니다. 지정 조건의 유제 단계는 약 30–35% 빨라졌으며 전체 미리보기의 개선율은 아닙니다."
+          },
+          "inApp": true
+        },
+        {
+          "kind": "added",
+          "text": {
+            "traditionalChinese": "Windows 改為免安裝 ZIP，完整解壓即可執行，內附 12 個 Microsoft 原廠 VC++ x64 Runtime DLL；仍需要 WebView2。",
+            "english": "Windows now ships as a portable ZIP: extract all files and run. It includes 12 original Microsoft VC++ x64 runtime DLLs; WebView2 is still required.",
+            "japanese": "Windows をポータブル ZIP に変更。全ファイルを展開して実行できます。Microsoft 純正 VC++ x64 Runtime DLL を12個同梱し、WebView2 は引き続き必要です。",
+            "korean": "Windows를 포터블 ZIP으로 배포하여 전체 압축 해제 후 실행할 수 있습니다. Microsoft 원본 VC++ x64 Runtime DLL 12개를 포함하며 WebView2는 여전히 필요합니다."
+          },
+          "inApp": true,
+          "platforms": [
+            "windows"
+          ]
+        },
+        {
+          "kind": "added",
+          "text": {
+            "traditionalChinese": "Windows 免安裝版可在程式內更新，檢查 ZIP 與逐檔 SHA-256，保留額外檔案並於啟動失敗時還原；舊 setup 版首次轉移需手動下載 ZIP。",
+            "english": "The Windows portable app can update in place, verifying ZIP and per-file SHA-256, preserving additional files and rolling back on startup failure. Existing setup users must manually download the ZIP for the first transition.",
+            "japanese": "Windows ポータブル版はアプリ内更新に対応。ZIP と各ファイルの SHA-256 を検証し、追加ファイルを保持し、起動失敗時は復元します。旧 setup 版からの初回移行は ZIP の手動取得が必要です。",
+            "korean": "Windows 포터블 앱에서 ZIP·개별 파일의 SHA-256을 검증하고 추가 파일을 유지하며 시작 실패 시 복구하는 업데이트를 지원합니다. 기존 setup 사용자의 첫 전환은 ZIP 수동 다운로드가 필요합니다."
+          },
+          "inApp": true,
+          "platforms": [
+            "windows"
+          ]
+        },
+        {
+          "kind": "fixed",
+          "text": {
+            "traditionalChinese": "修正 Swift Sendable 警告與建置系統相容性，並補驗 Windows CPU／Vulkan 影像與更新流程。",
+            "english": "Fixed Swift Sendable warnings and build-system compatibility, and extended Windows CPU/Vulkan image and update validation.",
+            "japanese": "Swift の Sendable 警告とビルドシステム互換性を修正し、Windows CPU／Vulkan の画像と更新処理を追加検証しました。",
+            "korean": "Swift Sendable 경고와 빌드 시스템 호환성을 수정하고 Windows CPU/Vulkan 이미지 및 업데이트 검증을 보강했습니다."
+          },
+          "inApp": false
+        }
+      ]
+    },
+    {
+      "tag": "v1.26.1002-build-1323",
+      "previousTag": "v1.26.0930-build-1745",
+      "changes": [
+        {
+          "kind": "added",
+          "text": {
+            "traditionalChinese": "桌面改為共用 Go／Wails，新增 Windows x64 Beta；Mac 繼續使用 Swift／C++ 影像引擎。",
+            "english": "Introduced a shared Go/Wails desktop and Windows x64 Beta; Mac retains the Swift/C++ image engine.",
+            "japanese": "共通の Go／Wails デスクトップと Windows x64 Beta を追加。Mac は Swift／C++ 画像エンジンを継続使用します。",
+            "korean": "공통 Go/Wails 데스크톱과 Windows x64 Beta를 추가하고 Mac은 Swift/C++ 이미지 엔진을 유지합니다."
+          },
+          "inApp": true
+        },
+        {
+          "kind": "fixed",
+          "text": {
+            "traditionalChinese": "舊 Swift Mac 版可直接更新；FilmYourPhoto 過渡包首次啟動即移轉安裝識別，後續使用標準 FilmDevelop 更新包。",
+            "english": "Restored direct updates from the Swift Mac app. The FilmYourPhoto bridge migrates the installation identity on first launch; subsequent updates use the standard FilmDevelop package.",
+            "japanese": "旧 Swift Mac 版からの直接更新を修正。FilmYourPhoto 移行パッケージは初回起動時に識別子を移行し、以後は標準 FilmDevelop パッケージを使用します。",
+            "korean": "Swift Mac 앱의 직접 업데이트를 복구했습니다. FilmYourPhoto 전환 패키지가 첫 실행 시 설치 식별자를 이전하며 이후에는 표준 FilmDevelop 패키지를 사용합니다."
+          },
+          "inApp": true,
+          "platforms": [
+            "darwin"
+          ]
+        },
+        {
+          "kind": "added",
+          "text": {
+            "traditionalChinese": "沿用 Swift 的照片調整、星級、分類與自訂底片，新增移轉紀錄、資料庫匯出／匯入及重新定位；保留新版既有資料。",
+            "english": "Migrated Swift photo edits, ratings, categories and custom films, with migration records and database export/import/relocation while preserving existing newer data.",
+            "japanese": "Swift の編集、星評価、カテゴリ、カスタムフィルムを引き継ぎ、移行記録とデータベースの書き出し・読み込み・再配置を追加。新版の既存データを優先します。",
+            "korean": "Swift 사진 편집, 별점, 분류와 사용자 필름을 가져오며 이전 기록, 데이터베이스 내보내기·가져오기·경로 재지정을 추가하고 새 버전의 기존 데이터를 보존합니다."
+          },
+          "inApp": true
+        },
+        {
+          "kind": "added",
+          "text": {
+            "traditionalChinese": "新增裁切還原及預設開啟的寫入 EXIF，匯出名稱與 Swift 一致；統一右鍵選單、按鈕分色、緊湊列表與自訂底片選取。",
+            "english": "Added crop reset and Write EXIF enabled by default, matching Swift export names, with conventional context menus, colored dialog actions, compact lists and custom-film selection fixes.",
+            "japanese": "切り抜きの復元、既定で有効な EXIF 書き込み、Swift と同じ書き出し名を追加。通常の右クリックメニュー、操作別ボタン色、コンパクトな一覧、カスタムフィルム選択も整えました。",
+            "korean": "자르기 복원과 기본으로 켜진 EXIF 기록, Swift와 동일한 내보내기 이름을 추가하고 우클릭 메뉴, 동작별 버튼 색상, 간결한 목록과 사용자 필름 선택을 정리했습니다."
+          },
+          "inApp": true
+        },
+        {
+          "kind": "improved",
+          "text": {
+            "traditionalChinese": "RAW 與計算加速預設為系統並保存選項；Windows 探測 Vulkan GPU，無法使用時回退 CPU。縮減重複封裝資源並檢查私人路徑。",
+            "english": "RAW and compute acceleration default to System and persist preferences; Windows probes Vulkan GPUs with CPU fallback. Reduced duplicate package resources and audited private paths.",
+            "japanese": "RAW と演算方式はシステムを既定とし設定を保存。Windows は Vulkan GPU を検出し、利用できなければ CPU に切り替えます。重複リソースを削減し個人用パスを検査しました。",
+            "korean": "RAW와 연산 가속은 시스템을 기본값으로 설정을 저장합니다. Windows는 Vulkan GPU를 탐지하고 사용할 수 없으면 CPU로 전환합니다. 중복 리소스를 줄이고 개인 경로를 검사했습니다."
+          },
+          "inApp": true
+        }
+      ]
+    }
+  ]
+}

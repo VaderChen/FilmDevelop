@@ -15,6 +15,7 @@ import zipfile
 from windows_payload import PE, validate_gui, validate_payload
 from windows_resources import ROOT, project_version
 from release_audit import audit
+from windows_strip import strip_payload
 
 
 def digest(path):
@@ -161,11 +162,13 @@ def stage_payload(build, stage, info, makensis=None, portable=True):
             b'[Install]\r\nProduct=person.vader.FilmDevelop.Windows\r\nArchitecture=x64\r\n')
     commit = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()
     dirty = bool(subprocess.check_output(['git', '-C', str(ROOT), 'status', '--porcelain']))
+    debug_cleanup = strip_payload(stage)
     metadata = dict(info, product='person.vader.FilmDevelop.Windows',
                     distribution='portable' if portable else 'installer',
                     gitCommit=commit, sourceTreeDirty=dirty,
                     builtAtUTC=datetime.now(timezone.utc).isoformat(),
-                    windowsExecutionVerified=False, windowsGPUVerified=False)
+                    windowsExecutionVerified=False, windowsGPUVerified=False,
+                    debugCleanup=debug_cleanup)
     write_json(stage / 'build-info.json', metadata)
     files = inventory(stage)
     write_json(stage / 'files.json', {'schema': 1, 'algorithm': 'SHA-256', 'files': files})

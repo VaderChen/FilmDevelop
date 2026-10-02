@@ -8,7 +8,7 @@
 
 ## 下載使用
 
-[下載 Mac 與 Windows 版](https://github.com/VaderChen/FilmDevelop/releases/latest)。目前版本：**1.26.1002 build 2330**，Windows 標示 **Beta**。
+[下載 Mac 與 Windows 版](https://github.com/VaderChen/FilmDevelop/releases/latest)。目前版本：**1.26.1003 build 0018**，Windows 標示 **Beta**。
 
 | 平台 | 安裝方式與需求 |
 | --- | --- |
@@ -18,6 +18,20 @@
 舊 Windows setup 版首次改用 ZIP 需手動下載並解壓至新資料夾；設定與照片調整會沿用，之後可在免安裝版內更新。ZIP 不保證消除 Windows 來源提示。
 
 兩個平台共用繁體中文、英文、日文與韓文介面。舊 Swift Mac 版可使用「檢查更新」直接升級；FilmYourPhoto 過渡包會在第一次開啟時，將原安裝位置轉為標準 FilmDevelop 身分，不需第二次下載。完成後，後續更新只使用 FilmDevelop；過渡期仍保留舊 Swift 與先前相容包的升級入口。安裝後會沿用可辨識的照片調整、星級、分類與自訂底片，既有新版資料優先。換電腦可在設定中「匯出資料庫／匯入並重新定位」；資料包不含原始照片，舊紀錄缺少原路徑時需重新定位。
+
+<!-- release-summary:start -->
+## 本次更新
+
+相較版本：**1.26.1002 build 2330**。
+
+- **修正**：更新完成視窗改為顯示本次新增、修正與改善，列出比較版本，並依介面語言顯示繁中、英文、日文或韓文。
+- **修正**：跨版本升級會分版列出尚未看過的更新；其他對話框關閉後會再次顯示摘要，避免更新說明被略過。
+- **改善 · Windows**：Windows 免安裝 ZIP 縮減 C++ 除錯資料，保留原有影像演算、查表、模型與 Microsoft Runtime。
+- **新增**：新增逐版更新紀錄；README、程式摘要與 GitHub Release 使用同一份四語資料，並補列 build 2330 相較 build 1323 的差異。
+- **改善**：完整發布流程先清空專案 dist，再依序建置 Mac 與 Windows；驗證版本紀錄與成品清單，避免混入舊版封裝。
+
+[完整更新紀錄](CHANGELOG.md)
+<!-- release-summary:end -->
 
 ## 特色
 

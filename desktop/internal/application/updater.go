@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/VaderChen/FilmDevelop/internal/releasenotes"
 	"github.com/VaderChen/FilmDevelop/internal/storage"
 	"github.com/VaderChen/FilmDevelop/internal/transfer"
 	"github.com/VaderChen/FilmDevelop/internal/updater"
@@ -30,6 +31,7 @@ func init() {
 type updateState struct {
 	Version      int    `json:"version"`
 	Last         string `json:"last"`
+	Previous     string `json:"previous,omitempty"`
 	Pending      string `json:"pending"`
 	Acknowledged string `json:"acknowledged"`
 }
@@ -46,6 +48,10 @@ func (a *App) loadUpdates(engineReady bool) error {
 	state.Version = 1
 	previous, e := updater.Parse(state.Last)
 	if e == nil && currentVersion.After(previous) {
+		// 未閱讀的跨版摘要保留最早起點；Last 在每次啟動後都會更新。
+		if state.Pending == "" || state.Pending == state.Acknowledged || state.Previous == "" {
+			state.Previous = state.Last
+		}
 		state.Pending = currentVersion.Tag()
 	}
 	if runtime.GOOS != "windows" || engineReady {
@@ -221,14 +227,12 @@ func (a *App) acknowledgeUpdate(message object) error {
 	}
 	a.updateState.Acknowledged = tag
 	a.updateState.Pending = ""
+	a.updateState.Previous = ""
 	state := a.updateState
 	a.mu.Unlock()
 	return a.store.SaveState("updates.json", state)
 }
 func (a *App) startUpdateCheck() {
-	if os.Getenv("FILMDEVELOP_DATA_DIR") != "" {
-		return
-	}
 	a.workers.Add(1)
 	go func() {
 		defer a.workers.Done()
@@ -239,16 +243,37 @@ func (a *App) startUpdateCheck() {
 			return
 		case <-timer.C:
 		}
-		a.mu.Lock()
-		pending := a.updateState.Pending
-		ack := a.updateState.Acknowledged
-		a.mu.Unlock()
-		if pending == currentVersion.Tag() && pending != ack {
-			a.reply("handleUpdateComplete", object{"tag": pending, "version": BuildVersion(), "highlights": []string{"Go 統一管理桌面介面、照片編輯與模型；平台引擎負責影像及 AI 運算。"}})
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
+		for a.deliverUpdateNotice() {
+			select {
+			case <-a.ctx.Done():
+				return
+			case <-ticker.C:
+			}
+		}
+		// 隔離資料目錄仍可閱讀離線摘要，但不發起背景網路更新。
+		if os.Getenv("FILMDEVELOP_DATA_DIR") != "" {
+			return
 		}
 		select {
 		case a.commands <- object{"action": "checkAppUpdate", "automatic": true}:
 		case <-a.ctx.Done():
 		}
 	}()
+}
+
+// 前端可能正開啟其他對話框；在明確確認前重送，前端負責避免重複。
+func (a *App) deliverUpdateNotice() bool {
+	a.mu.Lock()
+	state := a.updateState
+	a.mu.Unlock()
+	if state.Pending != currentVersion.Tag() || state.Pending == state.Acknowledged {
+		return false
+	}
+	a.reply("handleUpdateComplete", object{
+		"tag": state.Pending, "version": BuildVersion(),
+		"notes": releasenotes.ForUpgrade(currentVersion, state.Previous, runtime.GOOS),
+	})
+	return true
 }

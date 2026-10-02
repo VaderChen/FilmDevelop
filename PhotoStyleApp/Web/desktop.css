@@ -276,6 +276,9 @@ dialog.update-complete-dialog::backdrop { background:rgba(0,0,0,.38); backdrop-f
 .update-complete-body { overflow:auto; min-height:0; padding:12px 24px; text-align:left; }
 .update-complete-body ul { display:flex; flex-direction:column; gap:8px; margin:0; padding-left:22px; }
 .update-complete-body li { margin:0; line-height:1.5; overflow-wrap:anywhere; }
+.update-complete-body .update-comparison { margin:0 0 12px; color:var(--text-secondary); }
+.update-release + .update-release { margin-top:20px; padding-top:16px; border-top:1px solid var(--line-strong); }
+.update-release h3 { margin:0 0 10px; font-size:14px; }
 
 /* Output preferences use one control size and treatment for selects and numbers. */
 .settings-row select[data-export-setting], .export-number-control {

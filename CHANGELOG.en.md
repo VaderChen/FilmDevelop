@@ -1,0 +1,44 @@
+# Changelog
+
+[繁體中文](CHANGELOG.md) · [English](CHANGELOG.en.md) · [日本語](CHANGELOG.ja.md) · [한국어](CHANGELOG.ko.md)
+
+<!-- 由 scripts/release_notes.py 產生；請修改 history.json。 -->
+
+## 1.26.1003 build 0018
+
+Compared with: **1.26.1002 build 2330**。
+
+- **Fixed**：The update-complete dialog now lists actual additions, fixes and improvements, with a comparison version, in the selected interface language.
+- **Fixed**：When skipping versions, changes are grouped by release. If another dialog is open, the update summary is delivered again after it closes.
+- **Improved · Windows**：The Windows portable ZIP omits C++ debug data while retaining the existing image algorithms, lookup tables, models and Microsoft runtime.
+- **Added**：Added a version-by-version changelog. README summaries, in-app notes and GitHub releases share one four-language source, including the changes from build 1323 to build 2330.
+- **Improved**：The full release workflow clears the project dist directory once before building Mac and Windows in sequence, and validates release notes and the artifact list.
+
+[Source comparison](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1002-build-2330...v1.26.1003-build-0018) · [Validation record](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-0018/desktop/RESTORATION.md)
+
+## 1.26.1002 build 2330
+
+Compared with: **1.26.1002 build 1323**。
+
+- **Fixed**：Aligned framing across list thumbnails, editing thumbnails and full previews to prevent a sudden zoom during photo transitions.
+- **Improved**：Reused bounded caches and C++ worker threads. Mac software RAW editing previews use half-size decoding, while full-resolution previews and exports retain full decoding.
+- **Improved**：Shared emulsion-crystal calculations with boundary recalculation, retaining four samples, three layers and FP32. The measured emulsion stage is about 30–35% faster; this is not an end-to-end preview speedup.
+- **Added · Windows**：Windows now ships as a portable ZIP: extract all files and run. It includes 12 original Microsoft VC++ x64 runtime DLLs; WebView2 is still required.
+- **Added · Windows**：The Windows portable app can update in place, verifying ZIP and per-file SHA-256, preserving additional files and rolling back on startup failure. Existing setup users must manually download the ZIP for the first transition.
+- **Fixed**：Fixed Swift Sendable warnings and build-system compatibility, and extended Windows CPU/Vulkan image and update validation.
+
+[Source comparison](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1002-build-1323...v1.26.1002-build-2330) · [Validation record](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1002-build-2330/desktop/RESTORATION.md)
+
+## 1.26.1002 build 1323
+
+Compared with: **1.26.0930 build 1745**。
+
+- **Added**：Introduced a shared Go/Wails desktop and Windows x64 Beta; Mac retains the Swift/C++ image engine.
+- **Fixed · macOS**：Restored direct updates from the Swift Mac app. The FilmYourPhoto bridge migrates the installation identity on first launch; subsequent updates use the standard FilmDevelop package.
+- **Added**：Migrated Swift photo edits, ratings, categories and custom films, with migration records and database export/import/relocation while preserving existing newer data.
+- **Added**：Added crop reset and Write EXIF enabled by default, matching Swift export names, with conventional context menus, colored dialog actions, compact lists and custom-film selection fixes.
+- **Improved**：RAW and compute acceleration default to System and persist preferences; Windows probes Vulkan GPUs with CPU fallback. Reduced duplicate package resources and audited private paths.
+
+[Source comparison](https://github.com/VaderChen/FilmDevelop/compare/v1.26.0930-build-1745...v1.26.1002-build-1323) · [Validation record](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1002-build-1323/desktop/RESTORATION.md)
+
+[Swift · Changelog (繁體中文)](CHANGELOG.swift.md)

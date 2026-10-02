@@ -33,6 +33,9 @@ var migrationSmokeScript string
 //go:embed organization_smoke.js
 var organizationSmokeScript string
 
+//go:embed update_notice_smoke.js
+var updateNoticeSmokeScript string
+
 // 只存在於 Smoke 建置；正式桌面程式不包含測試指令與任意路徑開檔介面。
 func configureSmoke(settings *options.App, app *application.App) {
 	app.ConfigureDirectorySmoke(os.Getenv("FILMDEVELOP_SMOKE_DIRECTORY"))
@@ -85,6 +88,7 @@ func configureSmoke(settings *options.App, app *application.App) {
 			}
 		})
 		wruntime.EventsOn(ctx, "filmdevelop:smoke-native-open", func(...interface{}) { app.OpenFileFromOS(os.Getenv("FILMDEVELOP_SMOKE_INPUT")) })
+		wruntime.EventsOn(ctx, "filmdevelop:smoke-update-notice", func(...interface{}) { app.RunUpdateNoticeSmoke() })
 		wruntime.EventsOn(ctx, "filmdevelop:smoke-empty", func(...interface{}) {
 			go func() {
 				if err := app.OpenDirectory(os.Getenv("FILMDEVELOP_SMOKE_EMPTY")); err != nil {
@@ -126,7 +130,10 @@ func configureSmoke(settings *options.App, app *application.App) {
 			encoded, _ := json.Marshal(expected)
 			script = "window.organizationSmokeFixture=" + string(encoded) + ";" + organizationSmokeScript
 		}
-		wruntime.WindowExecJS(ctx, script)
+		if os.Getenv("FILMDEVELOP_SMOKE_UPDATE_NOTES") == "1" {
+			script = `window.runUpdateNoticeSmoke().then(completed => window.runtime.EventsEmit('filmdevelop:smoke-result', {passed:true, completed})).catch(error => window.runtime.EventsEmit('filmdevelop:smoke-result', {passed:false, error:String(error)}));`
+		}
+		wruntime.WindowExecJS(ctx, updateNoticeSmokeScript+"\n"+script)
 		go func() {
 			timer := time.NewTimer(210 * time.Second)
 			defer timer.Stop()

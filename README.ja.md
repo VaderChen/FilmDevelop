@@ -8,13 +8,27 @@
 
 ## ダウンロード
 
-[Mac・Windows 版をダウンロード](https://github.com/VaderChen/FilmDevelop/releases/latest)。バージョンは **1.26.1002 build 2330**、Windows は **Beta** 表記です。
+[Mac・Windows 版をダウンロード](https://github.com/VaderChen/FilmDevelop/releases/latest)。バージョンは **1.26.1003 build 0018**、Windows は **Beta** 表記です。
 
 Mac は Apple Silicon・macOS 14 以降に対応。DMG から FilmDevelop を「アプリケーション」に移動します。今回の DMG と内包アプリは Developer ID 署名・Apple 公証・公証チケット添付済みです。Windows は 10／11 x64 と WebView2 が必要です。x64 ポータブル ZIP をすべて展開して FilmDevelop.exe を実行してください。VC++ x64 Runtime は同梱されます。アプリの Authenticode 署名はありません。
 
 従来の Windows setup 版から初めて移行する場合は、ZIP を手動でダウンロードし、新しいフォルダーにすべて展開してください。設定と編集内容は引き継がれ、その後はポータブル版内から更新できます。ZIP でも Windows の確認表示が出る場合があります。
 
 旧 Swift Mac 版は「アップデートを確認」から直接更新できます。FilmYourPhoto 移行パッケージは初回起動時に同じインストール先を標準 FilmDevelop 識別子へ移行します。追加ダウンロードは不要で、以後の更新は FilmDevelop を使用します。移行期間中は旧 Swift 版と従来の互換インストール向けの入口を維持します。認識できる編集、星評価、カテゴリ、カスタムフィルムを引き継ぎ、新版のデータを優先します。データベースの書き出し・読み込みと再配置で別の PC へ移せますが、元写真は含みません。繁体字中国語・英語・日本語・韓国語に対応します。
+
+<!-- release-summary:start -->
+## 今回の更新
+
+比較元：**1.26.1002 build 2330**。
+
+- **修正**：更新完了画面に今回の追加・修正・改善と比較元バージョンを表示し、選択した表示言語に合わせます。
+- **修正**：複数バージョンを飛ばして更新した場合は変更をバージョン別に表示します。他のダイアログが開いていても、閉じた後に更新内容を表示します。
+- **改善 · Windows**：Windows ポータブル ZIP から C++ のデバッグ情報を除き、画像処理、ルックアップテーブル、モデル、Microsoft Runtime は維持します。
+- **追加**：バージョン別の変更履歴を追加。README、アプリ内の更新内容、GitHub Release は同じ4言語データを使用し、build 1323 から build 2330 への変更も記載します。
+- **改善**：完全なリリース処理では最初にプロジェクトの dist を一度空にしてから Mac と Windows を順にビルドし、変更履歴と成果物一覧を検証します。
+
+[変更履歴](CHANGELOG.ja.md)
+<!-- release-summary:end -->
 
 ## 特長
 

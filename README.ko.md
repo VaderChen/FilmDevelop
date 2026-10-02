@@ -8,13 +8,27 @@
 
 ## 다운로드
 
-[Mac 및 Windows 버전 다운로드](https://github.com/VaderChen/FilmDevelop/releases/latest). 버전은 **1.26.1002 build 2330**이며 Windows에는 **Beta**가 표시됩니다.
+[Mac 및 Windows 버전 다운로드](https://github.com/VaderChen/FilmDevelop/releases/latest). 버전은 **1.26.1003 build 0018**이며 Windows에는 **Beta**가 표시됩니다.
 
 Mac은 Apple Silicon과 macOS 14 이상이 필요합니다. DMG에서 FilmDevelop을 응용 프로그램 폴더로 옮기세요. 이번 DMG와 포함된 앱은 Developer ID 서명, Apple 공증 및 공증 티켓 첨부를 완료했습니다. Windows는 10/11 x64와 WebView2가 필요합니다. x64 포터블 ZIP 전체를 압축 해제한 다음 FilmDevelop.exe를 실행하세요. VC++ x64 Runtime은 포함되어 있습니다. 앱에는 Authenticode 서명이 없습니다.
 
 기존 Windows setup 버전에서 처음 전환할 때는 ZIP을 직접 다운로드해 새 폴더에 모두 압축 해제하세요. 설정과 편집 내용은 유지되며 이후에는 포터블 앱 안에서 업데이트할 수 있습니다. ZIP이라고 Windows 출처 확인 메시지가 사라지는 것은 아닙니다.
 
 이전 Swift Mac 앱에서 업데이트 확인으로 바로 업그레이드할 수 있습니다. FilmYourPhoto 전환 패키지는 첫 실행 시 기존 설치 위치에서 표준 FilmDevelop 식별자로 이전하며, 두 번째 다운로드가 필요하지 않습니다. 이후 업데이트는 FilmDevelop을 사용합니다. 전환 기간에는 이전 Swift 버전과 기존 호환 설치를 위한 업데이트 경로를 유지합니다. 인식 가능한 편집, 별점, 분류와 사용자 필름을 가져오며 새 버전의 기존 데이터를 우선합니다. 데이터베이스 내보내기·가져오기와 경로 재지정으로 다른 컴퓨터로 옮길 수 있지만 원본 사진은 포함하지 않습니다. 번체 중국어, 영어, 일본어와 한국어를 지원합니다.
+
+<!-- release-summary:start -->
+## 이번 업데이트
+
+비교 버전: **1.26.1002 build 2330**。
+
+- **수정**：업데이트 완료 창에 실제 추가·수정·개선 사항과 비교 버전을 표시하고 선택한 UI 언어를 적용합니다.
+- **수정**：여러 버전을 건너뛰면 변경 사항을 버전별로 표시합니다. 다른 대화상자가 열려 있으면 닫힌 후 업데이트 내용을 다시 표시합니다.
+- **개선 · Windows**：Windows 포터블 ZIP에서 C++ 디버그 정보를 제거하고 기존 이미지 연산, 룩업 테이블, 모델과 Microsoft Runtime을 유지합니다.
+- **추가**：버전별 변경 기록을 추가했습니다. README, 앱 내 요약과 GitHub Release가 4개 언어의 공통 데이터를 사용하며 build 1323 대비 build 2330의 차이도 기록합니다.
+- **개선**：전체 릴리스 작업은 프로젝트의 dist를 먼저 한 번 비운 후 Mac과 Windows를 순서대로 빌드하고 버전 기록과 배포 파일 목록을 검증합니다.
+
+[전체 변경 기록](CHANGELOG.ko.md)
+<!-- release-summary:end -->
 
 ## 특징
 

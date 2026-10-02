@@ -8,13 +8,27 @@ Give your photos a film look you love. Pick a film, adjust exposure, color and g
 
 ## Get the app
 
-[Download for Mac and Windows](https://github.com/VaderChen/FilmDevelop/releases/latest). Version **1.26.1002 build 2330**; Windows is labeled **Beta**.
+[Download for Mac and Windows](https://github.com/VaderChen/FilmDevelop/releases/latest). Version **1.26.1003 build 0018**; Windows is labeled **Beta**.
 
 Mac requires Apple Silicon and macOS 14+. Open the DMG and drag FilmDevelop into Applications. This release’s DMG and included app are Developer ID signed, Apple notarized and stapled. Windows requires Windows 10/11 x64 and WebView2. Fully extract the x64 portable ZIP and run FilmDevelop.exe. The VC++ x64 Runtime is included; the app is not Authenticode signed.
 
 For the first move from an older Windows setup version, manually download and extract the ZIP into a new folder. Existing settings and edits remain available; later updates can run inside the portable app. ZIP packaging does not guarantee that Windows trust prompts disappear.
 
 The old Swift Mac app can upgrade through Check for Updates. The FilmYourPhoto bridge converts the existing installation to the standard FilmDevelop identity on first launch, without a second download. Subsequent updates use FilmDevelop. The bridge remains available during the transition for old Swift and previous compatibility installations. Recognized edits, ratings, categories and custom films migrate without overwriting newer data. Database export/import supports relocation to another computer; original photos are not included. The interface supports Traditional Chinese, English, Japanese and Korean.
+
+<!-- release-summary:start -->
+## What changed
+
+Compared with: **1.26.1002 build 2330**。
+
+- **Fixed**：The update-complete dialog now lists actual additions, fixes and improvements, with a comparison version, in the selected interface language.
+- **Fixed**：When skipping versions, changes are grouped by release. If another dialog is open, the update summary is delivered again after it closes.
+- **Improved · Windows**：The Windows portable ZIP omits C++ debug data while retaining the existing image algorithms, lookup tables, models and Microsoft runtime.
+- **Added**：Added a version-by-version changelog. README summaries, in-app notes and GitHub releases share one four-language source, including the changes from build 1323 to build 2330.
+- **Improved**：The full release workflow clears the project dist directory once before building Mac and Windows in sequence, and validates release notes and the artifact list.
+
+[Full changelog](CHANGELOG.en.md)
+<!-- release-summary:end -->
 
 ## What makes it different
 

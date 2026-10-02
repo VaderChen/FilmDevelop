@@ -1,5 +1,9 @@
 # Windows x64 免安裝 ZIP
 
+完整 Mac／Windows 發布使用 `python3 scripts/package-release.py --identity '本機簽章身分' --notary-profile '本機公證設定'`：整輪開始前清空專案 `dist` 一次，再依序產生各平台成品。更新差異見[逐版紀錄](../../CHANGELOG.md)。
+
+正式封裝只在暫存副本移除未簽署 PE 的 DWARF 除錯區段；比較前後載入區段的位元、RVA、大小、旗標、進入點、匯入與匯出，任一差異都停止封裝。已簽署的 Microsoft Runtime 不改寫，建置目錄仍保留原始符號。清理結果記錄於套件 `build-info.json` 的 `debugCleanup`。影像查表、模型、RAW 資料與演算精度維持原值。
+
 預設產生單一 `FilmDevelop/` 根目錄的免安裝 ZIP。完整解壓後執行 `FilmDevelop.exe`；不建立產品登錄項目、服務、捷徑或解除安裝器。Windows 10／11 x64 的版本文字持續加上 **Beta**，macOS 不變。此流程只建置本機產物，不發布 GitHub Release。
 
 ## 建置
