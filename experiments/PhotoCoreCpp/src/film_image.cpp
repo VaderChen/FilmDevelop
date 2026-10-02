@@ -16,7 +16,7 @@ V bilinear(const Image &in, double x, double y) {
     return mix(mix(rgb(at(in, ix, iy)), rgb(at(in, ix + 1, iy)), fx),
                mix(rgb(at(in, ix, iy + 1)), rgb(at(in, ix + 1, iy + 1)), fx), fy);
 }
-Image gaussian(Image in, double sigma) {
+Image gaussian(Image in, double sigma, bool clamp_edges) {
     if (!(sigma > 0))
         return in;
     if (!std::isfinite(sigma) || sigma > 10000)
@@ -30,19 +30,23 @@ Image gaussian(Image in, double sigma) {
     }
     for (auto &v : weights)
         v /= total;
+    auto sample = [&](const Image &src, long x, long y) {
+        if (!clamp_edges && (x < 0 || y < 0 || x >= long(src.width) || y >= long(src.height))) return Pixel{0,0,0,0};
+        return at(src, x, y);
+    };
     Image scratch(in.width, in.height);
     const Image *current = &in;
     for (int axis = 0; axis < 2; ++axis) {
         Image &out = axis == 0 ? scratch : in;
         for (std::size_t y = 0; y < in.height; ++y)
             for (std::size_t x = 0; x < in.width; ++x) {
-                V sum = rgb(at(*current, long(x), long(y))) * weights[0];
-                double alpha = at(*current, long(x), long(y)).a * weights[0];
+                V sum = rgb(sample(*current, long(x), long(y))) * weights[0];
+                double alpha = sample(*current, long(x), long(y)).a * weights[0];
                 for (int i = 1; i <= radius; ++i) {
                     const auto &a =
-                        at(*current, long(x) - (axis == 0 ? i : 0), long(y) - (axis == 1 ? i : 0));
+                        sample(*current, long(x) - (axis == 0 ? i : 0), long(y) - (axis == 1 ? i : 0));
                     const auto &b =
-                        at(*current, long(x) + (axis == 0 ? i : 0), long(y) + (axis == 1 ? i : 0));
+                        sample(*current, long(x) + (axis == 0 ? i : 0), long(y) + (axis == 1 ? i : 0));
                     sum += (rgb(a) + rgb(b)) * weights[std::size_t(i)];
                     alpha += (a.a + b.a) * weights[std::size_t(i)];
                 }
@@ -52,7 +56,7 @@ Image gaussian(Image in, double sigma) {
     }
     return in;
 }
-Image resize_lanczos(const Image &in, double scale) {
+Image resize_lanczos(const Image &in, double scale, bool clamp_edges) {
     if (scale >= 1)
         return in;
     if (!(scale > 0) || !std::isfinite(scale))
@@ -60,8 +64,8 @@ Image resize_lanczos(const Image &in, double scale) {
     if (scale < .5) {
         // 對齊原生的大幅縮小：分段減半，並保留原始的最終有限範圍。
         const auto width=std::size_t(std::ceil(in.width*scale)), height=std::size_t(std::ceil(in.height*scale));
-        auto reduced=resize_lanczos(in,.5);
-        auto result=resize_lanczos(reduced,scale*2);
+        auto reduced=resize_lanczos(in,.5,clamp_edges);
+        auto result=resize_lanczos(reduced,scale*2,clamp_edges);
         if (result.width==width && result.height==height) return result;
         Image cropped(width,height);
         for (std::size_t y=0;y<height;++y)
@@ -108,7 +112,7 @@ Image resize_lanczos(const Image &in, double scale) {
                     const double f = tap.weights[i];
                     // 原流程的 Lanczos 未先延展影像，邊界外保留透明黑。
                     const long sx = axis == 0 ? k : long(x), sy = axis == 1 ? k : long(y);
-                    const auto p =
+                    const auto p = clamp_edges ? at(*current, sx, sy) :
                         sx < 0 || sy < 0 || sx >= long(current->width) || sy >= long(current->height)
                             ? Pixel{0, 0, 0, 0}
                             : current->pixels[std::size_t(sy) * current->width + std::size_t(sx)];

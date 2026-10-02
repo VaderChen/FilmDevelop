@@ -1,0 +1,53 @@
+[
+  {
+    "id": "qwen3Vl2bQ4km",
+    "title": "Qwen3-VL-2B",
+    "subtitle": "最均衡、推薦使用",
+    "meta": "Q4_K_M · 1.11 GB",
+    "pageURL": "https://huggingface.co/unsloth/Qwen3-VL-2B-Instruct-GGUF",
+    "files": [
+      {
+        "path": "Qwen3-VL-2B-Instruct-Q4_K_M.gguf",
+        "url": "https://huggingface.co/unsloth/Qwen3-VL-2B-Instruct-GGUF/resolve/main/Qwen3-VL-2B-Instruct-Q4_K_M.gguf?download=true"
+      },
+      {
+        "path": "mmproj-F16.gguf",
+        "url": "https://huggingface.co/unsloth/Qwen3-VL-2B-Instruct-GGUF/resolve/main/mmproj-F16.gguf?download=true"
+      }
+    ]
+  },
+  {
+    "id": "gemma4E2bQ4km",
+    "title": "Gemma 4 E2B",
+    "subtitle": "Gemma 4 · 輕量指令模型",
+    "meta": "Q4_K_M + mmproj Q8 · E2B",
+    "pageURL": "https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF",
+    "files": [
+      {
+        "path": "gemma-4-E2B-it-Q4_K_M.gguf",
+        "url": "https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/resolve/main/gemma-4-E2B-it-Q4_K_M.gguf"
+      },
+      {
+        "path": "gemma-4-E2B-it.mmproj-q8_0.gguf",
+        "url": "https://huggingface.co/prithivMLmods/gemma-4-E2B-it-F32-GGUF/resolve/main/GGUF/gemma-4-E2B-it.mmproj-q8_0.gguf"
+      }
+    ]
+  },
+  {
+    "id": "gemma4E4bQ4km",
+    "title": "Gemma 4 E4B",
+    "subtitle": "Gemma 4 · 指令模型",
+    "meta": "Q4_K_M + mmproj Q8 · E4B",
+    "pageURL": "https://huggingface.co/unsloth/gemma-4-E4B-it-GGUF",
+    "files": [
+      {
+        "path": "gemma-4-E4B-it-Q4_K_M.gguf",
+        "url": "https://huggingface.co/unsloth/gemma-4-E4B-it-GGUF/resolve/main/gemma-4-E4B-it-Q4_K_M.gguf"
+      },
+      {
+        "path": "gemma-4-E4B-it.mmproj-q8_0.gguf",
+        "url": "https://huggingface.co/prithivMLmods/gemma-4-E4B-it-F32-GGUF/resolve/main/GGUF/gemma-4-E4B-it.mmproj-q8_0.gguf"
+      }
+    ]
+  }
+]

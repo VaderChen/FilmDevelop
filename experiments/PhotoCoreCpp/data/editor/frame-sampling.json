@@ -1,0 +1,18 @@
+{
+  "schema": 3,
+  "description": "Swift AppKit 浮點框圖的通用平移相位核心，與照片、機型、配方無關",
+  "phaseCount": 256,
+  "kernelSize": 3,
+  "boundaryProfiles": 9,
+  "layout": "FDSF v1 header; deduplicated 3x3 Float32 kernels; uint8 indices (phaseY, phaseX, boundaryY, boundaryX)",
+  "kernelCount": 95,
+  "file": "frame-sampling.bin",
+  "sha256": "b350bb3eec70b633d5ae654e98979cedbcb43e57617b386b88baffc680548413",
+  "referenceOS": "27.0",
+  "generator": "engine/verification/frame-sampling-reference.swift",
+  "generatorSHA256": "23213fd9e293de58ea6ea066d8c3f2e8ea269ac49d7701f9ae7073a5de01d018",
+  "referenceSources": {
+    "PhotoStyleApp/PhotoImage.swift": "55fcdca2a49cd21042ca3c9dfd121a0ed8e7686bc5cfe32e0a979abe4babc1f4",
+    "PhotoStyleApp/PhotoStyleProcessor.swift": "92537438ae35152fe5966c3643494099b3fc4d80073a865f16e72e45e58eca5c"
+  }
+}

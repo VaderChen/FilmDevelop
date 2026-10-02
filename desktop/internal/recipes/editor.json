@@ -1,0 +1,1100 @@
+{
+  "manualHDRCurve" : {
+    "black" : 0,
+    "detail" : 12,
+    "highlights" : 64,
+    "midtones" : 50,
+    "shadows" : 38,
+    "white" : 100
+  },
+  "paths" : {
+    "backgroundBlur" : [
+      "backgroundBlur"
+    ],
+    "bloomAmount" : [
+      "filmEffects",
+      "bloom_amount"
+    ],
+    "bloomRadius" : [
+      "filmEffects",
+      "bloom_radius"
+    ],
+    "bloomThreshold" : [
+      "filmEffects",
+      "bloom_threshold"
+    ],
+    "brightness" : [
+      "brightness"
+    ],
+    "contrast" : [
+      "contrast"
+    ],
+    "couplerAmount" : [
+      "filmEffects",
+      "coupler_amount"
+    ],
+    "couplerRadius" : [
+      "filmEffects",
+      "coupler_radius"
+    ],
+    "cropAspectRatio" : [
+      "cropAspectRatio"
+    ],
+    "cropHeight" : [
+      "cropHeight"
+    ],
+    "cropHorizontalPosition" : [
+      "cropHorizontalPosition"
+    ],
+    "cropRotation" : [
+      "cropRotation"
+    ],
+    "cropScale" : [
+      "cropScale"
+    ],
+    "cropVerticalPosition" : [
+      "cropVerticalPosition"
+    ],
+    "cropWidth" : [
+      "cropWidth"
+    ],
+    "dateEnabled" : [
+      "dateEnabled"
+    ],
+    "dateStyle" : [
+      "dateStyle"
+    ],
+    "denoise" : [
+      "denoise"
+    ],
+    "developerActivity" : [
+      "filmEffects",
+      "developer_activity"
+    ],
+    "developerAcutance" : [
+      "filmEffects",
+      "developer_chemistry",
+      "acutance"
+    ],
+    "developerBlue" : [
+      "filmEffects",
+      "developer_chemistry",
+      "blue"
+    ],
+    "developerCompensation" : [
+      "filmEffects",
+      "developer_chemistry",
+      "compensation"
+    ],
+    "developerContrast" : [
+      "filmEffects",
+      "developer_chemistry",
+      "contrast"
+    ],
+    "developerGrain" : [
+      "filmEffects",
+      "developer_chemistry",
+      "grain"
+    ],
+    "developerGreen" : [
+      "filmEffects",
+      "developer_chemistry",
+      "green"
+    ],
+    "developerRed" : [
+      "filmEffects",
+      "developer_chemistry",
+      "red"
+    ],
+    "developerSpeed" : [
+      "filmEffects",
+      "developer_chemistry",
+      "speedEV"
+    ],
+    "developerTemperature" : [
+      "filmEffects",
+      "developer_temperature"
+    ],
+    "developmentAgitation" : [
+      "filmEffects",
+      "development_agitation"
+    ],
+    "developmentAmount" : [
+      "filmEffects",
+      "development_amount"
+    ],
+    "developmentDiffusion" : [
+      "filmEffects",
+      "development_diffusion"
+    ],
+    "developmentTime" : [
+      "filmEffects",
+      "development_time"
+    ],
+    "devignette" : [
+      "devignette"
+    ],
+    "emulsionMTF" : [
+      "filmEffects",
+      "emulsion_mtf"
+    ],
+    "exposure" : [
+      "exposure"
+    ],
+    "exposureSeconds" : [
+      "filmEffects",
+      "exposure_seconds"
+    ],
+    "filmColorModel" : [
+      "filmEffects",
+      "color_model"
+    ],
+    "filmWidthMM" : [
+      "filmEffects",
+      "film_width_mm"
+    ],
+    "frameEnabled" : [
+      "frameEnabled"
+    ],
+    "frameStyle" : [
+      "frameStyle"
+    ],
+    "grain" : [
+      "grain"
+    ],
+    "grainChroma" : [
+      "filmEffects",
+      "grain_chroma"
+    ],
+    "grainClumping" : [
+      "filmEffects",
+      "grain_clumping"
+    ],
+    "grainDistribution" : [
+      "filmEffects",
+      "grain_distribution"
+    ],
+    "grainMode" : [
+      "filmEffects",
+      "grain_mode"
+    ],
+    "grainSize" : [
+      "filmEffects",
+      "grain_size"
+    ],
+    "halationAmount" : [
+      "filmEffects",
+      "halation_amount"
+    ],
+    "halationBase" : [
+      "filmEffects",
+      "halation_base"
+    ],
+    "halationRadius" : [
+      "filmEffects",
+      "halation_radius"
+    ],
+    "halationThreshold" : [
+      "filmEffects",
+      "halation_threshold"
+    ],
+    "hdrAmount" : [
+      "hdrAmount"
+    ],
+    "hdrToneCurve" : [
+      "hdrToneCurve"
+    ],
+    "highlightExposure" : [
+      "highlightExposure"
+    ],
+    "highlightGrain" : [
+      "highlightGrain"
+    ],
+    "highlightIntensity" : [
+      "highlightIntensity"
+    ],
+    "highlightWarmth" : [
+      "highlightWarmth"
+    ],
+    "intensity" : [
+      "intensity"
+    ],
+    "layerResponse" : [
+      "filmEffects",
+      "layer_response"
+    ],
+    "midtoneExposure" : [
+      "midtoneExposure"
+    ],
+    "midtoneGrain" : [
+      "midtoneGrain"
+    ],
+    "midtoneIntensity" : [
+      "midtoneIntensity"
+    ],
+    "midtoneWarmth" : [
+      "midtoneWarmth"
+    ],
+    "monochromeFilter" : [
+      "filmEffects",
+      "monochrome_filter"
+    ],
+    "monochromeFilterStrength" : [
+      "filmEffects",
+      "monochrome_filter_strength"
+    ],
+    "paperDensityOffset" : [
+      "filmEffects",
+      "paper_density_offset"
+    ],
+    "paperProfile" : [
+      "filmEffects",
+      "paper_profile"
+    ],
+    "paperScatter" : [
+      "filmEffects",
+      "paper_scatter"
+    ],
+    "paperWhite" : [
+      "filmEffects",
+      "paper_white"
+    ],
+    "printContrast" : [
+      "filmEffects",
+      "print_contrast"
+    ],
+    "printExposure" : [
+      "filmEffects",
+      "print_exposure"
+    ],
+    "printExposureHighlights" : [
+      "filmEffects",
+      "print_exposure_highlights"
+    ],
+    "printExposureMidtones" : [
+      "filmEffects",
+      "print_exposure_midtones"
+    ],
+    "printExposureShadows" : [
+      "filmEffects",
+      "print_exposure_shadows"
+    ],
+    "printIlluminant" : [
+      "filmEffects",
+      "print_illuminant"
+    ],
+    "reciprocityAmount" : [
+      "filmEffects",
+      "reciprocity_amount"
+    ],
+    "saturation" : [
+      "saturation"
+    ],
+    "scanContrast" : [
+      "filmEffects",
+      "scan_contrast"
+    ],
+    "scanDensityCorrection" : [
+      "filmEffects",
+      "scan_density_correction"
+    ],
+    "scanExposure" : [
+      "filmEffects",
+      "scan_exposure"
+    ],
+    "scanFlare" : [
+      "filmEffects",
+      "scan_flare"
+    ],
+    "scanHighlightWarmth" : [
+      "filmEffects",
+      "scan_highlight_warmth"
+    ],
+    "scanMidtoneWarmth" : [
+      "filmEffects",
+      "scan_midtone_warmth"
+    ],
+    "scannerIlluminant" : [
+      "filmEffects",
+      "scanner_illuminant"
+    ],
+    "scannerProfile" : [
+      "filmEffects",
+      "scanner_profile"
+    ],
+    "scannerSource" : [
+      "filmEffects",
+      "scanner_source"
+    ],
+    "scanSaturation" : [
+      "filmEffects",
+      "scan_saturation"
+    ],
+    "shadowExposure" : [
+      "shadowExposure"
+    ],
+    "shadowGrain" : [
+      "shadowGrain"
+    ],
+    "shadowIntensity" : [
+      "shadowIntensity"
+    ],
+    "shadowWarmth" : [
+      "shadowWarmth"
+    ],
+    "silverRetention" : [
+      "filmEffects",
+      "silver_retention"
+    ],
+    "skinSmoothing" : [
+      "skinSmoothing"
+    ],
+    "skinWarmth" : [
+      "skinWarmth"
+    ],
+    "skinWhitening" : [
+      "skinWhitening"
+    ],
+    "sourceToneZones" : [
+      "sourceToneZones"
+    ],
+    "vibrance" : [
+      "vibrance"
+    ],
+    "viewIlluminant" : [
+      "filmEffects",
+      "view_illuminant"
+    ],
+    "vignette" : [
+      "vignette"
+    ],
+    "whiteBalanceTint" : [
+      "whiteBalanceTint"
+    ],
+    "whiteBalanceWarmth" : [
+      "whiteBalanceWarmth"
+    ]
+  },
+  "properties" : {
+    "backgroundBlur" : {
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "bloomAmount" : {
+      "description" : "高光中性散射柔光強度；0 關閉，與紅暈分別調整，隨整體風格強度縮放。",
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "bloomRadius" : {
+      "description" : "柔光範圍，以未裁切原圖長邊百分比表示。",
+      "maximum" : 2,
+      "minimum" : 0.050000000000000003,
+      "type" : "number"
+    },
+    "bloomThreshold" : {
+      "description" : "觸發柔光的線性亮度門檻百分比。",
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "brightness" : {
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "contrast" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "couplerAmount" : {
+      "description" : "模擬色層間的密度依賴顯影抑制；0 關閉，並非一般彩度。",
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "couplerRadius" : {
+      "description" : "抑制劑影響鄰近區域的近似範圍，以畫面長邊百分比表示；需啟用色層抑制。",
+      "maximum" : 1,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "cropAspectRatio" : {
+      "enum" : [
+        "original",
+        "source",
+        "free",
+        "threeTwo",
+        "oneOne",
+        "fourThree",
+        "sixteenNine"
+      ],
+      "type" : "string"
+    },
+    "cropHeight" : {
+      "maximum" : 100,
+      "minimum" : 20,
+      "type" : "number"
+    },
+    "cropHorizontalPosition" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "cropRotation" : {
+      "maximum" : 45,
+      "minimum" : -45,
+      "type" : "number"
+    },
+    "cropScale" : {
+      "maximum" : 100,
+      "minimum" : 20,
+      "type" : "number"
+    },
+    "cropVerticalPosition" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "cropWidth" : {
+      "maximum" : 100,
+      "minimum" : 20,
+      "type" : "number"
+    },
+    "dateEnabled" : {
+      "type" : "boolean"
+    },
+    "dateStyle" : {
+      "enum" : [
+        "numeric",
+        "slash",
+        "compact",
+        "japanese"
+      ],
+      "type" : "string"
+    },
+    "denoise" : {
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "developerActivity" : {
+      "description" : "顯影劑相對活性；100 為參考，用於反應速率，不代表實測藥水配方。",
+      "maximum" : 200,
+      "minimum" : 20,
+      "type" : "number"
+    },
+    "developerAcutance" : {
+      "description" : "加強明暗交界，0 關閉。",
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "developerBlue" : {
+      "description" : "藍色層的反差偏移，0 保留原色；黑白不套用。",
+      "maximum" : 20,
+      "minimum" : -20,
+      "type" : "number"
+    },
+    "developerCompensation" : {
+      "description" : "高光補償；越高越柔和壓縮亮部，0 關閉。",
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "developerContrast" : {
+      "description" : "顯影反差倍率；1 保留原本反差。",
+      "maximum" : 1.5,
+      "minimum" : 0.59999999999999998,
+      "type" : "number"
+    },
+    "developerGrain" : {
+      "description" : "顯影密度的細微起伏，與乳劑顆粒量分開控制。",
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "developerGreen" : {
+      "description" : "綠色層的反差偏移，0 保留原色；黑白不套用。",
+      "maximum" : 20,
+      "minimum" : -20,
+      "type" : "number"
+    },
+    "developerRed" : {
+      "description" : "紅色層的反差偏移，0 保留原色；黑白不套用。",
+      "maximum" : 20,
+      "minimum" : -20,
+      "type" : "number"
+    },
+    "developerSpeed" : {
+      "description" : "感度補償，以 EV 表示；正值提亮、負值壓暗。",
+      "maximum" : 1,
+      "minimum" : -1,
+      "type" : "number"
+    },
+    "developerTemperature" : {
+      "description" : "以 20°C 為參考的相對反應速率模型；需啟用顯影效果，不是特定藥水的時間表。",
+      "maximum" : 40,
+      "minimum" : 10,
+      "type" : "number"
+    },
+    "developmentAgitation" : {
+      "description" : "顯影液攪拌／補充程度；越高越能補充局部耗竭。",
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "developmentAmount" : {
+      "description" : "顯影擴散效果量，0 關閉；模擬共享顯影液耗竭與補充。",
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "developmentDiffusion" : {
+      "description" : "顯影液擴散尺度，以完整影像長邊百分比表示。",
+      "maximum" : 1,
+      "minimum" : 0.02,
+      "type" : "number"
+    },
+    "developmentTime" : {
+      "description" : "相對顯影時間，50 為基準，越大耗竭與鄰接作用越明顯。",
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "devignette" : {
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "emulsionMTF" : {
+      "description" : "模擬片種與色層的光學細節衰減；0 保留原始解析力，數值不是實測 MTF。",
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "exposure" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "exposureSeconds" : {
+      "description" : "底片模擬的曝光時間；只用於互易律失效，不改動原圖 EXIF。",
+      "maximum" : 3600,
+      "minimum" : 0.0001,
+      "type" : "number"
+    },
+    "filmColorModel" : {
+      "description" : "固定 spectral：LHTSS 光譜重建、多波段染料透射與獨立印片流程；只對底片款式生效。",
+      "enum" : [
+        "spectral"
+      ],
+      "type" : "string"
+    },
+    "filmWidthMM" : {
+      "description" : "以毫米指定曝光片幅長邊；同樣輸出尺寸下，片幅越大，顆粒及光學散射尺度越小。",
+      "maximum" : 120,
+      "minimum" : 8,
+      "type" : "number"
+    },
+    "frameEnabled" : {
+      "type" : "boolean"
+    },
+    "frameStyle" : {
+      "enum" : [
+        "whitePaperThin",
+        "whitePaperWide",
+        "whitePaperPolaroid",
+        "blackLine",
+        "filmStrip",
+        "cleanInset"
+      ],
+      "type" : "string"
+    },
+    "grain" : {
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "grainChroma" : {
+      "description" : "乳劑顆粒的彩色比例；黑白風格會維持灰階。",
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "grainClumping" : {
+      "description" : "乳劑晶體的聚集程度，調整局部 Poisson 粒子密度變化。",
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "grainDistribution" : {
+      "description" : "增加大小晶體的分布寬度，並校正平均覆蓋面積；需啟用顆粒。",
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "grainMode" : {
+      "description" : "統一使用 emulsion：顯影前 Poisson 晶體捕光與分層返照。顆粒量沿用 grain 與各分區 Grain。",
+      "enum" : [
+        "emulsion"
+      ],
+      "type" : "string"
+    },
+    "grainSize" : {
+      "description" : "顆粒尺寸：原圖長邊 3000 像素時的像素大小；預覽與匯出依原圖比例換算。",
+      "maximum" : 4,
+      "minimum" : 0.5,
+      "type" : "number"
+    },
+    "halationAmount" : {
+      "description" : "高光紅橙返照強度；黑白風格呈灰階光暈；0 關閉，隨整體風格強度縮放。",
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "halationBase" : {
+      "description" : "增加吸收並減弱基底返照；50 保留既有返照比例，需啟用紅暈。",
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "halationRadius" : {
+      "description" : "紅暈範圍，以未裁切原圖長邊百分比表示。",
+      "maximum" : 0.29999999999999999,
+      "minimum" : 0.01,
+      "type" : "number"
+    },
+    "halationThreshold" : {
+      "description" : "觸發紅暈的線性亮度門檻百分比。",
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "hdrAmount" : {
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "highlightExposure" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "highlightGrain" : {
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "highlightIntensity" : {
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "highlightPlanBaseTone" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "highlightPlanContrast" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "highlightPlanFade" : {
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "highlightPlanHighlights" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "highlightPlanShadows" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "highlightPlanSoftness" : {
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "highlightPlanTint" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "highlightWarmth" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "intensity" : {
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "layerResponse" : {
+      "description" : "各感色層使用獨立暗部、斜率與高光曲線；0 保留原曲線。片種數據為藝術近似。",
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "midtoneExposure" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "midtoneGrain" : {
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "midtoneIntensity" : {
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "midtonePlanBaseTone" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "midtonePlanContrast" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "midtonePlanFade" : {
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "midtonePlanHighlights" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "midtonePlanShadows" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "midtonePlanSoftness" : {
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "midtonePlanTint" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "midtoneWarmth" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "monochromeFilter" : {
+      "description" : "黑白感光色濾鏡，只在黑白風格生效；none 為關閉。",
+      "enum" : [
+        "none",
+        "yellow",
+        "orange",
+        "red",
+        "green"
+      ],
+      "type" : "string"
+    },
+    "monochromeFilterStrength" : {
+      "description" : "黑白感光色濾鏡濃度；0 為自然灰階混色。",
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "paperDensityOffset" : {
+      "description" : "調整印相材料最大密度；正值使紙黑更深，相片掃描亦保留。",
+      "maximum" : 1,
+      "minimum" : -1,
+      "type" : "number"
+    },
+    "paperProfile" : {
+      "enum" : [
+        "reference",
+        "glossy",
+        "matte",
+        "warmFiber"
+      ],
+      "type" : "string"
+    },
+    "paperScatter" : {
+      "description" : "印相後的紙基散射，相片掃描亦保留；直接底片掃描與正片不套用。",
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "paperWhite" : {
+      "description" : "光學印相紙白的相對反射率；100 不額外降低紙白。",
+      "maximum" : 100,
+      "minimum" : 80,
+      "type" : "number"
+    },
+    "printContrast" : {
+      "description" : "風格與底片皆可調整的印相反差，50 保留原有基準；反轉片調整觀看密度反差。",
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "printExposure" : {
+      "description" : "全區連動曝光補償 EV，-16 至 +16，預設 0；以 EV 差值同時移動三區，保留三區差距，任一區到達範圍界限時整組停止；先在線性 RGB 套用共同曝光增益，再套用乳劑、顯影與底片色彩；高光保護另加柔和肩部。正值變亮、負值變暗。",
+      "maximum" : 16,
+      "minimum" : -16,
+      "type" : "number"
+    },
+    "printExposureHighlights" : {
+      "description" : "亮部曝光補償 EV，-16 至 +16；以保留反差的平滑曲線調整，允許相鄰明暗區域柔和連動；缺值時沿用全區曝光。",
+      "maximum" : 16,
+      "minimum" : -16,
+      "type" : "number"
+    },
+    "printExposureMidtones" : {
+      "description" : "中調曝光補償 EV，-16 至 +16；以保留反差的平滑曲線調整，允許相鄰明暗區域柔和連動；缺值時沿用全區曝光。",
+      "maximum" : 16,
+      "minimum" : -16,
+      "type" : "number"
+    },
+    "printExposureShadows" : {
+      "description" : "暗部曝光補償 EV，-16 至 +16；以保留反差的平滑曲線調整，允許相鄰明暗區域柔和連動；缺值時沿用全區曝光。",
+      "maximum" : 16,
+      "minimum" : -16,
+      "type" : "number"
+    },
+    "printIlluminant" : {
+      "description" : "印相光源：reference 原始參考、tungsten2856 黑體 2856 K、blackbody3200 黑體 3200 K、blackbody4000 黑體 4000 K、blackbody5000 黑體 5000 K、blackbody5500 黑體 5500 K、blackbody6500 黑體 6500 K、blackbody7500 黑體 7500 K、blackbody10000 黑體 10000 K。一般風格與負片皆可使用，正片略過此光源。",
+      "enum" : [
+        "reference",
+        "tungsten2856",
+        "blackbody3200",
+        "blackbody4000",
+        "blackbody5000",
+        "blackbody5500",
+        "blackbody6500",
+        "blackbody7500",
+        "blackbody10000"
+      ],
+      "type" : "string"
+    },
+    "printRecipe" : {
+      "description" : "印相配方：reference 底片預設、glossy 亮面、matte 霧面柔階、warmFiber 暖調纖維。限非反轉片底片；保留目前紙材，只套用紙白、紙黑密度偏移與散射並將掃描來源設為相片，保留底掃開關及風格，保留曝光、反差及底片設定。同批個別參數會在配方後套用。",
+      "enum" : [
+        "reference",
+        "glossy",
+        "matte",
+        "warmFiber"
+      ],
+      "type" : "string"
+    },
+    "reciprocityAmount" : {
+      "description" : "依虛擬曝光時間模擬感度與色層響應下降；0 關閉，並非數位照片 EXIF 的自動還原。",
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "saturation" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "scanDensityCorrection" : {
+      "description" : "負片密度域色層去耦合程度，100 完整校正；正片與黑白略過。",
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "scanFlare" : {
+      "description" : "掃描器雜散光，0 關閉，100 相當於片基參考透射訊號的 0.5%。",
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "scanHighlightWarmth" : {
+      "description" : "底掃亮部冷暖，正暖負冷，純白附近減弱染色。",
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "scanMidtoneWarmth" : {
+      "description" : "底掃中調冷暖，正暖負冷，0 保留所選底掃風格。",
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "scannerIlluminant" : {
+      "description" : "底掃穿透光源，片基自動平衡；與印相、觀看光源分開。",
+      "enum" : [
+        "reference",
+        "tungsten2856",
+        "blackbody3200",
+        "blackbody4000",
+        "blackbody5000",
+        "blackbody5500",
+        "blackbody6500",
+        "blackbody7500",
+        "blackbody10000"
+      ],
+      "type" : "string"
+    },
+    "scannerProfile" : {
+      "description" : "off 關閉掃描；neutral 中性掃描（預設）；warmCool 暖中調冷亮部；softPortrait 柔和人像；vivid 鮮明掃描；coolClean 冷色清透；fadedVintage 復古褪色。底片與原片皆可使用；數位相機模擬強制 off 並停用底掃；原片僅套用掃描色彩調整。設備工作流程參考風格：frontierSP500、noritsuHS1800、flextightX5、coolscan9000、epsonV850。非實測商用掃描器。",
+      "enum" : [
+        "off",
+        "neutral",
+        "warmCool",
+        "softPortrait",
+        "vivid",
+        "coolClean",
+        "fadedVintage",
+        "frontierSP500",
+        "noritsuHS1800",
+        "flextightX5",
+        "coolscan9000",
+        "epsonV850"
+      ],
+      "type" : "string"
+    },
+    "scannerSource" : {
+      "description" : "film 直接掃描底片（相容預設）；paper 先印相再掃描紙本正像。相片掃描略過負片色層分離，保留紙白與紙基效果；反轉片維持直接掃描。",
+      "enum" : [
+        "film",
+        "paper"
+      ],
+      "type" : "string"
+    },
+    "scanSaturation" : {
+      "description" : "底掃色彩濃度，50 為中性，0 灰階；黑白底片維持灰階。",
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "shadowExposure" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "shadowGrain" : {
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "shadowIntensity" : {
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "shadowPlanBaseTone" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "shadowPlanContrast" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "shadowPlanFade" : {
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "shadowPlanHighlights" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "shadowPlanShadows" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "shadowPlanSoftness" : {
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "shadowPlanTint" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "shadowWarmth" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "silverRetention" : {
+      "description" : "在已顯影負片加入中性銀密度，影響掃描與印相；0 不額外保留銀。",
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "skinSmoothing" : {
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "skinWarmth" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "skinWhitening" : {
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "vibrance" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "viewIlluminant" : {
+      "description" : "觀看光源：reference 原始參考、tungsten2856 黑體 2856 K、blackbody3200 黑體 3200 K、blackbody4000 黑體 4000 K、blackbody5000 黑體 5000 K、blackbody5500 黑體 5500 K、blackbody6500 黑體 6500 K、blackbody7500 黑體 7500 K、blackbody10000 黑體 10000 K。風格與底片皆可使用，黑白維持灰階。",
+      "enum" : [
+        "reference",
+        "tungsten2856",
+        "blackbody3200",
+        "blackbody4000",
+        "blackbody5000",
+        "blackbody5500",
+        "blackbody6500",
+        "blackbody7500",
+        "blackbody10000"
+      ],
+      "type" : "string"
+    },
+    "vignette" : {
+      "maximum" : 100,
+      "minimum" : 0,
+      "type" : "number"
+    },
+    "vignetteBalance" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "whiteBalanceTint" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    },
+    "whiteBalanceWarmth" : {
+      "maximum" : 100,
+      "minimum" : -100,
+      "type" : "number"
+    }
+  }
+}

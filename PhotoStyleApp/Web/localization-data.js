@@ -1,4 +1,7 @@
 window.PhotoLocalizationData = {
+  "檔案": ["File", "ファイル", "파일"],
+  "結束": ["Quit", "終了", "종료"],
+  "顯示": ["View", "表示", "보기"],
   "加速設定請使用「系統原生解析」與「系統原生加速」；內建軟體解析與 Vulkan 模式是為 Windows 平台做準備，目前供測試使用。": ["For acceleration settings, use System native decoding and System native acceleration. Built-in software decoding and Vulkan are testing modes in preparation for Windows.", "高速化設定では「システム標準の解析」と「システム標準の高速化」を使用してください。内蔵ソフトウェア解析と Vulkan は Windows 対応の準備用で、現在はテスト向けです。", "가속 설정은 시스템 기본 디코딩과 시스템 기본 가속을 사용하세요. 내장 소프트웨어 디코딩과 Vulkan은 Windows 지원을 준비하는 테스트 모드입니다."],
   "新增獨立的 RAW 解析與計算加速選項，透過共用後端套用於預覽及單張、批次匯出。": ["Added separate RAW decoding and compute acceleration settings, shared by previews and single or batch exports.", "RAW 解析と演算の高速化を個別に選択でき、プレビューと一枚・一括書き出しで共用します。", "RAW 디코딩과 연산 가속을 각각 선택할 수 있으며 미리보기와 단일·일괄 내보내기에 공통으로 적용합니다."],
   "新增 RAW「啟用鏡頭修正」，預設開啟，使用系統提供的校正並同步套用於預覽與匯出。": ["Added Enable lens correction for RAW, on by default, using system-supplied corrections in previews and exports.", "RAW の「レンズ補正を有効にする」を追加。初期値はオンで、システムの補正をプレビューと書き出しに適用します。", "RAW 렌즈 보정 옵션을 추가했습니다. 기본값은 켜짐이며 시스템 보정을 미리보기와 내보내기에 적용합니다."],
@@ -16,6 +19,7 @@ window.PhotoLocalizationData = {
 
   "加速": ["Acceleration", "高速化", "가속"],
   "計算加速": ["Compute acceleration", "演算の高速化", "연산 가속"],
+  "正在切換計算加速": ["Switching compute acceleration", "演算の高速化を切り替え中", "연산 가속 전환 중"],
   "系統原生加速": ["System native acceleration", "システム標準の高速化", "시스템 기본 가속"],
   "Vulkan 加速": ["Vulkan acceleration", "Vulkan 高速化", "Vulkan 가속"],
   "選擇影像計算後端，套用於預覽與匯出。Vulkan 處理底片、顯影與掃描，其他效果保留系統原生處理。": ["Choose the image compute backend for previews and exports. Vulkan processes film, development and scanning; other effects use native processing.", "プレビューと書き出しに使う演算方式を選択します。Vulkan はフィルム・現像・スキャンを処理し、その他の効果は標準処理を使用します。", "미리보기와 내보내기에 사용할 연산 방식을 선택합니다. Vulkan은 필름, 현상, 스캔을 처리하고 다른 효과는 기본 처리를 사용합니다."],
@@ -2530,6 +2534,8 @@ window.PhotoLocalizationData = {
     "切り抜き",
     "자르기"
   ],
+  "寫入 EXIF": ["Write EXIF", "EXIF を書き込む", "EXIF 기록"],
+  "還原": ["Reset", "リセット", "초기화"],
   "完成": [
     "Done",
     "完了",

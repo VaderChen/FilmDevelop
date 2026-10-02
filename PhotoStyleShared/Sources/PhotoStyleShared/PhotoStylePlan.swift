@@ -297,6 +297,49 @@ public struct PhotoStylePlan: Codable, Sendable {
         skinSmoothing = container.decodeLossyIntIfPresent(forKey: .skinSmoothing) ?? 0
         postProcessing = (try? container.decode(PostProcessing.self, forKey: .postProcessing)) ?? .zero
     }
+
+    public func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(schemaVersion, forKey: .schemaVersion)
+        try values.encodeIfPresent(editorControls, forKey: .editorControls)
+        try values.encode(PlanFilmEffects(value: filmEffects), forKey: .filmEffects)
+        try values.encode(sceneSummary, forKey: .sceneSummary)
+        try values.encode(recommendedStyle, forKey: .recommendedStyle)
+        try values.encode(editPrompt, forKey: .editPrompt)
+        try values.encode(negativePrompt, forKey: .negativePrompt)
+        try values.encode(colorMode, forKey: .colorMode)
+        try values.encode(toneZones, forKey: .toneZones)
+        try values.encodeIfPresent(hdrToneCurve, forKey: .hdrToneCurve)
+        try values.encode(strength, forKey: .strength)
+        try values.encode(backgroundBlur, forKey: .backgroundBlur)
+        try values.encode(skinWhitening, forKey: .skinWhitening)
+        try values.encode(skinSmoothing, forKey: .skinSmoothing)
+        try values.encode(postProcessing, forKey: .postProcessing)
+    }
+}
+
+/// AI 配方只輸出可執行的現行控制，不把儲存相容用的舊欄位混入生成契約。
+private struct PlanFilmEffects: Encodable {
+    let value: PhotoFilmEffects
+    struct Key: CodingKey {
+        let stringValue: String
+        let intValue: Int? = nil
+        init(_ value: String) { stringValue = value }
+        init?(stringValue: String) { self.init(stringValue) }
+        init?(intValue: Int) { return nil }
+    }
+    func encode(to encoder: Encoder) throws {
+        var fields = try JSONSerialization.jsonObject(with: JSONEncoder().encode(value)) as! [String: Any]
+        fields.removeValue(forKey: "deep_shadow_amount")
+        var container = encoder.container(keyedBy: Key.self)
+        for (name, value) in fields {
+            let key = Key(name)
+            if let string = value as? String { try container.encode(string, forKey: key) }
+            else if let number = value as? NSNumber { try container.encode(number.doubleValue, forKey: key) }
+            else if let values = value as? [String: Double] { try container.encode(values, forKey: key) }
+            else { throw EncodingError.invalidValue(value, .init(codingPath: encoder.codingPath, debugDescription: "AI 底片欄位格式不符")) }
+        }
+    }
 }
 
 private extension PhotoStylePlan.ToneAdjustment {

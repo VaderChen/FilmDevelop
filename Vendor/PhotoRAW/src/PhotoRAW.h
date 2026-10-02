@@ -9,6 +9,14 @@ typedef struct PhotoRAWPixels {
     int width, height;
     int mapping_applied;
 } PhotoRAWPixels;
+typedef struct PhotoRAWMetadata {
+    unsigned width, height, orientation;
+    double iso, exposure, aperture, focal_length, focal_length_35mm;
+    char make[64], model[64], lens_make[128], lens[128], lens_serial[128];
+    char captured_at[32];
+} PhotoRAWMetadata;
+// 只識別 RAW 與讀取 EXIF，不解馬賽克、不依賴顯影支援。
+int photo_raw_metadata(const unsigned char *data, size_t length, PhotoRAWMetadata *result);
 // Linear RGB is Float32 storage of LibRaw's clipped RGB16 output, not HDR.
 // Calls are serialized inside the library, including all LibRaw destruction.
 int photo_raw_decode(const unsigned char *data, size_t length, int half_size,

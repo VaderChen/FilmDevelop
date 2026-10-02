@@ -34,7 +34,7 @@ final class PhotoStyleWebCoordinator: NSObject, WKNavigationDelegate, WKScriptMe
     ]
 
     let exportDirectoryPreference = PhotoExportDirectoryPreference()
-    let adjustmentStore = StyleAdjustmentStore()
+    let adjustmentStore = LegacyStyleAdjustmentStore()
     let stylePromptStore = StylePromptStore()
     let aiModelStore: AIModelStore
     let photoDirectoryStore: PhotoDirectoryStore

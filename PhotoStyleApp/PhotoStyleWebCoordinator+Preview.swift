@@ -297,20 +297,3 @@ final class PhotoPreviewSourcePayloadCache {
         return payload
     }
 }
-
-private extension StyleAdjustment {
-    /// Keep the current look and repairs, but display the full source coordinate plane.
-    var forSourceEditingPreview: StyleAdjustment {
-        var value = self
-        value.cropAspectRatio = .original
-        value.cropRotation = 0
-        value.cropScale = 100
-        value.cropWidth = 100
-        value.cropHeight = 100
-        value.cropHorizontalPosition = 0
-        value.cropVerticalPosition = 0
-        value.frameEnabled = false
-        value.dateEnabled = false
-        return value
-    }
-}

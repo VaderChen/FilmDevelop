@@ -5,6 +5,32 @@ import PhotoRAW
 /// The software option retains Float32 working storage, but LibRaw 0.22.2
 /// clips its RGB16 intermediate. It must not advertise scene HDR headroom.
 enum PhotoSoftwareRAWDecoder {
+    /// 只補讀 RAW 拍攝資訊，不進行解馬賽克；與 Windows 使用相同 LibRaw 入口。
+    static func metadata(data: Data) -> [String: Any]? {
+        var value = PhotoRAWMetadata()
+        let status = data.withUnsafeBytes { bytes in
+            photo_raw_metadata(bytes.bindMemory(to: UInt8.self).baseAddress, bytes.count, &value)
+        }
+        guard status == 0 else { return nil }
+        func text<T>(_ buffer: T) -> String {
+            withUnsafeBytes(of: buffer) { bytes in
+                String(decoding: bytes.prefix(while: { $0 != 0 }), as: UTF8.self)
+            }
+        }
+        var result: [String: Any] = [:]
+        for (key, string) in [
+            ("Make", text(value.make)), ("Model", text(value.model)),
+            ("LensMake", text(value.lens_make)), ("LensModel", text(value.lens)),
+            ("LensSerialNumber", text(value.lens_serial)), ("DateTimeOriginal", text(value.captured_at))
+        ] where !string.isEmpty { result[key] = string }
+        for (key, number) in [
+            ("ISOSpeedRatings", value.iso), ("ExposureTime", value.exposure),
+            ("FNumber", value.aperture), ("FocalLength", value.focal_length),
+            ("FocalLenIn35mmFilm", value.focal_length_35mm)
+        ] where number.isFinite && number > 0 { result[key] = number }
+        return result
+    }
+
     static func decode(data: Data, halfSize: Bool, mappingDirectory: URL? = nil) -> PhotoImage? {
         guard let directory = mappingDirectory ?? Bundle.main.url(forResource: "RAWMapping", withExtension: nil) else { return nil }
         var pixels = PhotoRAWPixels()

@@ -1,5 +1,6 @@
 import PhotoStyleShared
-import SwiftUI
+import Foundation
+import CoreGraphics
 
 enum PhotoStyle: String, CaseIterable, Identifiable {
     case original
@@ -130,45 +131,7 @@ enum PhotoStyle: String, CaseIterable, Identifiable {
         }
     }
 
-    var gradient: LinearGradient {
-        let colors: [Color]
-        switch self {
-        case .autoDetection:
-            colors = [.blue, .white, .orange]
-        case .japaneseColor1:
-            colors = [
-                Color(red: 0.45, green: 0.57, blue: 0.61),
-                Color(red: 0.86, green: 0.88, blue: 0.87),
-                Color(red: 0.92, green: 0.84, blue: 0.70)
-            ]
-        case .japaneseColor2:
-            colors = [.pink, .white, .cyan]
-        case .japaneseBWStrong:
-            colors = [.black, .gray, .white]
-        case .japaneseBWStandard:
-            colors = [
-                Color(red: 0.13, green: 0.13, blue: 0.12),
-                Color(red: 0.48, green: 0.47, blue: 0.43),
-                Color(red: 0.86, green: 0.84, blue: 0.78)
-            ]
-        case .japaneseBWSoft:
-            colors = [.gray, .secondary, .white]
-        case .fujiProvia:
-            colors = [.green, .blue, .cyan]
-        case .fujiClassicChrome:
-            colors = [.blue, .gray, .orange]
-        case .fujiClassicNeg:
-            colors = [
-                Color(red: 0.20, green: 0.34, blue: 0.35),
-                Color(red: 0.67, green: 0.67, blue: 0.57),
-                Color(red: 0.76, green: 0.33, blue: 0.24)
-            ]
-        default:
-            colors = [.brown, .orange, .yellow]
-        }
 
-        return LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
-    }
 }
 
 enum FrameStyle: String, CaseIterable, Codable, Identifiable {
@@ -689,299 +652,6 @@ struct StyleAdjustment: Codable, Equatable {
     )
 }
 
-final class StyleAdjustmentStore: ObservableObject {
-    @Published private(set) var adjustments: [PhotoStyle: StyleAdjustment]
-    var onChange: (() -> Void)?
-
-    private let defaults: UserDefaults
-    private let defaultsKey = "styleAdjustments.v1"
-    private let toneMappingMigrationKey = "styleAdjustments.toneMappingV2"
-    private let processingSemanticsMigrationKey = "styleAdjustments.processingSemanticsV3"
-    private let styleProfilesMigrationKey = "styleAdjustments.styleProfiles20260713"
-    private let stylePlanPolicyMigrationKey = "styleAdjustments.stylePlanPolicy20260714"
-    private let hamadaReferenceMigrationKey = "styleAdjustments.hamadaReference20260714"
-    private let kawauchiReferenceMigrationKey = "styleAdjustments.kawauchiReference20260714"
-    private let hdrAmountDefaultMigrationKey = "styleAdjustments.hdrAmountDefault20260718"
-
-    private struct StoredAdjustments: Decodable {
-        var values: [PhotoStyle: StyleAdjustment] = [:]
-        var hasDamagedRecords = false
-
-        private struct StyleKey: CodingKey {
-            let stringValue: String
-            var intValue: Int? { nil }
-            init(_ style: PhotoStyle) { stringValue = style.rawValue }
-            init?(stringValue: String) { self.stringValue = stringValue }
-            init?(intValue: Int) { return nil }
-        }
-
-        init(from decoder: Decoder) throws {
-            let container = try decoder.container(keyedBy: StyleKey.self)
-            for style in PhotoStyle.allCases {
-                let key = StyleKey(style)
-                guard container.contains(key) else { continue }
-                do {
-                    values[style] = try container.decode(StyleAdjustment.self, forKey: key)
-                } catch {
-                    // Decode each record separately, including numbers too large for Double.
-                    hasDamagedRecords = true
-                }
-            }
-        }
-    }
-
-    init(defaults: UserDefaults = .standard) {
-        self.defaults = defaults
-        var needsPersistenceRepair = false
-        var restored: [PhotoStyle: StyleAdjustment] = [:]
-        if let data = defaults.data(forKey: defaultsKey) {
-            if let records = try? JSONDecoder().decode(StoredAdjustments.self, from: data) {
-                needsPersistenceRepair = records.hasDamagedRecords
-                for (style, decoded) in records.values {
-                    let normalized = decoded.clamped()
-                    restored[style] = normalized
-                    needsPersistenceRepair = needsPersistenceRepair || normalized != decoded
-                }
-            } else {
-                needsPersistenceRepair = true
-            }
-        }
-        adjustments = Dictionary(uniqueKeysWithValues: PhotoStyle.allCases.map { style in
-            (style, restored[style] ?? StyleAdjustment.default(for: style))
-        })
-
-        if !defaults.bool(forKey: toneMappingMigrationKey) {
-            resetImageScopedCorrections()
-            save()
-            defaults.set(true, forKey: toneMappingMigrationKey)
-        }
-        if !defaults.bool(forKey: processingSemanticsMigrationKey) {
-            resetAllProcessingAdjustments()
-            save()
-            defaults.set(true, forKey: processingSemanticsMigrationKey)
-        }
-        if !defaults.bool(forKey: styleProfilesMigrationKey) {
-            resetAllProcessingAdjustments()
-            save()
-            defaults.set(true, forKey: styleProfilesMigrationKey)
-        }
-        if !defaults.bool(forKey: stylePlanPolicyMigrationKey) {
-            resetAllProcessingAdjustments()
-            save()
-            defaults.set(true, forKey: stylePlanPolicyMigrationKey)
-        }
-        if !defaults.bool(forKey: hamadaReferenceMigrationKey) {
-            resetProcessingAdjustments(for: [.japaneseColor1, .japaneseColor2])
-            defaults.set(true, forKey: hamadaReferenceMigrationKey)
-        }
-        if !defaults.bool(forKey: kawauchiReferenceMigrationKey) {
-            resetProcessingAdjustments(for: [.japaneseColor2])
-            defaults.set(true, forKey: kawauchiReferenceMigrationKey)
-        }
-        if !defaults.bool(forKey: hdrAmountDefaultMigrationKey) {
-            adjustments = Dictionary(uniqueKeysWithValues: adjustments.map { style, adjustment in
-                var output = adjustment
-                if output.hdrAmount >= 99.5 {
-                    output.hdrAmount = 25
-                }
-                return (style, output)
-            })
-            save()
-            defaults.set(true, forKey: hdrAmountDefaultMigrationKey)
-        }
-        for style in PhotoStyle.allCases where style.cameraProfile != nil {
-            if adjustments[style]?.filmEffects.scannerProfile != .off {
-                adjustments[style]?.filmEffects.scannerProfile = .off
-                needsPersistenceRepair = true
-            }
-        }
-        if needsPersistenceRepair { save() }
-    }
-
-    func adjustment(for style: PhotoStyle) -> StyleAdjustment {
-        var result = adjustments[style] ?? StyleAdjustment.default(for: style)
-        if style.cameraProfile != nil { result.filmEffects.scannerProfile = .off }
-        if (style.filmStock != nil || style == .original) && result.filmEffects.scannerProfile == .off {
-            result.filmEffects.scannerProfile = .neutral
-        }
-        return result
-    }
-
-    func restorePhotoAdjustments(_ values: [String: StyleAdjustment]) {
-        adjustments = Dictionary(uniqueKeysWithValues: PhotoStyle.allCases.map { style in
-            (style, values[style.rawValue]?.clamped() ?? StyleAdjustment.default(for: style))
-        })
-        save()
-    }
-
-    func startNewPhoto() {
-        adjustments = Dictionary(uniqueKeysWithValues: PhotoStyle.allCases.map { style in
-            let previous = adjustment(for: style)
-            var next = StyleAdjustment.default(for: style)
-            next.frameEnabled = previous.frameEnabled
-            next.frameStyle = previous.frameStyle
-            next.dateEnabled = previous.dateEnabled
-            next.dateStyle = previous.dateStyle
-            return (style, next)
-        })
-        save()
-    }
-
-    func binding(
-        for style: PhotoStyle,
-        _ keyPath: WritableKeyPath<StyleAdjustment, Double>
-    ) -> Binding<Double> {
-        Binding(
-            get: { self.adjustment(for: style)[keyPath: keyPath] },
-            set: { newValue in
-                self.update(style) { adjustment in
-                    adjustment[keyPath: keyPath] = newValue
-                }
-            }
-        )
-    }
-
-    func binding(
-        for style: PhotoStyle,
-        _ keyPath: WritableKeyPath<StyleAdjustment, Bool>
-    ) -> Binding<Bool> {
-        Binding(
-            get: { self.adjustment(for: style)[keyPath: keyPath] },
-            set: { newValue in
-                self.update(style) { adjustment in
-                    adjustment[keyPath: keyPath] = newValue
-                }
-            }
-        )
-    }
-
-    func setFrameStyle(_ frameStyle: FrameStyle, for style: PhotoStyle) {
-        update(style) { $0.frameStyle = frameStyle }
-    }
-
-    func setDateStyle(_ dateStyle: DateStampStyle, for style: PhotoStyle) {
-        update(style) { $0.dateStyle = dateStyle }
-    }
-
-    func setAdjustment(_ adjustment: StyleAdjustment, for style: PhotoStyle) {
-        adjustments[style] = adjustment.clamped()
-        save()
-    }
-
-    // Applying a look without AI starts from that look's own processing preset.
-    // Crop belongs to the photo; decorations remain the selected look's preference.
-    // This is deliberately explicit so observing state never overwrites a manual edit.
-    func applyDefaultAdjustment(for style: PhotoStyle, preservingCropFrom crop: StyleAdjustment? = nil) {
-        setAdjustment(Self.defaultAdjustment(for: style, previous: adjustment(for: style), preservingCropFrom: crop), for: style)
-    }
-
-    static func defaultAdjustment(for style: PhotoStyle, previous: StyleAdjustment, preservingCropFrom crop: StyleAdjustment?) -> StyleAdjustment {
-        var next = StyleAdjustment.default(for: style)
-        next.frameEnabled = previous.frameEnabled
-        next.frameStyle = previous.frameStyle
-        next.dateEnabled = previous.dateEnabled
-        next.dateStyle = previous.dateStyle
-        next.colorCalibration = style == .original ? nil : previous.colorCalibration
-        if let crop {
-            next.cropAspectRatio = crop.cropAspectRatio
-            next.cropRotation = crop.cropRotation
-            next.cropScale = crop.cropScale
-            next.cropWidth = crop.cropWidth
-            next.cropHeight = crop.cropHeight
-            next.cropHorizontalPosition = crop.cropHorizontalPosition
-            next.cropVerticalPosition = crop.cropVerticalPosition
-            next.imageScoped = crop.cropAspectRatio != .original
-                || crop.cropRotation != 0 || crop.cropScale != 100 || crop.cropWidth != 100 || crop.cropHeight != 100
-                || crop.cropHorizontalPosition != 0 || crop.cropVerticalPosition != 0
-        }
-        return next
-    }
-
-    func resetImageScopedCorrections() {
-        adjustments = Dictionary(uniqueKeysWithValues: adjustments.map { style, adjustment in
-            if adjustment.imageScoped {
-                return (style, defaultAdjustmentPreservingDecorations(for: style, from: adjustment))
-            }
-            var next = adjustment
-            next.imageScoped = false
-            next.cropAspectRatio = .original
-            next.cropRotation = 0
-            next.cropScale = 100
-            next.cropWidth = 100
-            next.cropHeight = 100
-            next.cropHorizontalPosition = 0
-            next.cropVerticalPosition = 0
-            next.exposure = 0
-            next.vibrance = 0
-            next.saturation = 0
-            next.whiteBalanceWarmth = 0
-            next.whiteBalanceTint = 0
-            next.highlightExposure = 0
-            next.highlightWarmth = 0
-            next.midtoneExposure = 0
-            next.midtoneWarmth = 0
-            next.shadowExposure = 0
-            next.shadowWarmth = 0
-            if style == .autoDetection {
-                next.brightness = 50
-                next.contrast = 0
-            }
-            return (style, next)
-        })
-        save()
-    }
-
-    private func resetAllProcessingAdjustments() {
-        adjustments = Dictionary(uniqueKeysWithValues: adjustments.map { style, adjustment in
-            (style, defaultAdjustmentPreservingDecorations(for: style, from: adjustment))
-        })
-    }
-
-    private func resetProcessingAdjustments(for styles: [PhotoStyle]) {
-        for style in styles {
-            let current = adjustments[style] ?? StyleAdjustment.default(for: style)
-            adjustments[style] = defaultAdjustmentPreservingDecorations(for: style, from: current)
-        }
-        save()
-    }
-
-    private func defaultAdjustmentPreservingDecorations(
-        for style: PhotoStyle,
-        from adjustment: StyleAdjustment
-    ) -> StyleAdjustment {
-        var output = StyleAdjustment.default(for: style)
-        output.frameEnabled = adjustment.frameEnabled
-        output.frameStyle = adjustment.frameStyle
-        output.dateEnabled = adjustment.dateEnabled
-        output.dateStyle = adjustment.dateStyle
-        output.hdrAmount = adjustment.hdrAmount
-        return output
-    }
-
-    private func update(_ style: PhotoStyle, mutate: (inout StyleAdjustment) -> Void) {
-        var next = adjustment(for: style)
-        mutate(&next)
-        adjustments[style] = next.clamped()
-        save()
-    }
-
-    private func save() {
-        // Normalize legacy recipes and AI/MCP edits at the persistence boundary.
-        for style in PhotoStyle.allCases where style.cameraProfile != nil {
-            adjustments[style]?.filmEffects.scannerProfile = .off
-        }
-        for style in PhotoStyle.allCases where style.filmStock != nil || style == .original {
-            if adjustments[style]?.filmEffects.scannerProfile == .off {
-                adjustments[style]?.filmEffects.scannerProfile = .neutral
-            }
-        }
-        let encoded = Dictionary(uniqueKeysWithValues: adjustments.map { ($0.key.rawValue, $0.value) })
-        guard let data = try? JSONEncoder().encode(encoded) else { return }
-        defaults.set(data, forKey: defaultsKey)
-        onChange?()
-    }
-}
-
 extension StyleAdjustment {
     /// Geometry belongs to the current photo, never to a selected film recipe.
     func preservingPhotoGeometry(from photo: StyleAdjustment) -> StyleAdjustment {
@@ -1112,4 +782,21 @@ extension StyleAdjustment {
                      white: white, detail: curve.detail.clamped(to: 0...40))
     }
 
+}
+
+extension StyleAdjustment {
+    /// 保留底片與修復，供裁切／修復工具顯示完整來源座標。
+    var forSourceEditingPreview: StyleAdjustment {
+        var value = self
+        value.cropAspectRatio = .original
+        value.cropRotation = 0
+        value.cropScale = 100
+        value.cropWidth = 100
+        value.cropHeight = 100
+        value.cropHorizontalPosition = 0
+        value.cropVerticalPosition = 0
+        value.frameEnabled = false
+        value.dateEnabled = false
+        return value
+    }
 }

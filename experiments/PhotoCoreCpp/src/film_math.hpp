@@ -118,8 +118,8 @@ template <class Function> Image transform_owned(Image in, const Function &fn) {
             in.pixels[y * in.width + x] = fn(in.pixels[y * in.width + x], x, y);
     return in;
 }
-Image gaussian(Image in, double sigma);
-Image resize_lanczos(const Image &in, double scale);
+Image gaussian(Image in, double sigma, bool clamp_edges = true);
+Image resize_lanczos(const Image &in, double scale, bool clamp_edges = false);
 V bilinear(const Image &in, double x, double y);
 V fit_chroma(V rgb, double y);
 V lab_luminance(V rgb, double y, double scale);

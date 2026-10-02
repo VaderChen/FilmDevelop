@@ -216,6 +216,7 @@ final class PhotoStyleLLMRuntime {
         loadedModelFileIdentity = nil
     }
 
+    #if !FILMDEVELOP_GO_HOST
     func generateAdjustment(
         image: PhotoImage,
         style: PhotoStyle,
@@ -304,6 +305,7 @@ final class PhotoStyleLLMRuntime {
             visionContext: visionContext,
             useGPU: loadedModelUsesGPU,
             maxTokens: Int32(PhotoStyleAIRequest.maxOutputTokens),
+            contextLimit: PhotoStyleAIRequest.contextLimit, grammar: PhotoStyleAIRequest.grammar,
             progress: progress,
             cancellation: cancellation
         )
@@ -313,6 +315,22 @@ final class PhotoStyleLLMRuntime {
         let plan = try Self.decodePlan(from: output)
         progress?(.applyingPreview)
         return plan
+    }
+
+    #endif
+
+    /// 提示詞、模型選取與配方映射由 Go 管理；此處只執行本機視覺推論。
+    func generateText(imageData: Data, modelPath: String, projectorPath: String, systemPrompt: String, userPrompt: String, grammar: String, maxTokens: Int, contextLimit: Int, progress: (@Sendable (PhotoStyleAIProgress) -> Void)?) async throws -> String {
+        let cancellation = PhotoStyleInferenceCancellation()
+        return try await inferenceGate.withExclusiveAccess {
+            let modelURL = URL(fileURLWithPath: modelPath)
+            let model = try self.loadModel(at: modelURL, cancellation: cancellation)
+            let vision = try self.loadVisionContext(modelURL: modelURL, model: model, auxiliaryURL: URL(fileURLWithPath: projectorPath))
+            guard let marker = mtmd_default_marker() else { throw PhotoStyleLLMRuntimeError.generationFailed }
+            let content = userPrompt.replacingOccurrences(of: "<image>", with: String(cString: marker))
+            let prompt = llama_model_chat_template(model, nil).flatMap { self.applyChatTemplate(template: $0, systemInstruction: systemPrompt, userContent: content) } ?? "System:\n\(systemPrompt)\nUser:\n\(content)\nAssistant:\n"
+            return try self.generateVisionText(prompt: prompt, imageData: imageData, model: model, visionContext: vision, useGPU: self.loadedModelUsesGPU, maxTokens: Int32(maxTokens), contextLimit: contextLimit, grammar: grammar, progress: progress, cancellation: cancellation)
+        }
     }
 
     private func normalizedImageData(from image: PhotoImage) -> Data? {
@@ -423,6 +441,7 @@ final class PhotoStyleLLMRuntime {
         return context
     }
 
+    #if !FILMDEVELOP_GO_HOST
     private func resolveAuxiliaryURL(modelURL: URL, status: AIModelStatus) throws -> URL {
         let directory = modelURL.deletingLastPathComponent()
         if let fileName = status.auxiliaryFileName, !fileName.isEmpty {
@@ -454,10 +473,12 @@ final class PhotoStyleLLMRuntime {
         return candidates.sorted(by: { $0.lastPathComponent < $1.lastPathComponent })[0]
     }
 
+    #endif
     private var inferenceThreadCount: Int32 {
         max(1, Int32(ProcessInfo.processInfo.processorCount / 2))
     }
 
+    #if !FILMDEVELOP_GO_HOST
     private func buildPrompt(style: PhotoStyle, model: OpaquePointer, stylePrompt: String?, baseAdjustment: StyleAdjustment, imageData: Data) throws -> String {
         guard let markerPointer = mtmd_default_marker() else {
             throw PhotoStyleLLMRuntimeError.generationFailed
@@ -488,6 +509,7 @@ final class PhotoStyleLLMRuntime {
         """
     }
 
+    #endif
     private func generateVisionText(
         prompt: String,
         imageData: Data,
@@ -495,11 +517,12 @@ final class PhotoStyleLLMRuntime {
         visionContext: OpaquePointer,
         useGPU: Bool,
         maxTokens: Int32,
+        contextLimit: Int, grammar: String,
         progress: (@Sendable (PhotoStyleAIProgress) -> Void)?,
         cancellation: PhotoStyleInferenceCancellation
     ) throws -> String {
         var contextParams = llama_context_default_params()
-        contextParams.n_ctx = UInt32(PhotoStyleAIRequest.contextLimit)
+        contextParams.n_ctx = UInt32(contextLimit)
         contextParams.n_batch = 512
         contextParams.n_ubatch = 512
         contextParams.n_seq_max = 1
@@ -575,7 +598,7 @@ final class PhotoStyleLLMRuntime {
         return try generateSampledText(
             context: context,
             model: model,
-            maxTokens: maxTokens,
+            maxTokens: maxTokens, grammarText: grammar,
             progress: progress,
             cancellation: cancellation
         )
@@ -584,7 +607,7 @@ final class PhotoStyleLLMRuntime {
     private func generateSampledText(
         context: OpaquePointer,
         model: OpaquePointer,
-        maxTokens: Int32,
+        maxTokens: Int32, grammarText: String,
         progress: (@Sendable (PhotoStyleAIProgress) -> Void)?,
         cancellation: PhotoStyleInferenceCancellation
     ) throws -> String {
@@ -597,7 +620,7 @@ final class PhotoStyleLLMRuntime {
             throw PhotoStyleLLMRuntimeError.generationFailed
         }
         defer { llama_sampler_free(sampler) }
-        let grammar = PhotoStyleAIRequest.grammar.withCString { grammar in
+        let grammar = grammarText.withCString { grammar in
             "root".withCString { root in llama_sampler_init_grammar(vocab, grammar, root) }
         }
         guard let grammar else { throw PhotoStyleLLMRuntimeError.grammarCreateFailed }
@@ -735,6 +758,7 @@ final class PhotoStyleLLMRuntime {
         return "<|turn>system\n\(systemInstruction.trimmingCharacters(in: .whitespacesAndNewlines))<turn|>\n<|turn>user\n\(userContent.trimmingCharacters(in: .whitespacesAndNewlines))<turn|>\n<|turn>model\n"
     }
 
+    #if !FILMDEVELOP_GO_HOST
     static func decodePlan(from output: String) throws -> PhotoStylePlan {
         do {
             return try PhotoStylePlanJSONDecoder.decodeGeneratedPlan(from: output)
@@ -742,4 +766,5 @@ final class PhotoStyleLLMRuntime {
             throw PhotoStyleLLMRuntimeError.invalidOutput(output)
         }
     }
+    #endif
 }

@@ -1,7 +1,8 @@
 (function () {
   "use strict";
-  // 全頁停用 WebKit 預設右鍵選單，事件仍繼續傳遞給照片的自訂選單。
+  // 編輯文字沿用系統右鍵選單；照片等操作由共用操作選單處理。
   document.addEventListener("contextmenu", function (event) {
+    if (event.target.closest("input, textarea, [contenteditable=true]")) return;
     event.preventDefault();
   }, { capture: true, passive: false });
   var L = window.PhotoL10n;
@@ -43,6 +44,8 @@
     originalResolutionEditing: false,
     rawDecoderBackend: "system",
     computeBackend: "system",
+    rawDecoders: window.PhotoNativeBridge ? [] : ["system", "software"],
+    computeBackends: window.PhotoNativeBridge ? [] : ["system", "vulkan"],
     mcp: { enabled: true, running: false, status: "啟動中", endpoint: "http://127.0.0.1:8765/mcp", connectionFile: "" },
     selectedCustomFilmID: null,
     selectedStyle: localStorage.getItem("photoStyle.selectedStyle") || "original",
@@ -70,6 +73,8 @@
     canSave: false,
     isLoadingImage: false,
     isRenderingPreview: false,
+    isSwitchingComputeBackend: false,
+    previewPhase: "",
     isComputing: false,
     computationStep: "",
     computationItems: [],
@@ -105,6 +110,8 @@
 
   var app = document.getElementById("app");
   var busyDialog = document.getElementById("busyDialog");
+  var pendingComputeBackendSwitch = null;
+  var computeBackendSwitchSequence = 0;
   var repairBrush = new window.PhotoRepairBrush({
     root: app, state: function () { return state; }, text: function (s) { return L.text(s); }, escape: escapeHtml,
     busy: function () { return photoIsBusy(state); }, render: render, post: post,
@@ -174,6 +181,7 @@
   var cropGesture = null;
   var cropMouseFallbackController = null;
   var cropEditSnapshot = null;
+  var cropPreviewHandoff = null;
   var cropUpdateTimer = null;
   var pendingCropValues = null;
   var pendingCropStyle = null;
@@ -331,7 +339,9 @@
 
   function post(action, payload) {
     var body = Object.assign({ action: action }, payload || {});
-    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.nativeBridge) {
+    if (window.PhotoNativeBridge) {
+      window.PhotoNativeBridge.post(body);
+    } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.nativeBridge) {
       window.webkit.messageHandlers.nativeBridge.postMessage(body);
     }
   }
@@ -730,7 +740,10 @@
       : (draft !== null && focused === promptEditor ? [promptEditor.selectionStart, promptEditor.selectionEnd] : null);
     var previousPreview = app.querySelector(".preview-image:not(.crop-source-image)");
     var preservePreview = previousPreview && !isCropEditorVisible(currentAdjustment())
-      && (previousPreview._photoGeneration === state.photoGeneration || previousPreview._isLoadingPreview);
+      && previousPreview._photoGeneration === state.photoGeneration;
+    if (previousPreview && !preservePreview && previousPreview._previewReveal) {
+      cancelPreviewReveal(previousPreview);
+    }
     cancelPreviewGesture();
     app.innerHTML = [
       renderTabs(),
@@ -748,6 +761,10 @@
       if (preservePreview) {
         nextPreview.replaceWith(previousPreview);
         previousPreview._photoGeneration = state.photoGeneration;
+        // 狀態更新會重建外框；同張照片的顯影底圖與動畫必須繼續保留。
+        if (previousPreview._previewReveal) {
+          previousPreview.parentElement.insertBefore(previousPreview._previewReveal.base, previousPreview);
+        }
         updatePreviewImage(previousPreview, requestedSource);
       } else {
         nextPreview._photoGeneration = state.photoGeneration;
@@ -777,6 +794,7 @@
     }
     hideTooltip();
     fitPreviewImage();
+    updateCropPreviewHandoff();
     updateBusyDialog();
   }
 
@@ -828,7 +846,7 @@
         var divider = group !== 'original' && (!index || group !== previous)
           ? '<button class="sidebar-film-divider" type="button" data-toggle-sidebar-group="' + group + '" aria-expanded="' + !collapsed + '" aria-label="' + escapeHtml(groupTitle) + '" title="' + escapeHtml(groupTitle) + '"><span>' + escapeHtml(groupTitle) + '</span>' + iconSvg('chevronDown') + '</button>' : '';
         if (collapsed) return divider;
-        return divider + '<button class="sidebar-style ' + (active ? "active" : "") + '" data-select-style="' + escapeHtml(style.id) + '" title="' + escapeHtml(styleTitle(style)) + '" data-sort-group="' + group + '" data-style-kind="' + kind + '" data-tooltip="' + escapeHtml(styleTitle(style) + "：" + L.text(style.subtitle)) + '" type="button" aria-label="' + escapeHtml(label) + '" aria-pressed="' + active + '">' +
+        return divider + '<button class="sidebar-style ' + (active ? "active" : "") + '" data-select-style="' + escapeHtml(style.id) + '" data-sort-group="' + group + '" data-style-kind="' + kind + '" type="button" aria-label="' + escapeHtml(label) + '" aria-pressed="' + active + '">' +
           '<span class="sidebar-swatch" style="background:linear-gradient(140deg,' + colors.map(escapeHtml).join(",") + ')">' + iconSvg(style.isOriginal ? "photos" : style.isFilmStock ? "film" : "styles") + '</span>' +
           '<span><strong>' + escapeHtml(styleTitle(style)) + '</strong></span></button>';
       }).join(""),
@@ -855,7 +873,7 @@
         return '<button class="photo-directory-button edit-history-button" data-action="' + action + '" type="button" aria-label="' + label + '" title="' + label + '"' + (!available || photoIsBusy(state) ? ' disabled' : '') + '>' + iconSvg(index ? 'redo' : 'undo') + '</button>';
       }).join('') + '</div>',
       repairBrush.toolbar() + renderCropQuickControl(adjustment) + L.html('<button type="button" class="photo-directory-button white-balance-picker" data-white-balance-picker aria-label="白平衡滴管" title="白平衡滴管：點選照片中的灰色或白色區域" aria-pressed="') + state.whiteBalancePicking + '"' + (!state.hasImage || photoIsBusy(state) || state.isRenderingPreview || state.cropEditing || state.repairEditing ? ' disabled' : '') + '>' + iconSvg('eyedropper') + '</button></div></div>',
-      L.html('<div class="preview-frame" aria-label="照片預覽區">'),
+      L.html('<div class="preview-frame" tabindex="0" aria-label="照片預覽區">'),
       previewSource
         ? (cropEditorVisible ? renderCropEditor() : [
           state.outputImage && state.loadingPreviewImage && !state.isLoadingImage ? '<img class="preview-loading-image" src="' + state.loadingPreviewImage + '" alt="" aria-hidden="true" draggable="false">' : "",
@@ -866,9 +884,9 @@
           '<button class="empty-open" data-action="browsePhotoDirectory" type="button" ' + (busy ? "disabled" : "") + L.html('>選取目錄 <kbd>⇧⌘O</kbd></button></div>') : ""),
       repairBrush.overlay(),
       L.html('<aside class="preview-histogram" aria-label="RGB 三原色直方圖"') + (state.histogramVisible && !cropEditorVisible ? '' : ' hidden') + L.html('><div class="histogram-heading"><button type="button" data-close-histogram aria-label="關閉直方圖">×</button></div><canvas width="256" height="100" role="img" aria-label="目前預覽的紅、綠、藍亮度分布"></canvas><div class="histogram-scale"><span>0</span><span>255</span></div></aside>'),
-      L.html('<div class="preview-feedback" data-preview-feedback role="status" aria-live="polite" hidden><span class="preview-spinner" aria-hidden="true"></span><strong data-preview-feedback-title></strong><small data-preview-feedback-detail></small><button class="empty-open" data-action="retryPreview" type="button" hidden>重新載入預覽</button></div>'),
       '</div>',
       '<footer class="canvas-footer"><span class="preview-status">' + escapeHtml(previewStatusText()) + '</span>',
+      L.html('<div class="preview-feedback" data-preview-feedback role="status" aria-live="polite" hidden><span class="preview-spinner" aria-hidden="true"></span><strong data-preview-feedback-title></strong><button data-action="cancelSubjectMaskDetection" type="button" hidden>取消偵測</button><button data-action="retryPreview" type="button" hidden>重新載入預覽</button></div>'),
       state.hasImage ? '<span class="canvas-hint">' + renderHelp(L.text("滾輪可放大縮小，放大後按住滑鼠左鍵拖曳移動；按「符合視窗」還原。按住空白鍵或右下角的比較按鈕可看原圖。"), L.text("原圖比較")) + L.html('</span><div class="canvas-actions"><button class="canvas-export" data-action="saveImage" type="button" title="匯出照片（⌘S）"') + (!state.canSave || photoIsBusy(state) ? ' disabled' : '') + '>' + iconSvg("exportImage") + L.html('匯出</button><div class="zoom-controls"><button data-zoom="zoomOut" aria-label="縮小" title="縮小（⌘−）">−</button><button data-zoom="zoomFit" title="符合視窗（⌘0）">符合視窗</button><button data-zoom="zoomIn" aria-label="放大" title="放大（⌘+）">＋</button></div></div>') : '<span class="canvas-hint">' + renderHelp(L.text("影像處理皆在這部 Mac 上完成。"), L.text("本機處理")) + '</span>',
       '</footer>', renderPhotoDirectory(), '</div>',
       L.html('<aside class="adjustment-pane" aria-label="影像調整" data-scroll-region="adjustments"') + (state.repairEditing ? ' inert' : '') + '>',
@@ -947,15 +965,19 @@
     }
   }
 
+  function selectionModifier(event) {
+    return /Mac/.test(navigator.platform || "") ? event.metaKey : event.ctrlKey;
+  }
+
   function selectThumbnail(id, event) {
     syncDirectorySelection();
     var selection = directorySelection;
     var ids = visibleDirectoryPhotos().map(function (item) { return item.id; });
     if (event.shiftKey && ids.indexOf(selection.anchor) >= 0) {
       var from = ids.indexOf(selection.anchor), to = ids.indexOf(id);
-      if (!event.metaKey) selection.ids.clear();
+      if (!selectionModifier(event)) selection.ids.clear();
       ids.slice(Math.min(from, to), Math.max(from, to) + 1).forEach(function (value) { selection.ids.add(value); });
-    } else if (event.metaKey) {
+    } else if (selectionModifier(event)) {
       if (selection.ids.has(id)) selection.ids.delete(id); else selection.ids.add(id);
       selection.anchor = id;
     } else {
@@ -1010,7 +1032,7 @@
       option('small', L.text('小'), state.thumbnailSize) + option('medium', L.text('中'), state.thumbnailSize) + option('large', L.text('大'), state.thumbnailSize) + option('xlarge', L.text('超大'), state.thumbnailSize) + '</select></label></div></div>' +
       (items.length ? L.html('<div class="photo-thumbnail-browser"><button class="photo-thumbnail-arrow" type="button" data-thumbnail-scroll="-1" aria-label="向左移動一張縮圖">‹</button>') +
         '<div class="photo-thumbnail-list" data-scroll-region="photo-thumbnails" aria-busy="' + loading + '">' + items.map(function (item, index) {
-        return '<button class="photo-thumbnail' + (item.edited ? ' edited' : '') + (directorySelection.ids.has(item.id) ? ' selected' : '') + '" id="photo-choice-' + escapeHtml(item.id) + '" data-directory-photo="' + escapeHtml(item.id) + '" type="button" aria-pressed="' + directorySelection.ids.has(item.id) + '" data-tooltip="' + escapeHtml(item.name) + '"' + (busy || directory.isScanning ? ' disabled' : '') + '>' +
+        return '<button class="photo-thumbnail' + (item.edited ? ' edited' : '') + (directorySelection.ids.has(item.id) ? ' selected' : '') + '" id="photo-choice-' + escapeHtml(item.id) + '" data-directory-photo="' + escapeHtml(item.id) + '" type="button" aria-pressed="' + directorySelection.ids.has(item.id) + '"' + (busy || directory.isScanning ? ' disabled' : '') + '>' +
           renderPhotoThumbnail(item) + '<span class="photo-thumbnail-caption"><span class="photo-thumbnail-name">' + escapeHtml(item.name) + '</span><span class="photo-thumbnail-index">#' + String(index + 1).padStart(4, '0') + '</span></span>' + renderPhotoOrganization(item) + '</button>';
       }).join('') + L.html('</div><button class="photo-thumbnail-arrow" type="button" data-thumbnail-scroll="1" aria-label="向右移動一張縮圖">›</button></div>') : '<p class="photo-directory-empty">' + escapeHtml(L.text(directory.message) || (directory.isScanning ? L.text('正在尋找照片…') : L.text(photoDisplayMode.indexOf('tag:') === 0 ? '此分類沒有照片。' : '這個目錄沒有可開啟的照片。'))) + '</p>') + '</section>';
   }
@@ -1082,11 +1104,9 @@
       var reviewedFilm = state.styles.find(function (film) { return film.id === reviewedLook; });
       return L.text('預覽：') + (reviewedFilm ? styleTitle(reviewedFilm) : L.text('底片'));
     }
-    if (state.isLoadingImage) return L.text("正在讀取");
     if (state.isComputing) return L.text("AI 分析中");
     if (state.isSavingImage) return L.text("正在輸出");
     if (state.cropEditing && (currentAdjustment().cropAspectRatio || "original") !== "original") return L.text("裁切調整中");
-    if (state.isRenderingPreview) return L.text("正在更新預覽");
     return state.hasImage ? L.text("即時預覽") : L.text("等待照片");
   }
 
@@ -1100,6 +1120,7 @@
       (state.cropAspectRatios || []).map(function (option) {
         return '<option value="' + option.id + '" ' + (option.id === value ? "selected" : "") + '>' + escapeHtml(L.text(option.title)) + "</option>";
       }).join(""),
+      L.html('<hr><option value="reset">還原</option>'),
       "</select></label>",
       editing ? L.html('<button class="crop-edit-toggle" data-crop-cancel type="button">取消</button>') : "",
       (adjustment.cropAspectRatio || "original") !== "original"
@@ -1954,7 +1975,7 @@
   var settingsSection = "general";
 
   function renderExportSettings() {
-    var prefs = Object.assign({maxPixel:0, format:'png', colorSpace:'sRGB', jpegQuality:95, webpQuality:95, webpLossless:false, pngDepth:8, tiffDepth:16, tiffCompression:1}, state.exportSettings || {});
+    var prefs = Object.assign({maxPixel:0, format:'png', colorSpace:'sRGB', jpegQuality:95, webpQuality:95, webpLossless:false, pngDepth:8, tiffDepth:16, tiffCompression:1, writeExif:true}, state.exportSettings || {});
     var explanations = {
       "colorSpace": "轉換至所選色彩空間並嵌入 ICC 色彩描述檔。",
       "maxPixel": "0 表示原始尺寸；只縮小、不放大，包含裁切與外框，套用於單張及批次輸出。",
@@ -1969,25 +1990,33 @@
       return '<div class="settings-row"><span id="export-label-' + key + '">' + renderHelp(explanations[key] ? L.text(explanations[key]) : '', L.text(title)) + '</span><div class="export-number-control"><input id="export-' + key + '" aria-labelledby="export-label-' + key + '" data-export-setting="' + key + '" type="number" min="' + min + '" max="' + max + '" step="1" value="' + prefs[key] + '"' + (disabled ? ' disabled' : '') + '><span>' + suffix + '</span></div></div>';
     }
     var formatSettings = {
-      jpeg: '<h3 class="export-format-heading">JPEG</h3>' + number('jpegQuality', '影像品質', 1, 100, '%'),
-      png: '<h3 class="export-format-heading">PNG</h3>' + select('pngDepth', '位元深度', [['8','8 bit／色彩通道'],['16','16 bit／色彩通道']]),
-      webp: '<h3 class="export-format-heading">WebP</h3>' + select('webpLossless', '壓縮模式', [['false','有損壓縮'],['true','無損壓縮']]) + number('webpQuality', '影像品質', 1, 100, '%', prefs.webpLossless),
-      tiff: '<h3 class="export-format-heading">TIFF</h3>' + select('tiffDepth', '位元深度', [['8','8 bit／色彩通道'],['16','16 bit／色彩通道']]) + select('tiffCompression', '壓縮模式', [['1','無壓縮'],['5','LZW（無損）']])
+      jpeg: number('jpegQuality', '影像品質', 1, 100, '%'),
+      png: select('pngDepth', '位元深度', [['8','8 bit／色彩通道'],['16','16 bit／色彩通道']]),
+      webp: select('webpLossless', '壓縮模式', [['false','有損壓縮'],['true','無損壓縮']]) + number('webpQuality', '影像品質', 1, 100, '%', prefs.webpLossless),
+      tiff: select('tiffDepth', '位元深度', [['8','8 bit／色彩通道'],['16','16 bit／色彩通道']]) + select('tiffCompression', '壓縮模式', [['1','無壓縮'],['5','LZW（無損）']])
     };
-    return select('colorSpace', '輸出色彩空間', [['sRGB','sRGB'],['adobeRGB','Adobe RGB (1998)'],['displayP3','Display P3']]) +
+    return '<div class="settings-row"><span id="export-label-writeExif">' + L.text('寫入 EXIF') + '</span><button id="export-writeExif" class="switch ' + (prefs.writeExif ? 'on' : '') + '" type="button" role="switch" aria-labelledby="export-label-writeExif" aria-checked="' + Boolean(prefs.writeExif) + '"></button></div>' +
+      select('colorSpace', '輸出色彩空間', [['sRGB','sRGB'],['adobeRGB','Adobe RGB (1998)'],['displayP3','Display P3']]) +
       number('maxPixel', '最大輸出尺寸（最長邊）', 0, 100000, 'px') +
       select('format', '預設輸出格式', [['jpeg','JPEG'],['png','PNG'],['webp','WebP'],['tiff','TIFF']]) +
       (formatSettings[prefs.format] || '');
   }
 
   function renderSettings() {
+    function accelerationOptions(key, selected, labels) {
+      var available = Array.isArray(state[key]) ? state[key] : [];
+      if (!available.length) return option("", L.text("未偵測到可用後端"), "");
+      return available.map(function (id) { return option(id, L.text(labels[id] || id), selected); }).join("");
+    }
+    var rawLabels = Object.assign({system: "系統原生解析", software: "內建軟體解析 (測試中)"}, state.rawDecoderLabels || {});
+    var computeLabels = Object.assign({system: "系統原生加速", vulkan: "Vulkan 加速"}, state.computeBackendLabels || {});
     var exposureExpansionHelp = L.text("預設關閉，印相／觀看曝光範圍為 ±8 EV；開啟後擴大至 ±16 EV。關閉時仍保留已設定的超範圍數值。");
     var modernFilmExposureHelp = L.text("使用更強的高光抑制並保留色彩；EV 值過高時，容易使畫面扁平、缺乏層次。");
     var highlightProtectionHelp = L.text("預設開啟，提高曝光時柔和壓縮高光。關閉後不再壓縮高光；降低曝光皆依 2^EV 計算，不自動補亮暗部。");
     var lensCorrectionHelp = L.text("預設開啟，使用系統 RAW 解析器提供的鏡頭校正，預覽與匯出同步套用。僅適用支援校正的 RAW；內建軟體解析、內嵌 JPEG 與一般圖片不套用。");
     var hdrFeatureHelp = L.text("預設開啟，可在全域調整中設定 HDR 模擬強度。關閉後隱藏該滑桿，預覽與匯出皆不套用 HDR 模擬；原有強度設定會保留。");
     var originalResolutionHelp = (state.effectiveRAWDecoderBackend || state.rawDecoderBackend) === "software" ? L.text("預設關閉；內建軟體解析的 RAW 使用半尺寸處理，其他圖片使用最長邊 2048 px。開啟後使用原檔，匯出皆使用全尺寸。") : L.text("預設關閉，使用最長邊 2048 px 的處理縮圖；開啟後使用原檔。若設備效能不足，建議關閉以加快操作。");
-    var version = window.__appInfo ? window.__appInfo.version + " build " + window.__appInfo.build : "—";
+    var version = state.appVersion || (window.__appInfo ? window.__appInfo.version + " build " + window.__appInfo.build : "—");
     var categories = [["general", "一般"], ["develop", "顯影"], ["acceleration", "加速"], ["export", "輸出"], ["mcp", "MCP"], ["about", "關於"]];
     var panels = {
       general: [
@@ -2007,17 +2036,16 @@
       ].join(""),
       acceleration: [
       '<div class="settings-row"><span id="rawAccelerationLabel">' + renderHelp(L.text("切換後重新解析目前的 RAW，並保留調整。內建軟體解析使用 CPU；編輯採半尺寸，匯出採全尺寸。高光範圍與細節可能不同，建議先使用系統原生解析。"), L.text("RAW 加速")) + '</span>',
-      '<select id="rawDecoderSelect" aria-labelledby="rawAccelerationLabel"' + (photoIsBusy(state) ? ' disabled' : '') + '>',
-      option("system", L.text("系統原生解析"), state.rawDecoderBackend),
-      option("software", L.text("內建軟體解析 (測試中)"), state.rawDecoderBackend),
+      '<select id="rawDecoderSelect" aria-labelledby="rawAccelerationLabel"' + (photoIsBusy(state) || !(state.rawDecoders || []).length ? ' disabled' : '') + '>',
+      accelerationOptions("rawDecoders", state.rawDecoderBackend, rawLabels),
       '</select></div>',
       state.rawDecoderBackend === "software" && state.softwareRAWFallback
         ? '<div class="settings-row" role="status"><span>' + L.text("目前照片使用系統原生解析，內建解析器無法解析此檔案。") + '</span></div>' : '',
       '<div class="settings-row"><span id="computeAccelerationLabel">' + renderHelp(L.text("選擇影像計算後端，套用於預覽與匯出。Vulkan 處理底片、顯影與掃描，其他效果保留系統原生處理。"), L.text("計算加速")) + '</span>',
-      '<select id="computeBackendSelect" aria-labelledby="computeAccelerationLabel"' + (photoIsBusy(state) || state.isRenderingPreview ? ' disabled' : '') + '>',
-      option("system", L.text("系統原生加速"), state.computeBackend),
-      option("vulkan", L.text("Vulkan 加速"), state.computeBackend),
-      '</select></div>'
+      '<select id="computeBackendSelect" aria-labelledby="computeAccelerationLabel"' + (photoIsBusy(state) || state.isRenderingPreview || !(state.computeBackends || []).length ? ' disabled' : '') + '>',
+      accelerationOptions("computeBackends", state.computeBackend, computeLabels),
+      '</select></div>',
+      state.computeBackendMessage ? '<div class="settings-row" role="status"><span>' + escapeHtml(L.text(state.computeBackendMessage)) + '</span></div>' : ''
       ].join(""),
       export: [
       '<div class="settings-row export-directory-row"><span>' + L.text("預設輸出目錄") + '</span><div class="export-directory-control">',
@@ -2046,7 +2074,8 @@
       L.html('<div class="settings-row"><span>MCP 狀態</span><span>') + escapeHtml(L.text(state.mcp.status)) + '</span></div>',
       L.html('<div class="settings-row"><span>MCP 位址</span><code class="selectable">') + escapeHtml(state.mcp.endpoint) + '</code></div>',
       L.html('<div class="settings-row"><span>用戶端連線設定</span><button class="button" data-action="copyMCPConfiguration" ') + (!state.mcp.running ? "disabled" : "") + L.html('>複製 MCP 設定</button></div>'),
-      L.html('<div class="settings-row"><span>設定檔</span><code class="selectable mcp-path">') + escapeHtml(state.mcp.connectionFile) + '</code></div>',
+      typeof state.mcp.connectionFile === 'string' && state.mcp.connectionFile.trim()
+        ? L.html('<div class="settings-row"><span>設定檔</span><code class="selectable mcp-path">') + escapeHtml(state.mcp.connectionFile) + '</code></div>' : '',
       ].join(""),
       about: [
       L.html('<div class="settings-row"><span>版本</span><span class="mono">') + escapeHtml(version) + "</span></div>",
@@ -2054,6 +2083,11 @@
       L.html('<div class="settings-row"><span>檢查更新</span><button class="button" type="button" data-action="checkAppUpdate">檢查更新</button></div>'),
       ].join(""),
     };
+    if (window.PhotoNativeBridge) {
+      panels.general += '<div class="settings-row"><span>資料移轉</span><button class="button" data-action="showMigrationReport">檢視移轉紀錄</button></div>' +
+        '<div class="settings-row"><span>照片配方與分類備份</span><button class="button" data-action="exportLibraryArchive">匯出資料庫…</button></div>' +
+        '<div class="settings-row"><span>從另一台電腦移入</span><button class="button" data-action="importLibraryArchive">匯入並重新定位…</button></div>';
+    }
     return renderPageHeading("偏好設定", L.text("設定"), L.text("依照你的工作方式調整語言、外觀與影像功能。")) +
       '<div class="settings-layout"><nav class="settings-navigation" aria-label="' + escapeHtml(L.text("設定")) + '">' +
       categories.map(function (category) {
@@ -2074,15 +2108,20 @@
   }
 
   function renderHelp(description, label) {
-    if (!description) return escapeHtml(label);
+    if (!description || description.trim() === String(label).trim()) return escapeHtml(label);
     return '<span id="help-' + (++helpSequence) + '" class="help-title" role="button" tabindex="0" data-tooltip="' + escapeHtml(description) + '">' + escapeHtml(label) + '</span>';
   }
 
   function prepareNativeTooltips() {
-    // Replace browser title delays with the same immediate, accessible bubble.
+    // 保留操作說明與快捷鍵；可見文字已完整說明的名稱不再重複彈出。
     app.querySelectorAll('[title]').forEach(function (node) {
-      if (node.title) node.dataset.tooltip = node.title;
+      var description = node.dataset.tooltip || node.title;
       node.removeAttribute('title');
+      if (!description || description.replace(/\s+/g, ' ').trim() === node.textContent.replace(/\s+/g, ' ').trim()) {
+        delete node.dataset.tooltip;
+        return;
+      }
+      node.dataset.tooltip = description;
       if (!node.matches('button,input,select,textarea,a[href],[tabindex]')) node.tabIndex = 0;
     });
   }
@@ -2256,6 +2295,11 @@
     return '<option value="' + value + '" ' + (value === selected ? "selected" : "") + ">" + label + "</option>";
   }
 
+  function menuPosition(event) {
+    var rect = event.currentTarget.getBoundingClientRect();
+    return {x: event.clientX || rect.left + 12, y: event.clientY || rect.top + 12};
+  }
+
   function bindPhotoDirectoryEvents() {
     app.querySelectorAll('[data-action="browsePhotoDirectory"]').forEach(function (button) {
       if (button._recentDirectoryMenuBound) return;
@@ -2263,7 +2307,7 @@
       button.addEventListener('contextmenu', function (event) {
         event.preventDefault();
         event.stopPropagation();
-        if (!photoIsBusy(state)) flushPhotoEdits('showRecentPhotoDirectories');
+        if (!photoIsBusy(state)) flushPhotoEdits('showRecentPhotoDirectories', {menuAnchor: menuPosition(event)});
       });
     });
     var displaySelect = app.querySelector('#photoDisplayMode');
@@ -2298,12 +2342,12 @@
         syncDirectorySelection();
         if (!directorySelection.ids.has(id)) selectThumbnail(id, {});
         var ids = visibleDirectoryPhotos().filter(function (item) { return directorySelection.ids.has(item.id); }).map(function (item) { return item.id; });
-        flushPhotoEdits("showPreviewMenu", { id: id, ids: ids });
+        flushPhotoEdits("showPreviewMenu", { id: id, ids: ids, menuAnchor: menuPosition(event) });
       });
       button.addEventListener("click", function (event) {
         if (photoIsBusy(state) || (state.photoDirectory && state.photoDirectory.isScanning)) return;
         selectThumbnail(button.dataset.directoryPhoto, event);
-        if (event.metaKey || event.shiftKey) return;
+        if (selectionModifier(event) || event.shiftKey) return;
         flushPhotoEdits("selectDirectoryPhoto", { id: button.dataset.directoryPhoto });
         discardPendingPhotoEdits();
       });
@@ -2452,7 +2496,7 @@
     if (previewMenuFrame) previewMenuFrame.addEventListener("contextmenu", function (event) {
       event.preventDefault();
       cancelPreviewGesture();
-      post("showPreviewMenu");
+      if (!photoIsBusy(state)) flushPhotoEdits("showPreviewMenu", {menuAnchor: menuPosition(event)});
     });
     var closeHistogram = app.querySelector('[data-close-histogram]');
     if (closeHistogram) closeHistogram.addEventListener('click', function () {
@@ -2588,7 +2632,7 @@
         if (!film || !film.isCustom) return;
         event.preventDefault();
         event.stopPropagation();
-        if (!photoIsBusy(state)) flushPhotoEdits("showCustomFilmMenu", { id: id });
+        if (!photoIsBusy(state)) flushPhotoEdits("showCustomFilmMenu", { id: id, menuAnchor: menuPosition(event) });
       });
     });
     app.querySelectorAll("[data-select-style]").forEach(function (button) {
@@ -2723,6 +2767,18 @@
           cancelCropEditing();
           return;
         }
+        if (key === "cropAspectRatio" && select.value === "reset") {
+          holdCropPreview();
+          var originalCrop = { cropAspectRatio: "original", cropRotation: 0, cropScale: 100,
+            cropWidth: 100, cropHeight: 100, cropHorizontalPosition: 0, cropVerticalPosition: 0 };
+          updateLocalCropValues(originalCrop);
+          scheduleCropAdjustment(originalCrop);
+          state.cropEditing = false;
+          flushCropAdjustment();
+          resetPreviewZoom();
+          render();
+          return;
+        }
         if (key === "cropAspectRatio") beginCropEditing();
         updateLocalAdjustment(key, select.value);
         if (key === "cropAspectRatio") {
@@ -2756,6 +2812,7 @@
     });
     app.querySelectorAll("[data-crop-done]").forEach(function (button) {
       button.addEventListener("click", function () {
+        if (pendingCropValues) holdCropPreview();
         state.cropEditing = false;
         flushCropAdjustment();
         resetPreviewZoom();
@@ -2822,8 +2879,13 @@
 
     var computeBackendSelect = document.getElementById("computeBackendSelect");
     if (computeBackendSelect) computeBackendSelect.addEventListener("change", function () {
+      if (photoIsBusy(state) || state.isRenderingPreview || computeBackendSelect.value === state.computeBackend) return;
       computeBackendSelect.disabled = true;
-      post("setComputeBackend", { backend: computeBackendSelect.value });
+      pendingComputeBackendSwitch = "compute-" + Date.now() + "-" + (++computeBackendSwitchSequence);
+      flushPhotoEdits("setComputeBackend", { backend: computeBackendSelect.value, requestID: pendingComputeBackendSwitch });
+      // 在宿主接收指令前就提供回饋；後續只由同一筆要求的狀態解除。
+      state.isSwitchingComputeBackend = true;
+      updateBusyDialog();
     });
     var rawDecoderSelect = document.getElementById("rawDecoderSelect");
     if (rawDecoderSelect) rawDecoderSelect.addEventListener("change", function () {
@@ -2856,6 +2918,10 @@
       });
     });
 
+    var writeExifToggle = app.querySelector('#export-writeExif');
+    if (writeExifToggle) writeExifToggle.addEventListener('click', function () {
+      post('setExportSettings', {key:'writeExif', value:writeExifToggle.getAttribute('aria-checked') !== 'true'});
+    });
     app.querySelectorAll('[data-export-setting]').forEach(function (input) {
       input.addEventListener('change', function () {
         if (input.type === 'number' && !input.reportValidity()) return;
@@ -2940,6 +3006,7 @@
   }
 
   function beginCropEditing() {
+    clearCropPreviewHandoff();
     if (cropEditSnapshot) return;
     var adjustment = currentAdjustment();
     cropEditSnapshot = {};
@@ -2949,6 +3016,7 @@
   }
 
   function cancelCropEditing() {
+    clearCropPreviewHandoff();
     if (cropEditSnapshot) updateLocalCropValues(cropEditSnapshot);
     cropEditSnapshot = null;
     pendingCropValues = pendingCropStyle = null;
@@ -2957,6 +3025,64 @@
     state.cropEditing = false;
     resetPreviewZoom();
     render();
+  }
+
+  // 裁切完成後保留目前畫面；原生結果及瀏覽器解碼都完成才交接。
+  // 使用顯示中的圖層與座標，避免拿未裁切的舊 outputImage 填補等待空檔。
+  function holdCropPreview() {
+    if (cropPreviewHandoff) return;
+    var frame = app.querySelector(".preview-frame");
+    var image = frame && frame.querySelector(".preview-image");
+    if (!image || !frame.clientWidth || !frame.clientHeight) return;
+    var layer = document.createElement("div");
+    layer.className = "crop-preview-hold";
+    layer.setAttribute("aria-hidden", "true");
+    layer.inert = true;
+    var content = document.createElement("div");
+    content.className = "crop-preview-hold-content";
+    content.style.width = frame.clientWidth + "px";
+    content.style.height = frame.clientHeight + "px";
+    [image, frame.querySelector("[data-crop-box]")].forEach(function (node) {
+      if (!node) return;
+      var copy = node.cloneNode(true);
+      copy.classList.replace("preview-image", "crop-held-image");
+      copy.querySelectorAll("button, .crop-move-surface").forEach(function (control) { control.remove(); });
+      [copy].concat(Array.from(copy.querySelectorAll("*"))).forEach(function (child) {
+        Array.from(child.attributes).forEach(function (attribute) {
+          if (attribute.name === "id" || attribute.name === "tabindex" || attribute.name.indexOf("data-") === 0) child.removeAttribute(attribute.name);
+        });
+      });
+      content.appendChild(copy);
+    });
+    layer.appendChild(content);
+    cropPreviewHandoff = { layer: layer, width: frame.clientWidth, height: frame.clientHeight,
+      generation: state.photoGeneration, look: currentLookID(), revision: state.previewRevision, ready: false };
+  }
+
+  function clearCropPreviewHandoff() {
+    if (cropPreviewHandoff) cropPreviewHandoff.layer.remove();
+    cropPreviewHandoff = null;
+  }
+
+  function updateCropPreviewHandoff() {
+    var held = cropPreviewHandoff;
+    if (!held) return;
+    if (held.generation !== state.photoGeneration || held.look !== currentLookID() || state.isLoadingImage || state.repairEditing) {
+      clearCropPreviewHandoff();
+      return;
+    }
+    var frame = app.querySelector(".preview-frame");
+    if (!frame) return;
+    var image = frame.querySelector(".preview-image:not(.crop-source-image)");
+    if (held.ready && image && image.getAttribute("src") === state.outputImage && image.complete && image.naturalWidth && !image._pendingPreviewDecode) {
+      // 不讓一般預覽的淡入底圖再次顯露提交前的原圖。
+      cancelPreviewReveal(image);
+      clearCropPreviewHandoff();
+      return;
+    }
+    frame.appendChild(held.layer);
+    var scale = Math.min(frame.clientWidth / held.width, frame.clientHeight / held.height);
+    held.layer.firstElementChild.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
   }
 
   function bindCropEditor() {
@@ -3192,36 +3318,34 @@
     var feedback = app.querySelector("[data-preview-feedback]");
     if (!frame || !feedback) return;
     var image = frame.querySelector(".preview-image");
-    var processing = state.isLoadingImage || state.isRenderingPreview;
+    var detecting = (state.isRenderingPreview && state.previewPhase === "subject") || !!(state.subjectMask && state.subjectMask.detecting);
+    var processing = state.isLoadingImage || state.isRenderingPreview || detecting || !!(cropPreviewHandoff && !cropPreviewHandoff.ready);
     var decoding = !!image && (!image.complete || !!image._pendingPreviewDecode);
+    var revealing = !!image && !!image._previewReveal;
     var ready = !!image && image.complete && image.naturalWidth > 0;
     if (ready) image._hasDisplayedPreview = true;
-    if (ready && isCropEditorVisible(currentAdjustment())) {
-      feedback.hidden = true;
-      frame.setAttribute("aria-busy", "false");
-      image.style.visibility = "";
-      return;
-    }
     var retainedPreview = !!image && !!image._hasDisplayedPreview;
     var placeholder = frame.querySelector(".preview-loading-image");
     if (placeholder) placeholder.hidden = ready || retainedPreview;
-    var previewVisible = ready || retainedPreview || (!!placeholder && placeholder.complete && placeholder.naturalWidth > 0);
     var failed = !processing && !decoding && ((!!image && (!ready || image._previewError)) || (state.hasImage && !state.outputImage));
-    var active = processing || decoding;
+    var active = processing || decoding || revealing;
     frame.setAttribute("aria-busy", active ? "true" : "false");
+    // 讀圖、顯影與主體偵測共用照片下方狀態列，不覆蓋照片或中斷編輯。
     feedback.hidden = !active && !failed;
-    feedback.classList.toggle("is-compact", previewVisible && !failed);
     feedback.classList.toggle("is-error", failed);
-    feedback.querySelector(".preview-spinner").hidden = failed;
+    feedback.querySelector(".preview-spinner").hidden = !active;
+    feedback.querySelector("[data-action=cancelSubjectMaskDetection]").hidden = !detecting;
     feedback.querySelector("[data-action=retryPreview]").hidden = !failed;
-    var title = failed ? L.text("無法顯示照片預覽") : state.isLoadingImage ? L.text("正在載入照片") :
-      state.isRenderingPreview ? (state.originalResolutionEditing !== false ? L.text("正在處理原始照片") : L.text("正在更新預覽")) : L.text("正在顯示照片");
-    feedback.querySelector("[data-preview-feedback-title]").textContent = title;
-    feedback.querySelector("[data-preview-feedback-detail]").textContent = failed ? L.text("請重新載入預覽。") :
-      state.isRenderingPreview && state.originalResolutionEditing !== false ? L.text("原始解析度處理需要一些時間，請稍候。") : L.text("請稍候…");
+    feedback.querySelector("[data-preview-feedback-title]").textContent = L.text(failed ? "無法顯示照片預覽"
+      : detecting ? "正在偵測主體遮罩"
+      : state.isLoadingImage || (state.isRenderingPreview && state.previewPhase === "thumbnail") ? "正在讀取圖片"
+      : state.isRenderingPreview || cropPreviewHandoff ? "正在更新預覽" : "正在顯示照片");
     if (image) image.style.visibility = ready || retainedPreview ? "" : "hidden";
     var status = app.querySelector(".preview-status");
-    if (status) status.textContent = failed ? L.text("預覽顯示失敗") : decoding && !processing ? L.text("正在顯示照片") : previewStatusText();
+    if (status) {
+      status.hidden = !feedback.hidden;
+      status.textContent = previewStatusText();
+    }
   }
 
   window.handlePreviewMenu = function (payload) {
@@ -3663,6 +3787,7 @@
         baseHeight: geometryHeight * scale
       };
       applyPreviewTransform();
+      updateCropPreviewHandoff();
       updatePreviewHistogram();
       repairBrush.redraw();
     }
@@ -3755,22 +3880,32 @@
     if (angle) angle.textContent = rotation.toFixed(1) + "°";
   }
 
+  function cancelPreviewReveal(image) {
+    var reveal = image._previewReveal;
+    if (!reveal) return;
+    image._previewReveal = null;
+    reveal.animation.cancel();
+    reveal.base.remove();
+  }
+
   function updatePreviewImage(image, nextSource) {
     if (!nextSource || image._requestedPreviewSource === nextSource) return;
     image._requestedPreviewSource = nextSource;
     image._previewError = false;
     // 保留已顯示的像素，新結果解碼完成後才交換，過期結果不進入畫面。
     var loadingPreview = state.isLoadingImage || nextSource === state.loadingPreviewImage;
+    var generation = state.photoGeneration;
     var decoded = new Image();
     decoded.src = nextSource;
     var pending = decoded.decode().then(function () {
-      if (!image.isConnected || image._requestedPreviewSource !== nextSource) return;
-      // Only bridge loading pixels into their higher-quality replacement.
-      // Keep at most one temporary layer, and release it after 180 ms.
+      if (!image.isConnected || image._requestedPreviewSource !== nextSource || image._photoGeneration !== generation) return;
+      // 底層保留列表縮圖／上一個編輯結果，新成品以 0→100% 不透明度逐步顯露。
+      // 比較原圖、懸停及減少動態效果不延遲；每次最多保留一個暫存底圖。
       var frame = image.parentElement;
-      var oldLayer = frame.querySelector(".preview-handoff");
-      if (oldLayer) oldLayer.remove();
-      var handoff = image._isLoadingPreview && image.complete && image.naturalWidth
+      var revealingPhoto = image._isLoadingPreview;
+      cancelPreviewReveal(image);
+      var handoff = !loadingPreview && nextSource === state.outputImage && !state.repairEditing
+        && image.complete && image.naturalWidth
         && !window.matchMedia("(prefers-reduced-motion: reduce)").matches ? image.cloneNode(false) : null;
       if (handoff) {
         handoff.className = "preview-handoff";
@@ -3779,20 +3914,27 @@
         handoff.style.position = "absolute";
         handoff.style.pointerEvents = "none";
         handoff.style.objectFit = "contain";
-        frame.insertBefore(handoff, image.nextSibling);
+        frame.insertBefore(handoff, image);
       }
       image._isLoadingPreview = loadingPreview;
       image.src = nextSource;
       image._hasDisplayedPreview = true;
       fitPreviewImage();
       if (handoff) {
-        var animation = handoff.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, easing: "ease-out" });
-        animation.onfinish = animation.oncancel = function () { handoff.remove(); };
+        var animation = image.animate([{ opacity: 0 }, { opacity: 1 }], { duration: revealingPhoto ? 650 : 180, easing: "ease-in-out" });
+        var reveal = { animation: animation, base: handoff };
+        image._previewReveal = reveal;
+        animation.onfinish = animation.oncancel = function () {
+          handoff.remove();
+          if (image._previewReveal === reveal) image._previewReveal = null;
+          if (image.isConnected) updatePreviewFeedback();
+        };
       }
     }).catch(function () {
       if (image.isConnected && image._requestedPreviewSource === nextSource) image._previewError = true;
     }).then(function () {
       if (image._pendingPreviewDecode === pending) image._pendingPreviewDecode = null;
+      updateCropPreviewHandoff();
       if (image.isConnected) updatePreviewFeedback();
     });
     image._pendingPreviewDecode = pending;
@@ -3936,8 +4078,8 @@
   }
 
   function photoIsBusy(value) {
-    return !!(value.isRepairingImage || value.isLoadingImage || value.isComputing || value.isSavingImage || value.isMCPMutating ||
-      (value.subjectMask && value.subjectMask.detecting));
+    return !!(value.isSwitchingComputeBackend || value.isRepairingImage || value.isLoadingImage || value.isComputing || value.isSavingImage || value.isMCPMutating ||
+      (value.subjectMask && value.subjectMask.detecting && !value.isRenderingPreview));
   }
 
   function flushPhotoEdits(action, payload) {
@@ -3949,12 +4091,13 @@
       adjustments.push({ style: pendingLiveAdjustment.style, key: pendingLiveAdjustment.key, value: pendingLiveAdjustment.value });
     }
     if (pendingCropValues && pendingCropGeneration === photoEditGeneration) {
+      holdCropPreview();
       adjustments.push({ style: pendingCropStyle, cropValues: pendingCropValues });
     }
     if (pendingCropValues) { state.cropEditing = false; cropEditSnapshot = null; }
     pendingLiveAdjustment = pendingCropValues = pendingCropStyle = null;
     endLiveAdjustment();
-    if (photoIsBusy(state)) return;
+    if (photoIsBusy(state) && action !== "confirmClose") return;
     if (action) {
       var command = Object.assign({}, payload || {});
       if (adjustments.length) command.adjustments = adjustments;
@@ -3963,6 +4106,9 @@
       post("updateAdjustment", { adjustments: adjustments });
     }
   }
+
+  // Go 宿主在關閉視窗前要求提交尚未送出的編輯。
+  window.commitPhotoEdits = function (action) { flushPhotoEdits(action); };
 
   function discardPendingPhotoEdits() {
     if (cropMouseFallbackController) { cropMouseFallbackController.abort(); cropMouseFallbackController = null; }
@@ -3999,7 +4145,8 @@
   };
 
   function updateBusyDialog() {
-    var isDetectingSubjectMask = !!(state.subjectMask && state.subjectMask.detecting);
+    var wasComputeSwitch = busyDialog.dataset.operation === "computeBackend";
+    busyDialog.dataset.operation = state.isSwitchingComputeBackend ? "computeBackend" : "";
     var modelDownload = state.isRepairingImage && state.repairModelProgress;
     var batch = state.isSavingImage && state.batchExport;
     var batchDetails = document.getElementById('batchExportDetails');
@@ -4007,7 +4154,7 @@
     var downloadBar = document.getElementById('repairDownloadProgress');
     var downloadBytes = document.getElementById('repairDownloadBytes');
     downloadBar.hidden = downloadBytes.hidden = !modelDownload;
-    app.inert = !!modelDownload || exportDevelopment.isVisible() || !!(state.isLoadingImage || state.isComputing || state.isSavingImage || state.isMCPMutating || isDetectingSubjectMask);
+    app.inert = !!modelDownload || exportDevelopment.isVisible() || !!(state.isSwitchingComputeBackend || state.isLoadingImage || state.isComputing || state.isSavingImage || state.isMCPMutating);
     if (modelDownload) {
       computeStartedAt = null;
       if (computeTimer) { clearInterval(computeTimer); computeTimer = null; }
@@ -4025,6 +4172,19 @@
       busyCancel.disabled = !!state.isCancellingRepair;
       busyCancel.textContent = L.text(state.isCancellingRepair ? '正在取消…' : '取消下載');
       if (busyDialog.hidden) { busyDialog.hidden = false; busyCancel.focus({preventScroll:true}); }
+    } else if (state.isSwitchingComputeBackend) {
+      computeStartedAt = null;
+      if (computeTimer) { clearInterval(computeTimer); computeTimer = null; }
+      busyTitle.textContent = L.text("正在切換計算加速");
+      setBusyStep(state.isRenderingPreview ? L.text("正在更新預覽") : "");
+      setBusyItems([]);
+      busyTime.hidden = true;
+      busySeconds.textContent = "0";
+      busyCancel.hidden = true;
+      if (busyDialog.hidden) {
+        busyDialog.hidden = false;
+        busyDialog.querySelector('.busy-panel').focus({ preventScroll: true });
+      }
     } else if (state.isLoadingImage) {
       computeStartedAt = null;
       busyTitle.textContent = L.text("正在讀取圖片");
@@ -4076,21 +4236,6 @@
         clearInterval(computeTimer);
         computeTimer = null;
       }
-    } else if (isDetectingSubjectMask) {
-      computeStartedAt = null;
-      busyTitle.textContent = L.text("正在偵測主體遮罩");
-      setBusyStep("");
-      setBusyItems([]);
-      busyTime.hidden = true;
-      busySeconds.textContent = "0";
-      busyCancel.hidden = false;
-      busyCancel.disabled = false;
-      busyCancel.textContent = L.text("取消偵測");
-      busyDialog.hidden = false;
-      if (computeTimer) {
-        clearInterval(computeTimer);
-        computeTimer = null;
-      }
     } else {
       computeStartedAt = null;
       busyDialog.hidden = true;
@@ -4103,6 +4248,10 @@
         clearInterval(computeTimer);
         computeTimer = null;
       }
+    }
+    if (wasComputeSwitch && busyDialog.hidden && !app.inert) {
+      var computeSelect = document.getElementById("computeBackendSelect");
+      if (computeSelect && !computeSelect.disabled) computeSelect.focus({ preventScroll: true });
     }
   }
 
@@ -4132,7 +4281,28 @@
     busySeconds.textContent = String(Math.floor((Date.now() - computeStartedAt) / 1000));
   }
 
+  window.handleUIPreferences = function () {
+    state.sidebarCustomCollapsed = localStorage.getItem("photoStyle.sidebarGroup.custom") === "true";
+    state.sidebarBuiltinCollapsed = localStorage.getItem("photoStyle.sidebarGroup.builtin") === "true";
+    state.sidebarCollapsed = localStorage.getItem("photoStyle.sidebarCollapsed") === "true";
+    state.showHelp = localStorage.getItem("photoStyle.showHelp") !== "false";
+    state.thumbnailSize = normalizedThumbnailSize(localStorage.getItem("photoStyle.thumbnailSize"));
+    state.appearance = localStorage.getItem("photoStyle.appearance") || "comfortable";
+    state.adjustmentMode = localStorage.getItem("photoStyle.adjustmentMode") || "film";
+    state.activeAdjustmentPanel = localStorage.getItem("photoStyle.activeAdjustmentPanel") || "chemistry";
+    photoDisplayMode = localStorage.getItem("photoStyle.photoDisplayMode") || "standard";
+    state.styles = applyStyleOrder(state.styles,readStyleOrder());
+    render();
+  };
   window.handleNativeState = function (payload) {
+    if (pendingComputeBackendSwitch && payload) {
+      if (payload.computeBackendSwitchRequestID === pendingComputeBackendSwitch) {
+        pendingComputeBackendSwitch = null;
+      } else {
+        // 切換前排隊中的預覽／設定回覆不能提早關閉對話框。
+        payload = Object.assign({}, payload, { isSwitchingComputeBackend: true });
+      }
+    }
     if (pendingStyleSelection && payload) {
       if ((payload.selectedCustomFilmID || payload.selectedStyle) === pendingStyleSelection || payload.externalEdit || photoIsBusy(payload)) {
         pendingStyleSelection = null;
@@ -4161,6 +4331,9 @@
     if (!state.isLoadingImage && nextState.isLoadingImage) resetPreviewZoom();
     var changedFilmVisibility = payload && payload.showAllFilms !== undefined && payload.showAllFilms !== state.showAllFilms;
     state = Object.assign({}, state, payload || {});
+    if (cropPreviewHandoff) {
+      cropPreviewHandoff.ready = state.previewRevision > cropPreviewHandoff.revision && !state.isRenderingPreview;
+    }
     if (pendingCropValues && pendingCropGeneration === photoEditGeneration && pendingCropStyle === state.selectedStyle) {
       updateLocalCropValues(pendingCropValues);
     }
@@ -4216,7 +4389,12 @@
 
   window.handleDesktopCommand = function (command) {
     filmHoverPreview.cancel();
-    if (exportDevelopment.isVisible()) return;
+    if (exportDevelopment.isVisible() || document.querySelector('dialog[open]')) return;
+    if (["browseFiles", "browsePhotoDirectory", "undoEdit", "redoEdit"].indexOf(command) >= 0) {
+      if (photoIsBusy(state)) return;
+      flushPhotoEdits(command);
+      return;
+    }
     if (command === "styles") command = "films";
     if (command === "runAI" || command === "exportImage") {
       if (photoIsBusy(state)) return;
@@ -4238,6 +4416,11 @@
     if (!frame) return;
     var rect = frame.getBoundingClientRect();
     setPreviewScaleAt(previewTransform.scale * (command === "zoomIn" ? 1.25 : 0.8), rect.left + rect.width / 2, rect.top + rect.height / 2);
+  };
+
+  window.handleNativeFileOpen = function (value) {
+    if (photoIsBusy(state)) return;
+    flushPhotoEdits("openNativeFile", { id: value.id });
   };
 
   document.addEventListener("DOMContentLoaded", function () {
@@ -4287,7 +4470,7 @@
     });
     setAppearance(state.appearance);
     render();
-    post("setLanguage", { language: languageKey(), preference: state.language });
+    post("setLanguage", { language: languageKey(), preference: state.language, initial: true, systemLanguage: L.resolve("automatic") });
     post("getState");
   });
 

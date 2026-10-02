@@ -177,6 +177,13 @@ struct Context::State {
 };
 Context::Context(const std::string &shader, bool validationEnabled) : state_(std::make_unique<State>()) {
     auto &s = *state_;
+    // Shader 以 Vulkan 1.1 編譯；先查 Loader 與裝置版本再建立計算環境。
+    uint32_t loaderVersion = VK_API_VERSION_1_0;
+    const auto enumerateVersion = reinterpret_cast<PFN_vkEnumerateInstanceVersion>(
+        vkGetInstanceProcAddr(VK_NULL_HANDLE, "vkEnumerateInstanceVersion"));
+    if (enumerateVersion) check(enumerateVersion(&loaderVersion), "讀取 Vulkan 版本");
+    if (loaderVersion < VK_API_VERSION_1_1)
+        throw std::runtime_error("Vulkan 執行環境需要 1.1 或更新版本");
     const auto available = extensions();
     std::vector<const char *> enabled;
     if (validationEnabled && !named(available, VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
@@ -250,10 +257,19 @@ Context::Context(const std::string &shader, bool validationEnabled) : state_(std
     check(vkEnumeratePhysicalDevices(s.instance, &count, nullptr), "列出 GPU");
     std::vector<VkPhysicalDevice> devices(count);
     check(vkEnumeratePhysicalDevices(s.instance, &count, devices.data()), "讀取 GPU");
+    std::stable_sort(devices.begin(), devices.end(), [](auto a, auto b) {
+        VkPhysicalDeviceProperties pa{}, pb{};
+        vkGetPhysicalDeviceProperties(a, &pa); vkGetPhysicalDeviceProperties(b, &pb);
+        return (pa.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) >
+               (pb.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
+    });
     for (auto physical : devices) {
         VkPhysicalDeviceProperties properties;
         vkGetPhysicalDeviceProperties(physical, &properties);
-        if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU)
+        if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU ||
+            properties.apiVersion < VK_API_VERSION_1_1 ||
+            properties.limits.maxComputeWorkGroupInvocations < 64 ||
+            properties.limits.maxComputeWorkGroupSize[0] < 64)
             continue;
         uint32_t families = 0;
         vkGetPhysicalDeviceQueueFamilyProperties(physical, &families, nullptr);
@@ -271,7 +287,7 @@ Context::Context(const std::string &shader, bool validationEnabled) : state_(std
             break;
     }
     if (!s.physical)
-        throw std::runtime_error("沒有硬體 Vulkan Compute GPU；Smoke 不接受 CPU 替代");
+        throw std::runtime_error("沒有符合 Vulkan 1.1 與計算需求的硬體 GPU");
     vkGetPhysicalDeviceFeatures(s.physical, &s.features);
     if (s.properties.limits.maxComputeWorkGroupInvocations < 64 ||
         s.properties.limits.maxComputeWorkGroupSize[0] < 64)
@@ -367,6 +383,14 @@ Context::~Context() = default;
 std::string Context::device_name() const {
     return state_->properties.deviceName;
 }
+uint32_t Context::loader_version() const {
+    uint32_t version = VK_API_VERSION_1_0;
+    const auto enumerate = reinterpret_cast<PFN_vkEnumerateInstanceVersion>(
+        vkGetInstanceProcAddr(VK_NULL_HANDLE, "vkEnumerateInstanceVersion"));
+    if (enumerate) check(enumerate(&version), "讀取 Vulkan 版本");
+    return version;
+}
+uint32_t Context::device_version() const { return state_->properties.apiVersion; }
 unsigned Context::errors() const {
     return state_->errors.load();
 }

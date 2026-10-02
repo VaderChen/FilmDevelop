@@ -1,21 +1,21 @@
 # 影像後端中介層
 
-正式使用請選「系統原生解析」及「系統原生加速」。內建軟體解析與 Vulkan 模式供 Windows 平台移植準備與測試；目前發布 Apple Silicon macOS 版本，尚未提供 Windows 安裝版。
+Go 宿主的 RAW 與計算預設為系統自動。macOS 使用 Core Image／Metal；Windows 先探測 Vulkan／GPU，再決定 GPU 或 CPU。Windows x64 已有本機安裝包並完成部分實機驗證，完整照片管線仍待移植，尚未發布 Release。
 
-「設定 → 加速」新增「計算加速」：系統原生加速、Vulkan 加速。預設系統原生；偏好使用 `computeBackend.v1` 儲存，不寫入照片配方。RAW 解析偏好維持獨立，兩類後端都由 `PhotoBackendRouter` 派送。
+「設定 → 加速」由 Go 保存 RAW 與計算偏好，並依原生能力產生選項，不寫入照片配方。Go 透過共用 JSONL 契約呼叫平台引擎；macOS 引擎內仍由 PhotoBackendRouter 派送。
 
 ## 路由與平台邊界
 
-| 功能 | 共用入口／契約 | macOS 實作 | Windows 準備狀態 |
+| 功能 | 共用入口／契約 | macOS 實作 | Windows 實作狀態 |
 | --- | --- | --- | --- |
-| 原生影像計算 | `PhotoComputeProvider` | Core Image／Metal | 尚無原生實作 |
-| Vulkan 影像計算 | `PhotoComputeProvider` → `PhotoCompute.h` ABI | MoltenVK | C ABI 與 CMake 保留 Vulkan loader 路徑，尚未建置／驗證 |
-| 系統 RAW | `PhotoRAWDecodeProvider` | CIRAWFilter | 由未來 Windows 宿主提供 |
-| 內建 RAW | `PhotoRAWDecodeProvider` | 既有 LibRaw C ABI | 現有 CPU 解析器，可另做 Windows 移植 |
+| 原生影像計算 | `PhotoComputeProvider` | Core Image／Metal | C++／WIC 原片管線，完整效果仍待移植 |
+| Vulkan 影像計算 | `PhotoComputeProvider` → `PhotoCompute.h` ABI | MoltenVK | C++ JSONL worker；已在 Windows 10 x64 GTX 1060 驗證 |
+| 系統 RAW | `PhotoRAWDecodeProvider` | CIRAWFilter | WIC 可用解析器；解碼失敗時交由 LibRaw |
+| 內建 RAW | `PhotoRAWDecodeProvider` | 既有 LibRaw C ABI | 共用 PhotoRAW／LibRaw 0.22.2，已驗證 DNG |
 
-UI 不直接呼叫平台 API，也不使用平台名稱作為偏好值。macOS 原生、macOS Vulkan、未來 Windows Vulkan 三條路徑在後端層區分。Windows 仍依先前要求暫不建置；沒有將未驗證的路徑標成可用。
+UI 不直接呼叫平台 API，也不使用平台名稱作為偏好值。macOS 原生、macOS Vulkan、Windows 自動／Vulkan 路徑在後端層區分；啟動時探測可用能力並核對保存的偏好。
 
-## 實際處理範圍
+## macOS 實際處理範圍
 
 - 預覽、編輯來源預覽、底片懸停預覽、單張與批次匯出共用 renderer／管線。Vulkan 取代已移植的顯影反應擴散、顯影藥水、光譜底片、底片特性與正像掃描。
 - 自適應曝光、乳劑、色溫、遮罩、AI、修復、裁切、外框等其餘階段保留原生處理，順序不變。不是整個 App 都改用 Vulkan；RAW 的 Bayer 解碼也未改成 Vulkan。
@@ -68,3 +68,9 @@ Smoke 使用測試 App 專用偏好，檢查切換／重建偏好／忙碌拒絕
 Xcode 建置與設定選單 Smoke 通過。58 組 App 最終成品全部通過最大 ΔE00 < 2，其中 6048×4032 RAW 複合成品最大 1.59049477438；另有 CPU／Vulkan 各 18 組大型與奇數尺寸案例及 14 項 CTest 通過。GPU 常駐計算圖與原逐階段結果的最大 Float32 差為 0，實際影像傳輸由四次上傳／讀回降為各一次。
 
 範圍、原始報告、單次效能對照與尚未移植的邊界見 [整體計算 Review](COMPUTE_REVIEW.md)。記憶體檢查的故障重現、修正與仍可在純原生管線重現的 Core Image 384 bytes 觀察，見 [記憶體檢查報告](MEMORY_AUDIT.md)。不以這些案例宣稱所有照片、參數與平台已通過。
+
+## Windows 自動選擇與版本探測
+
+Windows 系統預設先檢查 Vulkan Loader 與裝置 API 至少 1.1、計算佇列／容量，再執行 2×2 像素探測。合格獨立 GPU 優先；無可用 GPU、模組不存在或實際運算失敗時，從原始影像重新執行 CPU 管線。明確選取 Vulkan 時仍會回報錯誤。
+
+ABI 2 新增相容的 photo_compute_device_info 查詢，回傳實際 GPU 名稱及 Loader／裝置版本；既有影像資料格式與處理函式不變。Windows 實機為 GTX 1060 6GB，Loader 1.3.204、裝置 1.2.133。版本不足、探測失敗及運算失敗已用隔離 DLL 故障注入驗證；測試 DLL 不隨產品封裝。

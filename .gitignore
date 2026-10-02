@@ -99,3 +99,7 @@ coverage/
 
 # Generated CPU RAW dependency, mapping assets and module headers
 /Vendor/PhotoRAW/macos/
+
+# Go 桌面宿主的共用 Web 資源由建置腳本產生
+/desktop/frontend/dist/
+/desktop/cmd/filmdevelop-desktop/resource_windows_amd64.syso

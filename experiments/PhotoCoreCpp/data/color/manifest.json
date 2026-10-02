@@ -1,0 +1,9 @@
+{
+  "sourceSHA256": "b5945cd4520fcdd15cfdad6f5cab87db5c22f266e59bca733012c8030a0eca1c",
+  "profiles": {
+    "sRGB.icc": "d46bc133343a4b0904eadb82e65f51bd97a0313668aa9db368d49cf3ecded21d",
+    "displayP3.icc": "ae8ecbf7e54c2da5e7ab7a95d8c73ad11e0ed73802a76f557d85aac91e7ea932",
+    "adobeRGB.icc": "a459b752c7809d900d86c083670525d8fa6ef3c02d5121f6ae9739da45719499",
+    "spaces.json": "9d36842a3b787410d362f84c2d54002bd5aa72a03ad056a9bf091f2f5efabb0a"
+  }
+}

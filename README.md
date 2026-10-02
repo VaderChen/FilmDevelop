@@ -46,14 +46,16 @@
 
 ## 設定小提醒
 
-加速設定請選 **「系統原生解析」與「系統原生加速」**。內建軟體解析與 Vulkan 是為 Windows 平台做準備，目前供測試使用，尚未提供 Windows 安裝版。
+加速設定請選 **「系統原生解析」與「系統原生加速」**。內建軟體解析與 Vulkan 也用於跨平台移植驗證。Windows x64 已能在本機建立安裝檔，完整 Windows 影像引擎及實機驗收仍待完成，尚未發布 Windows Release。
 
 底片與相機風格是模擬效果，並非原廠預設或 LUT。更多操作提示可直接點選 App 內的功能標題查看。
 
 <details>
 <summary>想從原始碼執行？</summary>
 
-需要完整 Xcode，以及 CMake、glslang、Vulkan headers／loader 和 MoltenVK；詳細相依項目見[建置說明](Vendor/PhotoCompute/README.md#建置與部署)。
+`run.command` 現在建置並啟動 **Go／Wails 主程序 + Swift／C++ 影像引擎**。Go 管理 UI、照片列表、配方、紀錄、模型、MCP、更新及匯出流程；macOS 影像、AI 推論與修復由 Swift／C++ 執行。本機混合 App 使用 ad-hoc 簽章，與已公證的正式下載版分開驗收。功能恢復紀錄及兩平台安裝檔建置方式見 [Go 桌面說明](desktop/README.md)。
+
+需要 Go 1.25 以上、Python 3.9 以上、完整 Xcode，以及 CMake、glslang、Vulkan headers／loader 和 MoltenVK；詳細相依項目見[建置說明](Vendor/PhotoCompute/README.md#建置與部署)。
 
 ```sh
 git clone --recurse-submodules https://github.com/VaderChen/FilmDevelop.git

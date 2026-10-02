@@ -1,4 +1,5 @@
 #version 450
+#extension GL_GOOGLE_include_directive : require
 // A/B/C 為唯讀影像，dst/dst2 為獨立輸出；只有反應步驟同時產生兩張影像。
 // p 是每次 dispatch 的參數，lut 是整個流程共用的原始 13 波段重建表。
 // op：0 曝光、1 RAW 映射、2 校色、3 Gaussian、4 Lanczos、5 活性、6 初始覆蓋率、
@@ -97,6 +98,10 @@ vec4 sampleA(ivec2 q) {
     q = clamp(q, ivec2(0), ivec2(work.aw, work.ah) - 1);
     return a[q.y * int(work.aw) + q.x];
 }
+vec4 borderA(ivec2 q) {
+    if (work.op == 45 && (any(lessThan(q,ivec2(0))) || any(greaterThanEqual(q,ivec2(work.aw,work.ah))))) return vec4(0);
+    return sampleA(q);
+}
 vec3 field(uint which, ivec2 q, int fw, int fh) {
     q = clamp(q, ivec2(0), ivec2(fw, fh) - 1);
     return which == 0 ? b[q.y * fw + q.x].rgb : c[q.y * fw + q.x].rgb;
@@ -130,9 +135,33 @@ float chemExposure(float y) {
     }
     return x;
 }
+// 顯影雜訊的輸入約為 0..1.32e6；硬體 sin 的大角度近似誤差經 fract 放大後，
+// 不同 GPU 會產生不同顆粒。先以拆分常數及 FMA 歸約，再算小角度多項式。
+// 仍保留原有 sin 雜訊公式，不依顯示卡或配方切換實作。
+float developerSin(float arg) {
+    precise float quadrant = floor(arg * .6366197723675814 + .5);
+    float r = fma(quadrant, -1.5707962512969971, arg);
+    r = fma(quadrant, -7.5497894158615964e-8, r);
+    r = fma(quadrant, -5.3903025299577648e-15, r);
+    float z = r * r;
+    float s = fma(z, 1.0 / 6227020800.0, -1.0 / 39916800.0);
+    s = fma(z, s, 1.0 / 362880.0);
+    s = fma(z, s, -1.0 / 5040.0);
+    s = fma(z, s, 1.0 / 120.0);
+    s = fma(z, s, -1.0 / 6.0);
+    s = fma(r * z, s, r);
+    float c = fma(z, 1.0 / 479001600.0, -1.0 / 3628800.0);
+    c = fma(z, c, 1.0 / 40320.0);
+    c = fma(z, c, -1.0 / 720.0);
+    c = fma(z, c, 1.0 / 24.0);
+    c = fma(z, c, -.5);
+    c = fma(z, c, 1);
+    int q = int(mod(quadrant, 4));
+    return q == 0 ? s : q == 1 ? c : q == 2 ? -s : -c;
+}
 float noise(vec2 v) {
     precise float arg = v.x * 127.1 + v.y * 311.7 + 17;
-    precise float value = sin(arg) * 43758.5453;
+    precise float value = developerSin(arg) * 43758.5453;
     return 2 * (value - floor(value)) - 1;
 }
 float chemNoise(vec2 q) {
@@ -309,18 +338,23 @@ vec4 spectral(vec4 px, uint i) {
     positive = .18 * pow(max(positive, vec3(0)) / .18, vec3(p[302]));
     return vec4(positive * alpha, alpha);
 }
+#include "optics.glsl"
+#include "camera.glsl"
+#include "digital.glsl"
+#include "skin.glsl"
 void main() {
     uint i = work.offset + gl_GlobalInvocationID.x;
     if (i >= work.count)
         return;
     uint x = i % work.width, y = i / work.width;
-    if (work.op == 4) {
+    if (work.op == 4 || work.op == 34) {
         int n = int(work.axis == 0 ? x : y), stride = int(p[0]), base = 1 + n * stride,
             start = int(p[base]), count = int(p[base + 2]);
         vec4 sum = vec4(0);
         for (int k = 0; k < count; ++k) {
             ivec2 q = work.axis == 0 ? ivec2(start + k, int(y)) : ivec2(int(x), start + k);
-            if (all(greaterThanEqual(q, ivec2(0))) && all(lessThan(q, ivec2(work.aw, work.ah))))
+            if (work.op == 34) sum += sampleA(q) * p[base + 3 + k];
+            else if (all(greaterThanEqual(q, ivec2(0))) && all(lessThan(q, ivec2(work.aw, work.ah))))
                 sum += a[q.y * int(work.aw) + q.x] * p[base + 3 + k];
         }
         dst[i] = sum / p[base + 1];
@@ -331,6 +365,7 @@ void main() {
         dst[i] = vec4(cx * cy);
         return;
     }
+    if (optics(i,x,y) || digital(i) || skin(i)) return;
     vec4 px = a[i];
     vec4 result = px;
     if (work.op == 0) {
@@ -373,12 +408,12 @@ void main() {
                      dot(pv(12), v) + dot(pv(15), crossTerms)) *
                 px.a;
         }
-    } else if (work.op == 3) {
+    } else if (work.op == 3 || work.op == 45) {
         int radius = int(p[0]);
         precise vec4 sum = px * p[1];
         for (int k = 1; k <= radius; ++k) {
             ivec2 delta = work.axis == 0 ? ivec2(k, 0) : ivec2(0, k);
-            sum += (sampleA(ivec2(x, y) - delta) + sampleA(ivec2(x, y) + delta)) * p[1 + k];
+            sum += (borderA(ivec2(x, y) - delta) + borderA(ivec2(x, y) + delta)) * p[1 + k];
         }
         result = sum;
     } else if (work.op == 5) {

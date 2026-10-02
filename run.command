@@ -1,12 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
-# Resolve paths from this file so Finder and other working directories both work.
+# 從腳本所在位置解析路徑，支援 Finder 與任意工作目錄。
 PROJECT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-source "$PROJECT_ROOT/scripts/require-apple-silicon.sh"
+export PATH="$PATH:/opt/homebrew/bin:/usr/local/bin"
 cd "$PROJECT_ROOT"
-DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$PROJECT_ROOT/build/DerivedData}"
 BUILD_LOG="$PROJECT_ROOT/build/run.log"
+APP_PATH="$PROJECT_ROOT/build/desktop/FilmDevelopGo.app"
 
 finish() {
   local result=$?
@@ -19,44 +19,13 @@ finish() {
   exit "$result"
 }
 trap finish EXIT
-
-if ! /usr/bin/xcodebuild -version >/dev/null 2>&1; then
-  printf '需要完整 Xcode；請先在 Xcode 設定中選好 Command Line Tools。\n' >&2
-  exit 1
-fi
-
-# A normal clone leaves submodules empty. Fetch only missing build dependencies.
-missing_submodules=()
-if [[ ! -f "$PROJECT_ROOT/aiTest2/ThirdParty/llama.cpp/include/llama.h" ]]; then
-  missing_submodules+=("aiTest2/ThirdParty/llama.cpp")
-fi
-if [[ ! -f "$PROJECT_ROOT/aiTest/ThirdParty/stable-diffusion.cpp/thirdparty/libwebp/src/webp/encode.h" ]]; then
-  missing_submodules+=("aiTest/ThirdParty/stable-diffusion.cpp")
-fi
-if (( ${#missing_submodules[@]} > 0 )); then
-  printf '首次啟動：正在下載缺少的原始碼依賴…\n'
-  git submodule update --init --recursive -- "${missing_submodules[@]}"
-fi
-
-"$PROJECT_ROOT/scripts/build-llama-macos.sh"
-"$PROJECT_ROOT/scripts/build-webp-macos.sh"
-"$PROJECT_ROOT/scripts/build-mlx-macos.sh"
-
 mkdir -p "$PROJECT_ROOT/build"
-printf '正在建置照片沖洗，完成後會自動開啟…\n'
-# Xcode 27's -quiet output can label successful compiler warnings as errors.
-/usr/bin/xcodebuild \
-  -project "$PROJECT_ROOT/PhotoStyleApp.xcodeproj" \
-  -scheme PhotoStyleApp \
-  -configuration Debug \
-  -destination 'platform=macOS,arch=arm64' \
-  -derivedDataPath "$DERIVED_DATA_PATH" \
-  CODE_SIGNING_ALLOWED=NO ARCHS=arm64 ONLY_ACTIVE_ARCH=YES build 2>&1 | /usr/bin/tee "$BUILD_LOG"
+printf '正在建置 FilmDevelop：Go 桌面與 Swift／C++ 影像引擎…\n'
+bash "$PROJECT_ROOT/scripts/build-desktop-macos.sh" 2>&1 | /usr/bin/tee "$BUILD_LOG"
 
-APP_PATH="$DERIVED_DATA_PATH/Build/Products/Debug/PhotoStyleApp.app"
-if [ ! -d "$APP_PATH" ]; then
+if [ ! -x "$APP_PATH/Contents/MacOS/FilmDevelopGo" ]; then
   printf '找不到建置產物：%s\n' "$APP_PATH" >&2
   exit 1
 fi
 /usr/bin/open "$APP_PATH"
-printf '\n已開啟照片沖洗。建置紀錄：%s\n' "$BUILD_LOG"
+printf '\n已開啟 FilmDevelop 混合版本。建置紀錄：%s\n' "$BUILD_LOG"

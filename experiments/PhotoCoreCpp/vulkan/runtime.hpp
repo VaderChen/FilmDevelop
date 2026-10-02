@@ -30,6 +30,8 @@ class Context {
                   const Surface &second, const std::vector<float> &parameters, const Surface &table,
                   unsigned axis, const std::string &label);
     std::string device_name() const;
+    uint32_t loader_version() const;
+    uint32_t device_version() const;
     unsigned errors() const;
     unsigned warnings() const;
     std::size_t peak_buffer_bytes() const;

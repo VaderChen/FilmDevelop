@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "minimum": -140,
+  "step": 2,
+  "dimension": 141,
+  "sources": {
+    "PhotoStyleShared/Sources/PhotoStyleShared/PhotoToneProcessor.swift": "2b4da5281be1981df9bc38d1f6c1bd709822501b1665a94dec4b67bbd23648b9",
+    "PhotoStyleApp/PhotoStyleProcessor.swift": "92537438ae35152fe5966c3643494099b3fc4d80073a865f16e72e45e58eca5c",
+    "PhotoStyleShared/Sources/PhotoStyleShared/PhotoVignetteProcessor.swift": "afbb1647d22a52b6e060a5947b3e728dedbaf2f74e0c4388d43ad11535d1b9b0"
+  },
+  "sha256": "7991e5ff2baab674591bc724232049b98884e10cb90068dbf3ec830142106023",
+  "files": {
+    "japaneseBWStandard-0.f32": "92a33b583a1a870a477198ca8cc0addef24b63acc5b68a6c378b0d2621b2b127",
+    "japaneseColor1-0.f32": "78805deb8af323adced6d0b2e06609f26cc9f13956eb8b7399129fd5db5ab74c",
+    "japaneseColor1-1.f32": "18bbade0f4bbec7b0ce7493f4e5fcaca0e793327e6636d6485baa910794e765b",
+    "japaneseBWStandard-1.f32": "d82b13fb3d6b00223f86e51dcbe7c51f8e4272c721d43ada1507587d778403ed",
+    "white-balance.f32": "7991e5ff2baab674591bc724232049b98884e10cb90068dbf3ec830142106023",
+    "japaneseColor1-2.f32": "38e54c7e4e7f2ff0c859910c6dc53346625d88be1c2f1b03c57bb4f3d055d41d",
+    "japaneseBWStandard-2.f32": "bdbc83de3d9156bb5571ec092421712e8e3cb1b0a9c8f011e6ff4f0872e07014",
+    "fujiProvia-0.f32": "0847e09d64c08868beddf4e4d837094c481ea0115acc3a4ede3bd2a2f5f58c5f",
+    "fujiClassicNeg-2.f32": "9cb1b2dca72d14b60cc6c83db24a89a9d23deefc41f78d05c2fbed9bbf80f116",
+    "autoDetection-2.f32": "8403a42dff0ce8cea74b18e52f4ef7a174de47cccde583828ce5ca9a644de98e",
+    "tone-zones.json": "05ec0d4c2942c934940bb715eefbbb3bdb60b99df337ba2063b8f8d324e1691e",
+    "fujiClassicChrome-2.f32": "2cf6333b9499197c06a5884af89349efa151d3e192c42e11507c96e68e33c189",
+    "fujiClassicChrome-0.f32": "97cc2818f594e49db29835ba9e5240d33b6a4381e7f0839d15ef230fabc933d6",
+    "fujiClassicNeg-1.f32": "db88019cfe413e86a6bbff827f32f02307cbbff67976c0db0a097fb30830276b",
+    "autoDetection-0.f32": "989f78c28c688d0232f970ccccc80d314d621e27a7e9bcc6e867188ad402a064",
+    "fujiClassicNeg-0.f32": "9f8a3414ea1eafbb37c63ecaef820e129c30f71cba17b430dc86e2ee61de8ace",
+    "fujiProvia-2.f32": "612e10261d9240a78105b3869d0c6f7879c4fec8d437a415258c1b804100e6b4",
+    "fujiClassicChrome-1.f32": "0edb254afdbfb0108dca67293971da8b2c976f372361936415032622e2809970",
+    "japaneseColor2-1.f32": "a866e696e585fc0aecb43a79c430cf450f9bcef8262d4c7a6d7e59e28276d918",
+    "japaneseColor2-0.f32": "a1875c0c16f78cd10aacb5dd8daa5bc6585583bc8253a1b135e809f28ba7f04d",
+    "japaneseBWStrong-2.f32": "ecb82381ebe360f9750010ef17d66d07bc7fb509ce92e22552c1f67c1b042d7d",
+    "japaneseColor2-2.f32": "a71dda11be78030f75bb5a86e51bb1aa34274555d50ead00764c5ea671d82784",
+    "vignette.f32": "fd21468f4a0a9ed84177fb3b121dcba5725b9bcb99bc548a7afe68f56161ddf2",
+    "japaneseBWSoft-2.f32": "d293faf69981a4966d9c45dd305a4a8d1cb66f38187014857c7602e51886c9bb",
+    "japaneseBWSoft-1.f32": "0cf425fccaf05996c61488132ad62f30a7d3424b0217d60c484355ba9fd5215c",
+    "japaneseBWSoft-0.f32": "1ff6cdcf24aa6b49bbfd48a280840fcd94e97eded2a296f04651f4e5b62a19aa"
+  }
+}

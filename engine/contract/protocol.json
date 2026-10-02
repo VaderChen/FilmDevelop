@@ -1,0 +1,147 @@
+{
+  "version": 1,
+  "description": "FilmDevelop Go 宿主與原生影像引擎的共用契約。Go 管理目錄、配方與操作語意；Swift／C++ 接受完整 schema 12 配方並執行影像演算法。",
+  "types": {
+    "EngineError": {
+      "code": "string",
+      "message": "string"
+    },
+    "Recipe": {
+      "version": "int",
+      "style": "string",
+      "adjustment": "json",
+      "repairPatches": "json",
+      "detectSubject": "bool"
+    },
+    "ImageInput": {
+      "path": "string",
+      "rawDecoder": "string",
+      "lensCorrection": "bool"
+    },
+    "ImageOutput": {
+      "path": "string",
+      "format": "string",
+      "bitDepth": "int",
+      "colorSpace": "string",
+      "quality": "double",
+      "maxPixel": "int",
+      "webPLossless": "bool",
+      "tiffCompression": "int",
+      "writeExif": "bool?"
+    },
+    "RenderPolicy": {
+      "highlightProtection": "bool",
+      "modernExposure": "bool",
+      "hdr": "bool",
+      "fullResolution": "bool"
+    },
+    "SubjectMaskInput": {
+      "path": "string",
+      "sha256": "string"
+    },
+    "RenderJob": {
+      "input": "ImageInput",
+      "output": "ImageOutput",
+      "recipe": "Recipe",
+      "computeBackend": "string",
+      "preview": "bool",
+      "previewMaxPixel": "int",
+      "policy": "RenderPolicy?",
+      "subjectMask": "SubjectMaskInput?",
+      "subjectMaskOutputPath": "string?"
+    },
+    "Request": {
+      "version": "int",
+      "id": "string",
+      "method": "string",
+      "payload": "json"
+    },
+    "Response": {
+      "version": "int",
+      "id": "string",
+      "kind": "string",
+      "payload": "json",
+      "error": "EngineError?"
+    },
+    "EditorRequest": {
+      "recipe": "Recipe",
+      "changes": "json"
+    },
+    "ThumbnailRequest": {
+      "path": "string",
+      "maxPixel": "int"
+    },
+    "ThumbnailResult": {
+      "imageData": "string",
+      "width": "int",
+      "height": "int"
+    },
+    "WhiteBalanceRequest": {
+      "red": "double",
+      "green": "double",
+      "blue": "double",
+      "warmth": "double",
+      "tint": "double",
+      "strength": "double"
+    },
+    "FileRequest": {
+      "path": "string"
+    },
+    "InferenceRequest": {
+      "format": "string",
+      "modelPath": "string",
+      "projectorPath": "string",
+      "imageData": "string",
+      "systemPrompt": "string",
+      "userPrompt": "string",
+      "grammar": "string",
+      "maxTokens": "int",
+      "contextLimit": "int"
+    },
+    "AnalysisRequest": {
+      "input": "ImageInput",
+      "recipe": "Recipe"
+    },
+    "RepairRequest": {
+      "input": "ImageInput",
+      "recipe": "Recipe",
+      "modelDirectory": "string",
+      "strokes": "json"
+    }
+  },
+  "methods": [
+    "capabilities",
+    "render",
+    "preview",
+    "thumbnail",
+    "whiteBalance",
+    "metadata",
+    "reveal",
+    "trash",
+    "analysis",
+    "infer",
+    "prepareRepair",
+    "repair",
+    "legacySettings"
+  ],
+  "pixelContract": {
+    "layout": "RGBA Float32",
+    "colorSpace": "extended-linear-sRGB",
+    "alpha": "premultiplied",
+    "origin": "top-left",
+    "negativeAndHDR": true
+  },
+  "transport": {
+    "format": "JSON Lines",
+    "maxMessageBytes": 67108864,
+    "stdout": "僅包含 Response；日誌寫入 stderr。",
+    "cancellation": "一般工作使用獨立程序；preview 以 --preview-session 啟動序列 JSONL 工作階段，只保留目前照片的原生解碼與遮罩。取消預覽時不發布過期結果，先等待目前 GPU 工作安全收尾，超過 30 秒才終止並等待程序退出；閒置 45 秒及關閉宿主時透過 EOF 收回預覽程序。",
+    "output": "原生引擎只寫入 Go 配置的工作暫存路徑；由 Go 檢查工作仍有效後發布成品。"
+  },
+  "hostMethods": [
+    "catalog",
+    "normalizeRecipe",
+    "editRecipe",
+    "projectRecipes"
+  ]
+}

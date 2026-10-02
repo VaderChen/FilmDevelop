@@ -23,7 +23,10 @@ install_name_tool -id '@rpath/libPhotoCompute.dylib' \
   -change "$MVK_ID" '@loader_path/libMoltenVK.dylib' "$CONTENTS/Frameworks/libPhotoCompute.dylib"
 install_name_tool -id '@rpath/libMoltenVK.dylib' "$CONTENTS/Frameworks/libMoltenVK.dylib"
 cp "$BUILD/film.comp.spv" "$CONTENTS/Resources/PhotoCompute/"
-ditto "$ROOT/experiments/PhotoCoreCpp/data" "$CONTENTS/Resources/PhotoCompute/film-data"
+mkdir -p "$CONTENTS/Resources/PhotoCompute/film-data"
+# 只同步執行資料；修改前的備份與舊建置殘留不得進入 App。
+rsync -a --delete --delete-excluded --exclude '*.bak' --exclude '.DS_Store' \
+  "$ROOT/experiments/PhotoCoreCpp/data/" "$CONTENTS/Resources/PhotoCompute/film-data/"
 mkdir -p "$CONTENTS/Resources/PhotoCompute/Licenses"
 cp "$PREFIX/opt/molten-vk/LICENSE" "$CONTENTS/Resources/PhotoCompute/Licenses/MoltenVK.txt"
 cp "$ROOT/experiments/PhotoCoreCpp/third_party/nlohmann/LICENSE" "$CONTENTS/Resources/PhotoCompute/Licenses/nlohmann-json.txt"

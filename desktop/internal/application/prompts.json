@@ -1,0 +1,517 @@
+{
+  "cropAspectRatios" : [
+    {
+      "id" : "original",
+      "title" : "關閉"
+    },
+    {
+      "id" : "source",
+      "title" : "原始比例"
+    },
+    {
+      "id" : "free",
+      "title" : "自由裁切"
+    },
+    {
+      "id" : "threeTwo",
+      "title" : "3:2"
+    },
+    {
+      "id" : "oneOne",
+      "title" : "1:1"
+    },
+    {
+      "id" : "fourThree",
+      "title" : "4:3"
+    },
+    {
+      "id" : "sixteenNine",
+      "title" : "16:9"
+    }
+  ],
+  "grammar" : "root ::= \"{\" ws \"\\\"schema_version\\\"\" ws \":\" ws version \",\" ws \"\\\"scene_summary\\\"\" ws \":\" ws string \",\" ws \"\\\"recommended_style\\\"\" ws \":\" ws string \",\" ws \"\\\"edit_prompt\\\"\" ws \":\" ws string \",\" ws \"\\\"negative_prompt\\\"\" ws \":\" ws string \",\" ws \"\\\"color_mode\\\"\" ws \":\" ws mode \",\" ws \"\\\"tone_zones\\\"\" ws \":\" ws zones \",\" ws \"\\\"hdr_tone_curve\\\"\" ws \":\" ws hdr \",\" ws \"\\\"strength\\\"\" ws \":\" ws unsigned \",\" ws \"\\\"background_blur\\\"\" ws \":\" ws unsigned \",\" ws \"\\\"skin_whitening\\\"\" ws \":\" ws unsigned \",\" ws \"\\\"skin_smoothing\\\"\" ws \":\" ws unsigned \",\" ws \"\\\"post_processing\\\"\" ws \":\" ws post \",\" ws \"\\\"film_effects\\\"\" ws \":\" ws film \",\" ws \"\\\"editor_controls\\\"\" ws \":\" ws editor \"}\" ws\nzones ::= \"{\" ws \"\\\"shadows\\\"\" ws \":\" ws tone \",\" ws \"\\\"midtones\\\"\" ws \":\" ws tone \",\" ws \"\\\"highlights\\\"\" ws \":\" ws tone \"}\" ws\ntone ::= \"{\" ws \"\\\"base_tone\\\"\" ws \":\" ws signed \",\" ws \"\\\"exposure\\\"\" ws \":\" ws signed \",\" ws \"\\\"contrast\\\"\" ws \":\" ws signed \",\" ws \"\\\"softness\\\"\" ws \":\" ws unsigned \",\" ws \"\\\"grain\\\"\" ws \":\" ws unsigned \",\" ws \"\\\"highlights\\\"\" ws \":\" ws signed \",\" ws \"\\\"shadows\\\"\" ws \":\" ws signed \",\" ws \"\\\"fade\\\"\" ws \":\" ws unsigned \",\" ws \"\\\"warmth\\\"\" ws \":\" ws signed \",\" ws \"\\\"tint\\\"\" ws \":\" ws signed \",\" ws \"\\\"mapping\\\"\" ws \":\" ws unsigned \"}\" ws\nhdr ::= \"{\" ws \"\\\"black\\\"\" ws \":\" ws unsigned \",\" ws \"\\\"shadows\\\"\" ws \":\" ws unsigned \",\" ws \"\\\"midtones\\\"\" ws \":\" ws unsigned \",\" ws \"\\\"highlights\\\"\" ws \":\" ws unsigned \",\" ws \"\\\"white\\\"\" ws \":\" ws unsigned \",\" ws \"\\\"detail\\\"\" ws \":\" ws detail \"}\" ws\npost ::= \"{\" ws \"\\\"grain\\\"\" ws \":\" ws unsigned \",\" ws \"\\\"denoise\\\"\" ws \":\" ws unsigned \",\" ws \"\\\"vignette\\\"\" ws \":\" ws unsigned \",\" ws \"\\\"devignette\\\"\" ws \":\" ws unsigned \"}\" ws\nfilm ::= \"{\" ws \"\\\"grain_mode\\\"\" ws \":\" ws grain-mode \",\" ws \"\\\"grain_size\\\"\" ws \":\" ws grain-size \",\" ws \"\\\"grain_clumping\\\"\" ws \":\" ws percent \",\" ws \"\\\"grain_chroma\\\"\" ws \":\" ws percent \",\" ws \"\\\"bloom_amount\\\"\" ws \":\" ws percent \",\" ws \"\\\"bloom_radius\\\"\" ws \":\" ws bloom-radius \",\" ws \"\\\"bloom_threshold\\\"\" ws \":\" ws percent \",\" ws \"\\\"halation_amount\\\"\" ws \":\" ws percent \",\" ws \"\\\"halation_radius\\\"\" ws \":\" ws halation-radius \",\" ws \"\\\"halation_threshold\\\"\" ws \":\" ws percent \",\" ws \"\\\"monochrome_filter\\\"\" ws \":\" ws mono-filter \",\" ws \"\\\"monochrome_filter_strength\\\"\" ws \":\" ws percent \",\" ws \"\\\"color_model\\\"\" ws \":\" ws film-color \",\" ws \"\\\"print_exposure\\\"\" ws \":\" ws print-ev \",\" ws \"\\\"print_exposure_highlights\\\"\" ws \":\" ws print-ev \",\" ws \"\\\"print_exposure_midtones\\\"\" ws \":\" ws print-ev \",\" ws \"\\\"print_exposure_shadows\\\"\" ws \":\" ws print-ev \",\" ws \"\\\"print_contrast\\\"\" ws \":\" ws percent \",\" ws \"\\\"scanner_source\\\"\" ws \":\" ws scanner-source \",\" ws \"\\\"scanner_profile\\\"\" ws \":\" ws scanner-profile \",\" ws \"\\\"scanner_illuminant\\\"\" ws \":\" ws illuminant \",\" ws \"\\\"scan_exposure\\\"\" ws \":\" ws print-ev \",\" ws \"\\\"scan_contrast\\\"\" ws \":\" ws percent \",\" ws \"\\\"scan_saturation\\\"\" ws \":\" ws percent \",\" ws \"\\\"scan_density_correction\\\"\" ws \":\" ws percent \",\" ws \"\\\"scan_flare\\\"\" ws \":\" ws percent \",\" ws \"\\\"scan_midtone_warmth\\\"\" ws \":\" ws signed-percent \",\" ws \"\\\"scan_highlight_warmth\\\"\" ws \":\" ws signed-percent \",\" ws \"\\\"print_illuminant\\\"\" ws \":\" ws illuminant \",\" ws \"\\\"view_illuminant\\\"\" ws \":\" ws illuminant \",\" ws \"\\\"development_amount\\\"\" ws \":\" ws percent \",\" ws \"\\\"development_time\\\"\" ws \":\" ws percent \",\" ws \"\\\"development_diffusion\\\"\" ws \":\" ws development-radius \",\" ws \"\\\"development_agitation\\\"\" ws \":\" ws percent \",\" ws \"\\\"layer_response\\\"\" ws \":\" ws material-number \",\" ws \"\\\"coupler_amount\\\"\" ws \":\" ws material-number \",\" ws \"\\\"coupler_radius\\\"\" ws \":\" ws material-number \",\" ws \"\\\"film_width_mm\\\"\" ws \":\" ws material-number \",\" ws \"\\\"grain_distribution\\\"\" ws \":\" ws material-number \",\" ws \"\\\"emulsion_mtf\\\"\" ws \":\" ws material-number \",\" ws \"\\\"paper_scatter\\\"\" ws \":\" ws material-number \",\" ws \"\\\"paper_white\\\"\" ws \":\" ws material-number \",\" ws \"\\\"paper_density_offset\\\"\" ws \":\" ws material-number \",\" ws \"\\\"reciprocity_amount\\\"\" ws \":\" ws material-number \",\" ws \"\\\"exposure_seconds\\\"\" ws \":\" ws material-number \",\" ws \"\\\"halation_base\\\"\" ws \":\" ws material-number \",\" ws \"\\\"silver_retention\\\"\" ws \":\" ws material-number \",\" ws \"\\\"developer_temperature\\\"\" ws \":\" ws material-number \",\" ws \"\\\"developer_activity\\\"\" ws \":\" ws material-number \",\" ws \"\\\"developer_chemistry\\\"\" ws \":\" ws developer-chemistry \",\" ws \"\\\"paper_profile\\\"\" ws \":\" ws paper-profile \"}\" ws\ndeveloper-chemistry ::= \"{\" ws \"\\\"contrast\\\"\" ws \":\" ws developer-contrast \",\" ws \"\\\"speedEV\\\"\" ws \":\" ws developer-speed \",\" ws \"\\\"compensation\\\"\" ws \":\" ws percent \",\" ws \"\\\"grain\\\"\" ws \":\" ws percent \",\" ws \"\\\"acutance\\\"\" ws \":\" ws percent \",\" ws \"\\\"red\\\"\" ws \":\" ws developer-layer \",\" ws \"\\\"green\\\"\" ws \":\" ws developer-layer \",\" ws \"\\\"blue\\\"\" ws \":\" ws developer-layer \"}\" ws\ndeveloper-contrast ::= (\"0.\" [6-9] [0-9]* | \"1\" (\".\" ([0-4] [0-9]* | \"5\" \"0\"*))?) ws\ndeveloper-speed ::= \"-\"? (\"0\" (\".\" [0-9]+)? | \"1\" (\".\" \"0\"+)?) ws\ndeveloper-layer ::= \"-\"? (([0-9] | \"1\" [0-9]) (\".\" [0-9]+)? | \"20\" (\".\" \"0\"+)?) ws\neditor ::= \"{\" ws \"\\\"exposure\\\"\" ws \":\" ws signed-percent \",\" ws \"\\\"white_balance_warmth\\\"\" ws \":\" ws signed-percent \",\" ws \"\\\"white_balance_tint\\\"\" ws \":\" ws signed-percent \",\" ws \"\\\"contrast\\\"\" ws \":\" ws signed-percent \",\" ws \"\\\"brightness\\\"\" ws \":\" ws percent \",\" ws \"\\\"hdr_amount\\\"\" ws \":\" ws percent \",\" ws \"\\\"crop_aspect_ratio\\\"\" ws \":\" ws crop-ratio \",\" ws \"\\\"crop_rotation\\\"\" ws \":\" ws crop-angle \",\" ws \"\\\"crop_scale\\\"\" ws \":\" ws crop-size \",\" ws \"\\\"crop_width\\\"\" ws \":\" ws crop-size \",\" ws \"\\\"crop_height\\\"\" ws \":\" ws crop-size \",\" ws \"\\\"crop_horizontal_position\\\"\" ws \":\" ws signed-percent \",\" ws \"\\\"crop_vertical_position\\\"\" ws \":\" ws signed-percent \",\" ws \"\\\"frame_enabled\\\"\" ws \":\" ws boolean \",\" ws \"\\\"frame_style\\\"\" ws \":\" ws frame-style \",\" ws \"\\\"date_enabled\\\"\" ws \":\" ws boolean \",\" ws \"\\\"date_style\\\"\" ws \":\" ws date-style \"}\" ws\ncrop-ratio ::= (\"\\\"original\\\"\" | \"\\\"source\\\"\" | \"\\\"free\\\"\" | \"\\\"threeTwo\\\"\" | \"\\\"oneOne\\\"\" | \"\\\"fourThree\\\"\" | \"\\\"sixteenNine\\\"\") ws\nframe-style ::= (\"\\\"whitePaperThin\\\"\" | \"\\\"whitePaperWide\\\"\" | \"\\\"whitePaperPolaroid\\\"\" | \"\\\"blackLine\\\"\" | \"\\\"filmStrip\\\"\" | \"\\\"cleanInset\\\"\") ws\ndate-style ::= (\"\\\"numeric\\\"\" | \"\\\"slash\\\"\" | \"\\\"compact\\\"\" | \"\\\"japanese\\\"\") ws\nboolean ::= (\"true\" | \"false\") ws\nsigned-percent ::= \"-\"? percent\ncrop-angle ::= \"-\"? (([0-9] | [1-3] [0-9] | \"4\" [0-4]) (\".\" [0-9]+)? | \"45\" (\".\" \"0\"+)?) ws\ncrop-size ::= ([2-9] [0-9] (\".\" [0-9]+)? | \"100\" (\".\" \"0\"+)?) ws\nversion ::= \"6\" ws\ngrain-mode ::= \"\\\"emulsion\\\"\" ws\nilluminant ::= (\"\\\"reference\\\"\" | \"\\\"tungsten2856\\\"\" | \"\\\"blackbody3200\\\"\" | \"\\\"blackbody4000\\\"\" | \"\\\"blackbody5000\\\"\" | \"\\\"blackbody5500\\\"\" | \"\\\"blackbody6500\\\"\" | \"\\\"blackbody7500\\\"\" | \"\\\"blackbody10000\\\"\") ws\nscanner-profile ::= (\"\\\"off\\\"\" | \"\\\"neutral\\\"\" | \"\\\"warmCool\\\"\" | \"\\\"softPortrait\\\"\" | \"\\\"vivid\\\"\" | \"\\\"coolClean\\\"\" | \"\\\"fadedVintage\\\"\" | \"\\\"frontierSP500\\\"\" | \"\\\"noritsuHS1800\\\"\" | \"\\\"flextightX5\\\"\" | \"\\\"coolscan9000\\\"\" | \"\\\"epsonV850\\\"\") ws\nfilm-color ::= \"\\\"spectral\\\"\" ws\nprint-ev ::= \"-\"? ([0-3] (\".\" [0-9]+)? | \"4\" (\".\" \"0\"+)?) ws\nmaterial-number ::= \"-\"? [0-9]+ (\".\" [0-9]+)? ws\nscanner-source ::= (\"\\\"film\\\"\" | \"\\\"paper\\\"\") ws\npaper-profile ::= (\"\\\"reference\\\"\" | \"\\\"glossy\\\"\" | \"\\\"matte\\\"\" | \"\\\"warmFiber\\\"\") ws\ndevelopment-radius ::= (\"0.\" (\"0\" [2-9] [0-9]* | [1-9] [0-9]*) | \"1\" (\".\" \"0\"+)?) ws\nmono-filter ::= (\"\\\"none\\\"\" | \"\\\"yellow\\\"\" | \"\\\"orange\\\"\" | \"\\\"red\\\"\" | \"\\\"green\\\"\") ws\npercent ::= (([0-9] | [1-9] [0-9]) (\".\" [0-9]+)? | \"100\" (\".\" \"0\"+)?) ws\ngrain-size ::= (\"0.\" [5-9] [0-9]* | [1-3] (\".\" [0-9]+)? | \"4\" (\".\" \"0\"+)?) ws\nbloom-radius ::= (\"0.\" (\"0\" [5-9] [0-9]* | [1-9] [0-9]*) | \"1\" (\".\" [0-9]+)? | \"2\" (\".\" \"0\"+)?) ws\nhalation-radius ::= \"0.\" (\"0\" [1-9] [0-9]* | [1-2] [0-9]* | \"3\" \"0\"*) ws\nmode ::= (\"\\\"color\\\"\" | \"\\\"monochrome\\\"\") ws\nunsigned ::= ([0-9] | [1-9] [0-9] | \"100\") ws\nsigned ::= \"-\"? ([0-9] | [1-9] [0-9] | \"100\") ws\ndetail ::= ([0-9] | [1-3] [0-9] | \"40\") ws\nstring ::= \"\\\"\" ([^\"\\\\\\x7F\\x00-\\x1F] | \"\\\\\" ([\"\\\\bfnrt] | \"u\" [0-9a-fA-F]{4})){0,120} \"\\\"\" ws\nws ::= [ \\t\\n\\r]*\n",
+  "styles" : {
+    "autoDetection" : {
+      "guidance" : "Strength 45...70. Mapping 0...15. Use only corrections required by the image. Keep fade, softness, grain, skin retouching, and background blur near zero unless clearly needed.",
+      "prompts" : {
+        "english" : "Auto detection: no named style; natural correction only for exposure, white balance, contrast, tonal balance, skin cleanup, denoise, and subtle finishing.",
+        "japanese" : "自然色：特定のフィルム、レトロ、モノクロ、日本風、パステル、強い作風は適用せず、露出、ホワイトバランス、コントラスト、階調バランス、肌の整え、ノイズ低減、控えめな仕上げだけを自然に補正する。",
+        "korean" : "자연 색감: 특정 필름, 레트로, 흑백, 일본풍, 파스텔, 강한 스타일을 적용하지 않고 노출, 화이트 밸런스, 대비, 톤 밸런스, 피부 정리, 노이즈 감소, 미세한 마감만 자연스럽게 보정한다.",
+        "traditionalChinese" : "自然色彩：不套用特定底片、復古、黑白、日式、粉彩或強烈風格；只做曝光、白平衡、對比、明暗平衡、皮膚整理、降噪與細微收尾的自然修正。"
+      },
+      "strength" : [
+        45,
+        70
+      ]
+    },
+    "filmBleachBypass" : {
+      "guidance" : "The selected film density model already provides the characteristic curve and color response. Strength 75...100. Keep extra contrast, fade, warmth, tint and mapping close to zero unless requested. Preserve explicit user values; never recreate the stock by adding another strong global look.",
+      "prompts" : {
+        "english" : "Bleach Bypass: print-stage retained-silver density, deeper shadows and contrast. This independently designed, uncalibrated stock density profile is already rendered before your adjustments. Do not recreate its film curve, color cast or monochrome conversion. Grain, development and print\/viewing controls are separate from the stock profile; follow the supplied baseline and the user's explicit requests.",
+        "japanese" : "Bleach Bypass。フィルムの感色性・濃度曲線は既に適用済みです。必要な露出と局所階調だけを補正し、コントラストや色かぶりを重ねすぎないでください。",
+        "korean" : "Bleach Bypass. 필름 감색성과 농도 곡선은 이미 적용되어 있습니다. 필요한 노출과 국부 톤만 보정하고 대비나 색조를 중복해서 과하게 적용하지 마세요.",
+        "traditionalChinese" : "Bleach Bypass：保留銀・深黑強反差。底片模型已套用感色、密度與顯影響應，AI 僅調整必要的曝光及局部影調，避免重複加重反差或偏色。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "filmCineStill800T" : {
+      "guidance" : "The selected film density model already provides the characteristic curve and color response. Strength 75...100. Keep extra contrast, fade, warmth, tint and mapping close to zero unless requested. Preserve explicit user values; never recreate the stock by adding another strong global look.",
+      "prompts" : {
+        "english" : "CineStill 800T: white-balanced tungsten color negative; highlight-dependent red halation is enabled in the baseline. This independently designed, uncalibrated stock density profile is already rendered before your adjustments. Do not recreate its film curve, color cast or monochrome conversion. Grain, development and print\/viewing controls are separate from the stock profile; follow the supplied baseline and the user's explicit requests.",
+        "japanese" : "CineStill 800T。フィルムの感色性・濃度曲線は既に適用済みです。必要な露出と局所階調だけを補正し、コントラストや色かぶりを重ねすぎないでください。",
+        "korean" : "CineStill 800T. 필름 감색성과 농도 곡선은 이미 적용되어 있습니다. 필요한 노출과 국부 톤만 보정하고 대비나 색조를 중복해서 과하게 적용하지 마세요.",
+        "traditionalChinese" : "CineStill 800T：鎢光夜景・亮部紅暈。底片模型已套用感色、密度與顯影響應，AI 僅調整必要的曝光及局部影調，避免重複加重反差或偏色。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "filmCrossProcess" : {
+      "guidance" : "The selected film density model already provides the characteristic curve and color response. Strength 75...100. Keep extra contrast, fade, warmth, tint and mapping close to zero unless requested. Preserve explicit user values; never recreate the stock by adding another strong global look.",
+      "prompts" : {
+        "english" : "Cross Process: cross-processing-inspired channel-specific density curves and tonal color crossover. This independently designed, uncalibrated stock density profile is already rendered before your adjustments. Do not recreate its film curve, color cast or monochrome conversion. Grain, development and print\/viewing controls are separate from the stock profile; follow the supplied baseline and the user's explicit requests.",
+        "japanese" : "Cross Process。フィルムの感色性・濃度曲線は既に適用済みです。必要な露出と局所階調だけを補正し、コントラストや色かぶりを重ねすぎないでください。",
+        "korean" : "Cross Process. 필름 감색성과 농도 곡선은 이미 적용되어 있습니다. 필요한 노출과 국부 톤만 보정하고 대비나 색조를 중복해서 과하게 적용하지 마세요.",
+        "traditionalChinese" : "Cross Process：交叉沖洗・色彩交錯。底片模型已套用感色、密度與顯影響應，AI 僅調整必要的曝光及局部影調，避免重複加重反差或偏色。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "filmDelta3200" : {
+      "guidance" : "The selected film density model already provides the characteristic curve and color response. Strength 75...100. Keep extra contrast, fade, warmth, tint and mapping close to zero unless requested. Preserve explicit user values; never recreate the stock by adding another strong global look.",
+      "prompts" : {
+        "english" : "ILFORD Delta 3200: high-speed monochrome with large grain and softer tonal progression. This independently designed, uncalibrated stock density profile is already rendered before your adjustments. Do not recreate its film curve, color cast or monochrome conversion. Grain, development and print\/viewing controls are separate from the stock profile; follow the supplied baseline and the user's explicit requests.",
+        "japanese" : "ILFORD Delta 3200。フィルムの感色性・濃度曲線は既に適用済みです。必要な露出と局所階調だけを補正し、コントラストや色かぶりを重ねすぎないでください。",
+        "korean" : "ILFORD Delta 3200. 필름 감색성과 농도 곡선은 이미 적용되어 있습니다. 필요한 노출과 국부 톤만 보정하고 대비나 색조를 중복해서 과하게 적용하지 마세요.",
+        "traditionalChinese" : "ILFORD Delta 3200：高感黑白・粗顆粒柔階。底片模型已套用感色、密度與顯影響應，AI 僅調整必要的曝光及局部影調，避免重複加重反差或偏色。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "filmEktachrome100" : {
+      "guidance" : "The selected film density model already provides the characteristic curve and color response. Strength 75...100. Keep extra contrast, fade, warmth, tint and mapping close to zero unless requested. Preserve explicit user values; never recreate the stock by adding another strong global look.",
+      "prompts" : {
+        "english" : "Ektachrome E100: reversal density and dye transmission. This independently designed, uncalibrated stock density profile is already rendered before your adjustments. Do not recreate its film curve, color cast or monochrome conversion. Grain, development and print\/viewing controls are separate from the stock profile; follow the supplied baseline and the user's explicit requests.",
+        "japanese" : "Ektachrome E100。フィルムの感色性・濃度曲線は既に適用済みです。必要な露出と局所階調だけを補正し、コントラストや色かぶりを重ねすぎないでください。",
+        "korean" : "Ektachrome E100. 필름 감색성과 농도 곡선은 이미 적용되어 있습니다. 필요한 노출과 국부 톤만 보정하고 대비나 색조를 중복해서 과하게 적용하지 마세요.",
+        "traditionalChinese" : "Ektachrome E100：中性反轉・清透層次。底片模型已套用感色、密度與顯影響應，AI 僅調整必要的曝光及局部影調，避免重複加重反差或偏色。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "filmEktar100" : {
+      "guidance" : "The selected film density model already provides the characteristic curve and color response. Strength 75...100. Keep extra contrast, fade, warmth, tint and mapping close to zero unless requested. Preserve explicit user values; never recreate the stock by adding another strong global look.",
+      "prompts" : {
+        "english" : "Ektar 100: color negative and print density curves. This independently designed, uncalibrated stock density profile is already rendered before your adjustments. Do not recreate its film curve, color cast or monochrome conversion. Grain, development and print\/viewing controls are separate from the stock profile; follow the supplied baseline and the user's explicit requests.",
+        "japanese" : "Ektar 100。フィルムの感色性・濃度曲線は既に適用済みです。必要な露出と局所階調だけを補正し、コントラストや色かぶりを重ねすぎないでください。",
+        "korean" : "Ektar 100. 필름 감색성과 농도 곡선은 이미 적용되어 있습니다. 필요한 노출과 국부 톤만 보정하고 대비나 색조를 중복해서 과하게 적용하지 마세요.",
+        "traditionalChinese" : "Ektar 100：鮮明色彩・細緻風景。底片模型已套用感色、密度與顯影響應，AI 僅調整必要的曝光及局部影調，避免重複加重反差或偏色。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "filmFP4" : {
+      "guidance" : "The selected film density model already provides the characteristic curve and color response. Strength 75...100. Keep extra contrast, fade, warmth, tint and mapping close to zero unless requested. Preserve explicit user values; never recreate the stock by adding another strong global look.",
+      "prompts" : {
+        "english" : "FP4 PLUS 125: panchromatic monochrome negative and paper density curves. This independently designed, uncalibrated stock density profile is already rendered before your adjustments. Do not recreate its film curve, color cast or monochrome conversion. Grain, development and print\/viewing controls are separate from the stock profile; follow the supplied baseline and the user's explicit requests.",
+        "japanese" : "FP4 PLUS 125。フィルムの感色性・濃度曲線は既に適用済みです。必要な露出と局所階調だけを補正し、コントラストや色かぶりを重ねすぎないでください。",
+        "korean" : "FP4 PLUS 125. 필름 감색성과 농도 곡선은 이미 적용되어 있습니다. 필요한 노출과 국부 톤만 보정하고 대비나 색조를 중복해서 과하게 적용하지 마세요.",
+        "traditionalChinese" : "FP4 PLUS 125：全色黑白・精細層次。底片模型已套用感色、密度與顯影響應，AI 僅調整必要的曝光及局部影調，避免重複加重反差或偏色。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "filmGold200" : {
+      "guidance" : "The selected film density model already provides the characteristic curve and color response. Strength 75...100. Keep extra contrast, fade, warmth, tint and mapping close to zero unless requested. Preserve explicit user values; never recreate the stock by adding another strong global look.",
+      "prompts" : {
+        "english" : "Kodak Gold 200: warm golden color negative with vivid everyday color. This independently designed, uncalibrated stock density profile is already rendered before your adjustments. Do not recreate its film curve, color cast or monochrome conversion. Grain, development and print\/viewing controls are separate from the stock profile; follow the supplied baseline and the user's explicit requests.",
+        "japanese" : "Kodak Gold 200。フィルムの感色性・濃度曲線は既に適用済みです。必要な露出と局所階調だけを補正し、コントラストや色かぶりを重ねすぎないでください。",
+        "korean" : "Kodak Gold 200. 필름 감색성과 농도 곡선은 이미 적용되어 있습니다. 필요한 노출과 국부 톤만 보정하고 대비나 색조를 중복해서 과하게 적용하지 마세요.",
+        "traditionalChinese" : "Kodak Gold 200：暖金日常・鮮明懷舊。底片模型已套用感色、密度與顯影響應，AI 僅調整必要的曝光及局部影調，避免重複加重反差或偏色。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "filmHP5" : {
+      "guidance" : "The selected film density model already provides the characteristic curve and color response. Strength 75...100. Keep extra contrast, fade, warmth, tint and mapping close to zero unless requested. Preserve explicit user values; never recreate the stock by adding another strong global look.",
+      "prompts" : {
+        "english" : "HP5 PLUS 400: panchromatic monochrome negative and paper density curves. This independently designed, uncalibrated stock density profile is already rendered before your adjustments. Do not recreate its film curve, color cast or monochrome conversion. Grain, development and print\/viewing controls are separate from the stock profile; follow the supplied baseline and the user's explicit requests.",
+        "japanese" : "HP5 PLUS 400。フィルムの感色性・濃度曲線は既に適用済みです。必要な露出と局所階調だけを補正し、コントラストや色かぶりを重ねすぎないでください。",
+        "korean" : "HP5 PLUS 400. 필름 감색성과 농도 곡선은 이미 적용되어 있습니다. 필요한 노출과 국부 톤만 보정하고 대비나 색조를 중복해서 과하게 적용하지 마세요.",
+        "traditionalChinese" : "HP5 PLUS 400：全色黑白・紀實顆粒。底片模型已套用感色、密度與顯影響應，AI 僅調整必要的曝光及局部影調，避免重複加重反差或偏色。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "filmInfrared400" : {
+      "guidance" : "The selected film density model already provides the characteristic curve and color response. Strength 75...100. Keep extra contrast, fade, warmth, tint and mapping close to zero unless requested. Preserve explicit user values; never recreate the stock by adding another strong global look.",
+      "prompts" : {
+        "english" : "Infrared 400: creative infrared-like monochrome RGB approximation; no recovered infrared data. This independently designed, uncalibrated stock density profile is already rendered before your adjustments. Do not recreate its film curve, color cast or monochrome conversion. Grain, development and print\/viewing controls are separate from the stock profile; follow the supplied baseline and the user's explicit requests.",
+        "japanese" : "Infrared 400。フィルムの感色性・濃度曲線は既に適用済みです。必要な露出と局所階調だけを補正し、コントラストや色かぶりを重ねすぎないでください。",
+        "korean" : "Infrared 400. 필름 감색성과 농도 곡선은 이미 적용되어 있습니다. 필요한 노출과 국부 톤만 보정하고 대비나 색조를 중복해서 과하게 적용하지 마세요.",
+        "traditionalChinese" : "Infrared 400：紅外線意象・亮葉深空。底片模型已套用感色、密度與顯影響應，AI 僅調整必要的曝光及局部影調，避免重複加重反差或偏色。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "filmLomoPurple" : {
+      "guidance" : "The selected film density model already provides the characteristic curve and color response. Strength 75...100. Keep extra contrast, fade, warmth, tint and mapping close to zero unless requested. Preserve explicit user values; never recreate the stock by adding another strong global look.",
+      "prompts" : {
+        "english" : "LomoChrome Purple: color-shifting negative with remapped layer sensitivities: red preserved, green to purple, yellow to pink, blue to green. This independently designed, uncalibrated stock density profile is already rendered before your adjustments. Do not recreate its film curve, color cast or monochrome conversion. Grain, development and print\/viewing controls are separate from the stock profile; follow the supplied baseline and the user's explicit requests.",
+        "japanese" : "LomoChrome Purple。フィルムの感色性・濃度曲線は既に適用済みです。必要な露出と局所階調だけを補正し、コントラストや色かぶりを重ねすぎないでください。",
+        "korean" : "LomoChrome Purple. 필름 감색성과 농도 곡선은 이미 적용되어 있습니다. 필요한 노출과 국부 톤만 보정하고 대비나 색조를 중복해서 과하게 적용하지 마세요.",
+        "traditionalChinese" : "LomoChrome Purple：綠轉紫・超現實變色。底片模型已套用感色、密度與顯影響應，AI 僅調整必要的曝光及局部影調，避免重複加重反差或偏色。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "filmOrtho80" : {
+      "guidance" : "The selected film density model already provides the characteristic curve and color response. Strength 75...100. Keep extra contrast, fade, warmth, tint and mapping close to zero unless requested. Preserve explicit user values; never recreate the stock by adding another strong global look.",
+      "prompts" : {
+        "english" : "ORTHO PLUS 80: orthochromatic monochrome, blue\/green sensitive, dark red objects. This independently designed, uncalibrated stock density profile is already rendered before your adjustments. Do not recreate its film curve, color cast or monochrome conversion. Grain, development and print\/viewing controls are separate from the stock profile; follow the supplied baseline and the user's explicit requests.",
+        "japanese" : "ORTHO PLUS 80。フィルムの感色性・濃度曲線は既に適用済みです。必要な露出と局所階調だけを補正し、コントラストや色かぶりを重ねすぎないでください。",
+        "korean" : "ORTHO PLUS 80. 필름 감색성과 농도 곡선은 이미 적용되어 있습니다. 필요한 노출과 국부 톤만 보정하고 대비나 색조를 중복해서 과하게 적용하지 마세요.",
+        "traditionalChinese" : "ORTHO PLUS 80：正色黑白・紅色深沉。底片模型已套用感色、密度與顯影響應，AI 僅調整必要的曝光及局部影調，避免重複加重反差或偏色。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "filmPolaroidSX70" : {
+      "guidance" : "The selected film density model already provides the characteristic curve and color response. Strength 75...100. Keep extra contrast, fade, warmth, tint and mapping close to zero unless requested. Preserve explicit user values; never recreate the stock by adding another strong global look.",
+      "prompts" : {
+        "english" : "Polaroid SX-70: instant-film-inspired warm soft tones and reduced maximum print density, not a calibrated instant chemistry model. This independently designed, uncalibrated stock density profile is already rendered before your adjustments. Do not recreate its film curve, color cast or monochrome conversion. Grain, development and print\/viewing controls are separate from the stock profile; follow the supplied baseline and the user's explicit requests.",
+        "japanese" : "Polaroid SX-70。フィルムの感色性・濃度曲線は既に適用済みです。必要な露出と局所階調だけを補正し、コントラストや色かぶりを重ねすぎないでください。",
+        "korean" : "Polaroid SX-70. 필름 감색성과 농도 곡선은 이미 적용되어 있습니다. 필요한 노출과 국부 톤만 보정하고 대비나 색조를 중복해서 과하게 적용하지 마세요.",
+        "traditionalChinese" : "Polaroid SX-70：即影即有・暖色柔階。底片模型已套用感色、密度與顯影響應，AI 僅調整必要的曝光及局部影調，避免重複加重反差或偏色。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "filmPortra160" : {
+      "guidance" : "The selected film density model already provides the characteristic curve and color response. Strength 75...100. Keep extra contrast, fade, warmth, tint and mapping close to zero unless requested. Preserve explicit user values; never recreate the stock by adding another strong global look.",
+      "prompts" : {
+        "english" : "Portra 160: color negative and print density curves. This independently designed, uncalibrated stock density profile is already rendered before your adjustments. Do not recreate its film curve, color cast or monochrome conversion. Grain, development and print\/viewing controls are separate from the stock profile; follow the supplied baseline and the user's explicit requests.",
+        "japanese" : "Portra 160。フィルムの感色性・濃度曲線は既に適用済みです。必要な露出と局所階調だけを補正し、コントラストや色かぶりを重ねすぎないでください。",
+        "korean" : "Portra 160. 필름 감색성과 농도 곡선은 이미 적용되어 있습니다. 필요한 노출과 국부 톤만 보정하고 대비나 색조를 중복해서 과하게 적용하지 마세요.",
+        "traditionalChinese" : "Portra 160：柔和膚色・細緻日光負片。底片模型已套用感色、密度與顯影響應，AI 僅調整必要的曝光及局部影調，避免重複加重反差或偏色。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "filmPortra400" : {
+      "guidance" : "The selected film density model already provides the characteristic curve and color response. Strength 75...100. Keep extra contrast, fade, warmth, tint and mapping close to zero unless requested. Preserve explicit user values; never recreate the stock by adding another strong global look.",
+      "prompts" : {
+        "english" : "Portra 400: color negative and print density curves. This independently designed, uncalibrated stock density profile is already rendered before your adjustments. Do not recreate its film curve, color cast or monochrome conversion. Grain, development and print\/viewing controls are separate from the stock profile; follow the supplied baseline and the user's explicit requests.",
+        "japanese" : "Portra 400。フィルムの感色性・濃度曲線は既に適用済みです。必要な露出と局所階調だけを補正し、コントラストや色かぶりを重ねすぎないでください。",
+        "korean" : "Portra 400. 필름 감색성과 농도 곡선은 이미 적용되어 있습니다. 필요한 노출과 국부 톤만 보정하고 대비나 색조를 중복해서 과하게 적용하지 마세요.",
+        "traditionalChinese" : "Portra 400：自然人像・均衡階調。底片模型已套用感色、密度與顯影響應，AI 僅調整必要的曝光及局部影調，避免重複加重反差或偏色。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "filmPortra800" : {
+      "guidance" : "The selected film density model already provides the characteristic curve and color response. Strength 75...100. Keep extra contrast, fade, warmth, tint and mapping close to zero unless requested. Preserve explicit user values; never recreate the stock by adding another strong global look.",
+      "prompts" : {
+        "english" : "Portra 800: color negative and print density curves. This independently designed, uncalibrated stock density profile is already rendered before your adjustments. Do not recreate its film curve, color cast or monochrome conversion. Grain, development and print\/viewing controls are separate from the stock profile; follow the supplied baseline and the user's explicit requests.",
+        "japanese" : "Portra 800。フィルムの感色性・濃度曲線は既に適用済みです。必要な露出と局所階調だけを補正し、コントラストや色かぶりを重ねすぎないでください。",
+        "korean" : "Portra 800. 필름 감색성과 농도 곡선은 이미 적용되어 있습니다. 필요한 노출과 국부 톤만 보정하고 대비나 색조를 중복해서 과하게 적용하지 마세요.",
+        "traditionalChinese" : "Portra 800：低光氛圍・柔暖顆粒。底片模型已套用感色、密度與顯影響應，AI 僅調整必要的曝光及局部影調，避免重複加重反差或偏色。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "filmProvia100F" : {
+      "guidance" : "The selected film density model already provides the characteristic curve and color response. Strength 75...100. Keep extra contrast, fade, warmth, tint and mapping close to zero unless requested. Preserve explicit user values; never recreate the stock by adding another strong global look.",
+      "prompts" : {
+        "english" : "Provia 100F: reversal density and dye transmission. This independently designed, uncalibrated stock density profile is already rendered before your adjustments. Do not recreate its film curve, color cast or monochrome conversion. Grain, development and print\/viewing controls are separate from the stock profile; follow the supplied baseline and the user's explicit requests.",
+        "japanese" : "Provia 100F。フィルムの感色性・濃度曲線は既に適用済みです。必要な露出と局所階調だけを補正し、コントラストや色かぶりを重ねすぎないでください。",
+        "korean" : "Provia 100F. 필름 감색성과 농도 곡선은 이미 적용되어 있습니다. 필요한 노출과 국부 톤만 보정하고 대비나 색조를 중복해서 과하게 적용하지 마세요.",
+        "traditionalChinese" : "Provia 100F：自然反轉・平衡色階。底片模型已套用感色、密度與顯影響應，AI 僅調整必要的曝光及局部影調，避免重複加重反差或偏色。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "filmSFX200" : {
+      "guidance" : "The selected film density model already provides the characteristic curve and color response. Strength 75...100. Keep extra contrast, fade, warmth, tint and mapping close to zero unless requested. Preserve explicit user values; never recreate the stock by adding another strong global look.",
+      "prompts" : {
+        "english" : "SFX 200: extended-red monochrome RGB approximation. This independently designed, uncalibrated stock density profile is already rendered before your adjustments. Do not recreate its film curve, color cast or monochrome conversion. Grain, development and print\/viewing controls are separate from the stock profile; follow the supplied baseline and the user's explicit requests.",
+        "japanese" : "SFX 200。フィルムの感色性・濃度曲線は既に適用済みです。必要な露出と局所階調だけを補正し、コントラストや色かぶりを重ねすぎないでください。",
+        "korean" : "SFX 200. 필름 감색성과 농도 곡선은 이미 적용되어 있습니다. 필요한 노출과 국부 톤만 보정하고 대비나 색조를 중복해서 과하게 적용하지 마세요.",
+        "traditionalChinese" : "SFX 200：延伸紅感・明亮紅色。底片模型已套用感色、密度與顯影響應，AI 僅調整必要的曝光及局部影調，避免重複加重反差或偏色。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "filmVelvia50" : {
+      "guidance" : "The selected film density model already provides the characteristic curve and color response. Strength 75...100. Keep extra contrast, fade, warmth, tint and mapping close to zero unless requested. Preserve explicit user values; never recreate the stock by adding another strong global look.",
+      "prompts" : {
+        "english" : "Velvia 50: reversal density and dye transmission. This independently designed, uncalibrated stock density profile is already rendered before your adjustments. Do not recreate its film curve, color cast or monochrome conversion. Grain, development and print\/viewing controls are separate from the stock profile; follow the supplied baseline and the user's explicit requests.",
+        "japanese" : "Velvia 50。フィルムの感色性・濃度曲線は既に適用済みです。必要な露出と局所階調だけを補正し、コントラストや色かぶりを重ねすぎないでください。",
+        "korean" : "Velvia 50. 필름 감색성과 농도 곡선은 이미 적용되어 있습니다. 필요한 노출과 국부 톤만 보정하고 대비나 색조를 중복해서 과하게 적용하지 마세요.",
+        "traditionalChinese" : "Velvia 50：濃郁反轉・深邃風景。底片模型已套用感色、密度與顯影響應，AI 僅調整必要的曝光及局部影調，避免重複加重反差或偏色。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "filmVision50D" : {
+      "guidance" : "The selected film density model already provides the characteristic curve and color response. Strength 75...100. Keep extra contrast, fade, warmth, tint and mapping close to zero unless requested. Preserve explicit user values; never recreate the stock by adding another strong global look.",
+      "prompts" : {
+        "english" : "VISION3 50D: color negative and print density curves. This independently designed, uncalibrated stock density profile is already rendered before your adjustments. Do not recreate its film curve, color cast or monochrome conversion. Grain, development and print\/viewing controls are separate from the stock profile; follow the supplied baseline and the user's explicit requests.",
+        "japanese" : "VISION3 50D。フィルムの感色性・濃度曲線は既に適用済みです。必要な露出と局所階調だけを補正し、コントラストや色かぶりを重ねすぎないでください。",
+        "korean" : "VISION3 50D. 필름 감색성과 농도 곡선은 이미 적용되어 있습니다. 필요한 노출과 국부 톤만 보정하고 대비나 색조를 중복해서 과하게 적용하지 마세요.",
+        "traditionalChinese" : "VISION3 50D：日光電影・細膩高光。底片模型已套用感色、密度與顯影響應，AI 僅調整必要的曝光及局部影調，避免重複加重反差或偏色。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "filmVision200T" : {
+      "guidance" : "The selected film density model already provides the characteristic curve and color response. Strength 75...100. Keep extra contrast, fade, warmth, tint and mapping close to zero unless requested. Preserve explicit user values; never recreate the stock by adding another strong global look.",
+      "prompts" : {
+        "english" : "VISION3 200T: color negative and print density curves. This independently designed, uncalibrated stock density profile is already rendered before your adjustments. Do not recreate its film curve, color cast or monochrome conversion. Grain, development and print\/viewing controls are separate from the stock profile; follow the supplied baseline and the user's explicit requests.",
+        "japanese" : "VISION3 200T。フィルムの感色性・濃度曲線は既に適用済みです。必要な露出と局所階調だけを補正し、コントラストや色かぶりを重ねすぎないでください。",
+        "korean" : "VISION3 200T. 필름 감색성과 농도 곡선은 이미 적용되어 있습니다. 필요한 노출과 국부 톤만 보정하고 대비나 색조를 중복해서 과하게 적용하지 마세요.",
+        "traditionalChinese" : "VISION3 200T：鎢光電影・冷暖分離。底片模型已套用感色、密度與顯影響應，AI 僅調整必要的曝光及局部影調，避免重複加重反差或偏色。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "filmVision250D" : {
+      "guidance" : "The selected film density model already provides the characteristic curve and color response. Strength 75...100. Keep extra contrast, fade, warmth, tint and mapping close to zero unless requested. Preserve explicit user values; never recreate the stock by adding another strong global look.",
+      "prompts" : {
+        "english" : "VISION3 250D: color negative and print density curves. This independently designed, uncalibrated stock density profile is already rendered before your adjustments. Do not recreate its film curve, color cast or monochrome conversion. Grain, development and print\/viewing controls are separate from the stock profile; follow the supplied baseline and the user's explicit requests.",
+        "japanese" : "VISION3 250D。フィルムの感色性・濃度曲線は既に適用済みです。必要な露出と局所階調だけを補正し、コントラストや色かぶりを重ねすぎないでください。",
+        "korean" : "VISION3 250D. 필름 감색성과 농도 곡선은 이미 적용되어 있습니다. 필요한 노출과 국부 톤만 보정하고 대비나 색조를 중복해서 과하게 적용하지 마세요.",
+        "traditionalChinese" : "VISION3 250D：日光電影・寬容層次。底片模型已套用感色、密度與顯影響應，AI 僅調整必要的曝光及局部影調，避免重複加重反差或偏色。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "filmVision500T" : {
+      "guidance" : "The selected film density model already provides the characteristic curve and color response. Strength 75...100. Keep extra contrast, fade, warmth, tint and mapping close to zero unless requested. Preserve explicit user values; never recreate the stock by adding another strong global look.",
+      "prompts" : {
+        "english" : "VISION3 500T: color negative and print density curves. This independently designed, uncalibrated stock density profile is already rendered before your adjustments. Do not recreate its film curve, color cast or monochrome conversion. Grain, development and print\/viewing controls are separate from the stock profile; follow the supplied baseline and the user's explicit requests.",
+        "japanese" : "VISION3 500T。フィルムの感色性・濃度曲線は既に適用済みです。必要な露出と局所階調だけを補正し、コントラストや色かぶりを重ねすぎないでください。",
+        "korean" : "VISION3 500T. 필름 감색성과 농도 곡선은 이미 적용되어 있습니다. 필요한 노출과 국부 톤만 보정하고 대비나 색조를 중복해서 과하게 적용하지 마세요.",
+        "traditionalChinese" : "VISION3 500T：鎢光夜景・豐富暗部。底片模型已套用感色、密度與顯影響應，AI 僅調整必要的曝光及局部影調，避免重複加重反差或偏色。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "fujiClassicChrome" : {
+      "guidance" : "Strength 62...76. Mapping shadows 40...65, midtones 45...70, highlights 30...55. Base tone -24...-8, contrast +4...+18, fade 2...10, softness 0...7, grain 6...18. Keep color subdued, suppress magenta, maintain cool shadows, and produce a composed documentary contrast without warm-highlight styling.",
+      "prompts" : {
+        "english" : "Film Classic Chrome: subdued documentary color with suppressed magenta, cool shadows, restrained saturation, composed contrast, and a calm versatile look that remains consistent across subjects and light sources.",
+        "japanese" : "フィルム Classic Chrome：マゼンタを抑え、クールなシャドウと低彩度を保つ落ち着いたドキュメンタリーカラー。被写体や光源が変わっても、控えめで安定したコントラストと静かな印象を維持する。",
+        "korean" : "필름 Classic Chrome: 마젠타를 억제하고 차가운 그림자와 낮은 채도를 유지하는 차분한 다큐멘터리 컬러. 피사체와 광원이 달라도 절제되고 안정적인 대비와 조용한 인상을 유지한다.",
+        "traditionalChinese" : "底片 Classic Chrome：沉穩克制的紀實色彩，壓低洋紅、保留冷調陰影與低飽和，對比沉著且不躁進，在不同主體與光源下維持一致、安靜的畫面。"
+      },
+      "strength" : [
+        62,
+        76
+      ]
+    },
+    "fujiClassicNeg" : {
+      "guidance" : "Strength 68...82. Mapping shadows 50...75, midtones 55...80, highlights 40...65. Base tone -15...+5, contrast +18...+40, fade 0...6, softness 0...8, grain 12...28. Create cyan-green shadows, magenta-biased highlights, colorful midtones, and hard tonal and color contrast with an intentionally lo-fi imbalance.",
+      "prompts" : {
+        "english" : "Film Classic Neg: lo-fi consumer-negative character with cyan-green shadows, magenta-biased highlights, colorful midtones, hard tonal and color contrast, visible grain, and a deliberately unbalanced but cohesive snapshot feel.",
+        "japanese" : "フィルム Classic Neg.：ローファイな一般向けネガの性格。シアングリーンの影、マゼンタ寄りのハイライト、色彩豊かな中間調、硬い明暗と色コントラスト、目に見える粒子で、意図的に不均衡ながら統一感のあるスナップ感を作る。",
+        "korean" : "필름 Classic Neg.: 로파이 소비자용 네거티브 성격. 시안그린 그림자, 마젠타 쪽 하이라이트, 다채로운 중간톤, 강한 명암과 색 대비, 눈에 보이는 그레인으로 의도적으로 불균형하지만 일관된 스냅 느낌을 만든다.",
+        "traditionalChinese" : "底片 Classic Neg.：帶低保真消費型負片性格，青綠陰影、偏洋紅高光、色彩鮮明的中調、硬朗明暗與色彩對比，搭配可見顆粒，形成刻意不平衡但仍一致的快照感。"
+      },
+      "strength" : [
+        68,
+        82
+      ]
+    },
+    "fujiProvia" : {
+      "guidance" : "Strength 58...72. Mapping shadows 25...45, midtones 30...50, highlights 20...40. Base tone +6...+18, contrast +6...+18, fade 0...2, softness 0...3, grain 0...8. Prioritize transparent, versatile color: clear skies, vivid sunsets, lush greens, and pale natural oranges for portraits while keeping magenta controlled.",
+      "prompts" : {
+        "english" : "Film Provia: versatile transparent color built around memory color; clear skies, vivid sunsets, lush greenery, pale natural oranges for portraits, clean tonal separation, and controlled magenta without a heavy global cast.",
+        "japanese" : "フィルム Provia：記憶色と透明感を軸にした汎用カラー。澄んだ空、鮮やかな夕景、豊かな緑、人物の淡く自然なオレンジ、明快な階調分離を保ち、マゼンタと全体的な色かぶりを抑える。",
+        "korean" : "필름 Provia: 기억색과 투명감을 중심으로 한 범용 컬러. 맑은 하늘, 선명한 노을, 풍부한 녹색, 인물의 옅고 자연스러운 오렌지, 깨끗한 톤 분리를 유지하고 마젠타와 무거운 전체 색 편향을 억제한다.",
+        "traditionalChinese" : "底片 Provia：以記憶色與透明感為核心的泛用色彩，天空清澈、夕陽鮮明、綠色茂盛，人物橘色調淡雅自然，階調分離乾淨並抑制洋紅，不加入厚重全域偏色。"
+      },
+      "strength" : [
+        58,
+        72
+      ]
+    },
+    "gr3-hardmono" : {
+      "guidance" : "Camera color and tone are already applied. Strength 75...100. Keep extra contrast, saturation, fade and grain near zero unless requested; preserve explicit user settings.",
+      "prompts" : {
+        "english" : "GR III・高反差黑白: 深黑與亮白、強化明暗幾何；強度 50 仍維持黑白. Camera-inspired color and tone are already applied. Preserve the selected signature; adjust exposure and local tones only as needed. Avoid adding another film look. Strength 75...100 when useful.",
+        "japanese" : "GR III・高反差黑白。カメラの色調は適用済みです。選択した特徴を保ち、必要な露出と局所階調のみ補正してください。別のフィルム効果を重ねないでください。推奨強度 75–100。",
+        "korean" : "GR III・高反差黑白. 카메라 색조가 이미 적용되었습니다. 선택한 특성을 유지하며 필요한 노출과 부분 계조만 보정하세요. 다른 필름 효과를 겹치지 마세요. 권장 강도 75–100.",
+        "traditionalChinese" : "GR III・高反差黑白：深黑與亮白、強化明暗幾何；強度 50 仍維持黑白。相機模擬已套用，只視需要修正曝光與局部階調，避免重複疊加其他底片效果。建議強度 75–100。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "gr3-negative" : {
+      "guidance" : "Camera color and tone are already applied. Strength 75...100. Keep extra contrast, saturation, fade and grain near zero unless requested; preserve explicit user settings.",
+      "prompts" : {
+        "english" : "GR III・負片: 柔和反差、略浮黑位、褪色印相與暖亮部. Camera-inspired color and tone are already applied. Preserve the selected signature; adjust exposure and local tones only as needed. Avoid adding another film look. Strength 75...100 when useful.",
+        "japanese" : "GR III・負片。カメラの色調は適用済みです。選択した特徴を保ち、必要な露出と局所階調のみ補正してください。別のフィルム効果を重ねないでください。推奨強度 75–100。",
+        "korean" : "GR III・負片. 카메라 색조가 이미 적용되었습니다. 선택한 특성을 유지하며 필요한 노출과 부분 계조만 보정하세요. 다른 필름 효과를 겹치지 마세요. 권장 강도 75–100.",
+        "traditionalChinese" : "GR III・負片：柔和反差、略浮黑位、褪色印相與暖亮部。相機模擬已套用，只視需要修正曝光與局部階調，避免重複疊加其他底片效果。建議強度 75–100。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "gr4-green" : {
+      "guidance" : "Camera color and tone are already applied. Strength 75...100. Keep extra contrast, saturation, fade and grain near zero unless requested; preserve explicit user settings.",
+      "prompts" : {
+        "english" : "GR IV・Cinema Green: 偏綠陰影、偏冷亮部與低彩度都市色調. Camera-inspired color and tone are already applied. Preserve the selected signature; adjust exposure and local tones only as needed. Avoid adding another film look. Strength 75...100 when useful.",
+        "japanese" : "GR IV・Cinema Green。カメラの色調は適用済みです。選択した特徴を保ち、必要な露出と局所階調のみ補正してください。別のフィルム効果を重ねないでください。推奨強度 75–100。",
+        "korean" : "GR IV・Cinema Green. 카메라 색조가 이미 적용되었습니다. 선택한 특성을 유지하며 필요한 노출과 부분 계조만 보정하세요. 다른 필름 효과를 겹치지 마세요. 권장 강도 75–100.",
+        "traditionalChinese" : "GR IV・Cinema Green：偏綠陰影、偏冷亮部與低彩度都市色調。相機模擬已套用，只視需要修正曝光與局部階調，避免重複疊加其他底片效果。建議強度 75–100。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "gr4-yellow" : {
+      "guidance" : "Camera color and tone are already applied. Strength 75...100. Keep extra contrast, saturation, fade and grain near zero unless requested; preserve explicit user settings.",
+      "prompts" : {
+        "english" : "GR IV・Cinema Yellow: 黃色亮部、冷陰影、收斂彩度的電影反差. Camera-inspired color and tone are already applied. Preserve the selected signature; adjust exposure and local tones only as needed. Avoid adding another film look. Strength 75...100 when useful.",
+        "japanese" : "GR IV・Cinema Yellow。カメラの色調は適用済みです。選択した特徴を保ち、必要な露出と局所階調のみ補正してください。別のフィルム効果を重ねないでください。推奨強度 75–100。",
+        "korean" : "GR IV・Cinema Yellow. 카메라 색조가 이미 적용되었습니다. 선택한 특성을 유지하며 필요한 노출과 부분 계조만 보정하세요. 다른 필름 효과를 겹치지 마세요. 권장 강도 75–100.",
+        "traditionalChinese" : "GR IV・Cinema Yellow：黃色亮部、冷陰影、收斂彩度的電影反差。相機模擬已套用，只視需要修正曝光與局部階調，避免重複疊加其他底片效果。建議強度 75–100。"
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    },
+    "japaneseBWSoft" : {
+      "guidance" : "Strength 48...64. Mapping shadows 20...45, midtones 25...50, highlights 20...45. Contrast -18...0, shadow exposure 0...+12, highlight recovery +4...+18, fade 4...16, softness 8...22, grain 4...16. Preserve a wide tonal range, fine grain, and well-defined endpoints; avoid milky haze and weak, undefined blacks.",
+      "prompts" : {
+        "english" : "Japanese black and white soft: low-contrast monochrome with wide tonal range, fine restrained grain, gentle shadow and highlight transitions, defined endpoints, and long gray gradation without milky haze or crushed detail.",
+        "japanese" : "日本風モノクロ淡：低コントラスト、広い階調、控えめな微粒子、シャドウからハイライトまでの穏やかな移行を持たせる。端点と細部は明確に保ち、乳白色の霞や締まりのない黒は避ける。",
+        "korean" : "일본식 흑백 담백함: 낮은 대비, 넓은 톤 범위, 절제된 미세 그레인, 섀도에서 하이라이트까지 부드러운 전환을 만든다. 양 끝과 디테일은 분명히 유지하고 우윳빛 안개나 힘없는 블랙은 피한다.",
+        "traditionalChinese" : "日式黑白淡雅：低對比、寬廣階調與細緻克制顆粒，暗部至高光平順過渡但端點仍要清楚，保留長灰階與完整細節，避免乳白霧感或黑位鬆散。"
+      },
+      "strength" : [
+        48,
+        64
+      ]
+    },
+    "japaneseBWStandard" : {
+      "guidance" : "Strength 58...74. Mapping shadows 28...52, midtones 32...56, highlights 22...45. Contrast 0...+20, shadow exposure -4...+10, highlight recovery +2...+16, fade 0...8, softness 0...8, grain 8...24. Preserve a complete smooth grayscale, clear midtone separation, and defined highlight and shadow detail.",
+      "prompts" : {
+        "english" : "Japanese black and white standard: balanced monochrome with a complete smooth grayscale, medium contrast, clear midtone separation, well-defined highlights and shadows, fine restrained grain, and natural sharpness without an exaggerated print effect.",
+        "japanese" : "日本風標準モノクロ：滑らかで完全なグレースケール、中程度のコントラスト、明確な中間調分離、輪郭のあるハイライトとシャドウ、控えめな微粒子と自然なシャープネスを保ち、過度なプリント感は加えない。",
+        "korean" : "일본식 표준 흑백: 완전하고 부드러운 그레이스케일, 중간 대비, 명확한 중간톤 분리, 잘 정의된 하이라이트와 섀도, 절제된 미세 그레인과 자연스러운 선명도를 유지하며 과장된 인화 느낌은 피한다.",
+        "traditionalChinese" : "日式標準黑白：均衡完整的平滑灰階、中等對比、清楚的中調分離、亮暗細節皆有明確邊界，搭配克制細顆粒與自然銳度，不刻意製造厚重印相效果。"
+      },
+      "strength" : [
+        58,
+        74
+      ]
+    },
+    "japaneseBWStrong" : {
+      "guidance" : "Strength 72...88. Mapping shadows 55...80, midtones 50...75, highlights 35...60. Contrast +22...+50, shadow exposure -12...+4, highlight recovery +4...+20, fade 0...4, softness 0...6, grain 18...42. Build deep tones and strong edge separation while retaining soft gray texture; grain should vary by brightness rather than becoming uniformly coarse.",
+      "prompts" : {
+        "english" : "Japanese black and white strong: high-contrast monochrome with deep tones, strong edge separation, crisp detail, brightness-dependent fine-to-medium grain, and enough soft gray gradation to preserve texture instead of clipping everything to black and white.",
+        "japanese" : "日本風モノクロ強：高コントラスト、深い階調、明確なエッジ分離と鋭いディテール。粒子は明るさに応じて変化する微細〜中程度に抑え、黒白だけに潰さず柔らかなグレーの階調と質感を残す。",
+        "korean" : "일본식 흑백 강함: 높은 대비, 깊은 톤, 뚜렷한 가장자리 분리와 선명한 디테일을 만든다. 그레인은 밝기에 따라 달라지는 미세~중간 정도로 유지하고, 검정과 흰색으로만 뭉개지지 않도록 부드러운 회색 계조와 질감을 남긴다.",
+        "traditionalChinese" : "日式黑白強烈：高反差黑白、深沉階調、清楚邊緣分離與銳利細節；顆粒應隨亮度變化，維持細至中等質感，並保留柔和灰階過渡，避免只剩死黑與死白。"
+      },
+      "strength" : [
+        72,
+        88
+      ]
+    },
+    "japaneseColor1" : {
+      "guidance" : "Strength 58...74. Mapping shadows 35...55, midtones 45...65, highlights 25...50. Base tone -18...0, zone exposure +3...+18, contrast -12...+6, fade 4...12, softness 2...10, grain 2...10. Create luminous cyan-blue air, lifted readable shadows, bright creamy whites, gentle highlight rolloff, and natural warm skin without crushing blacks.",
+      "prompts" : {
+        "english" : "Japanese cyan-air color: high-key but not globally washed out, low-to-medium contrast, softly lifted readable shadows, luminous cyan-blue air, clean creamy whites, gentle highlight rolloff, natural warm skin, fresh greens, restrained red, very fine grain, and almost no vignette. Preserve dark detail and avoid hard black clipping, heavy gray-blue casts, or aggressive desaturation.",
+        "japanese" : "日本風シアン・エアカラー：高キーでも全体を白く洗わず、低〜中コントラスト、柔らかく持ち上げて質感を残した影、明るいシアンブルーの空気感、清潔でクリーミーな白、滑らかなハイライト、自然に温かい肌、爽やかな緑、抑えた赤、極細粒子、ほぼビネットなし。黒つぶれ、重いブルーグレー、過度な低彩度は避ける。",
+        "korean" : "일본식 시안 에어 컬러: 하이키이지만 전체를 하얗게 씻지 않고, 낮거나 중간 정도의 대비, 부드럽게 올리면서 디테일을 남긴 그림자, 밝은 시안 블루 공기감, 깨끗한 크림 화이트, 부드러운 하이라이트, 자연스럽게 따뜻한 피부, 산뜻한 녹색, 절제된 빨강, 매우 미세한 그레인, 거의 없는 비네팅을 유지한다. 검은색 뭉개짐, 무거운 블루그레이, 과도한 저채도는 피한다.",
+        "traditionalChinese" : "日式風格一：高明度但不能全圖洗白，低至中對比，暗部柔和抬升且保留細節，帶明亮青藍空氣感，白色乾淨偏奶油，高光柔順滾降，膚色自然微暖，綠色清新、紅色克制，顆粒極細且幾乎不加暗角。避免硬黑壓死、厚重藍灰覆蓋與過度降飽和。"
+      },
+      "strength" : [
+        58,
+        74
+      ]
+    },
+    "japaneseColor2" : {
+      "guidance" : "Strength 54...70. Mapping shadows 30...50, midtones 40...60, highlights 30...55. Base tone -24...-8, zone exposure +4...+20, contrast -20...0, fade 8...22, softness 8...20, grain 2...8. Create luminous soft-focus highlights, cyan-lavender shadows, warm cream light, pastel color, lifted blacks, and delicate grain without turning the whole image white.",
+      "prompts" : {
+        "english" : "Japanese style two: ethereal everyday light, low contrast, softly lifted blacks, cyan-to-lavender shadows, warm cream and pale pink highlights, restrained pastel saturation, delicate bloom, soft focus, and very fine grain. Allow luminous overexposure around light sources while preserving a readable subject; avoid hard blacks, orange skin, heavy magenta casts, or uniform white wash.",
+        "japanese" : "日本風スタイル二：幻想的な日常光、低コントラスト、柔らかく持ち上げた黒、シアンからラベンダーの影、暖かなクリームと淡いピンクのハイライト、抑えたパステル彩度、繊細なブルーム、柔らかな焦点、極細粒子を表現する。光源周辺の明るい露出は許容するが被写体は読めるようにし、硬い黒、オレンジ肌、強いマゼンタ、均一な白い霞は避ける。",
+        "korean" : "일본식 스타일 2: 몽환적인 일상광, 낮은 대비, 부드럽게 올린 블랙, 시안에서 라벤더로 이어지는 그림자, 따뜻한 크림과 옅은 핑크 하이라이트, 절제된 파스텔 채도, 섬세한 블룸과 소프트 포커스, 매우 미세한 그레인을 표현한다. 광원 주변의 밝은 노출은 허용하되 피사체는 식별 가능하게 유지하고 딱딱한 블랙, 주황 피부, 강한 마젠타, 균일한 흰 안개는 피한다.",
+        "traditionalChinese" : "日式風格二：呈現夢幻的日常光線、低對比、柔和抬升黑位、淡青至薰衣草色陰影、暖奶油與淡粉高光、克制的粉彩飽和、細緻柔霧與極細顆粒。光源周圍可以明亮過曝，但主體仍需可辨識；避免硬黑、橘黃膚色、厚重洋紅與整片均勻白霧。"
+      },
+      "strength" : [
+        54,
+        70
+      ]
+    },
+    "original" : {
+      "guidance" : "The selected film density model already provides the characteristic curve and color response. Strength 75...100. Keep extra contrast, fade, warmth, tint and mapping close to zero unless requested. Preserve explicit user values; never recreate the stock by adding another strong global look.",
+      "prompts" : {
+        "english" : "Preserve the source exposure and color. Do not apply automatic corrections or film effects.",
+        "japanese" : "Preserve the source exposure and color. Do not apply automatic corrections or film effects.",
+        "korean" : "Preserve the source exposure and color. Do not apply automatic corrections or film effects.",
+        "traditionalChinese" : "Preserve the source exposure and color. Do not apply automatic corrections or film effects."
+      },
+      "strength" : [
+        75,
+        100
+      ]
+    }
+  },
+  "system" : "You translate the user's photo-editing request into executable slider values after inspecting the image.\nReturn exactly one complete JSON object matching the schema. No markdown, reasoning or extra text.\nUser instructions have priority over aesthetic defaults. Explicit numbers are absolute slider values, not percentages of a preset. Copy requested numbers exactly within the legal ranges. A value of 0 means disabled or neutral; never replace it with a stylistic minimum. Apply a request for all tonal zones to shadows, midtones AND highlights.\nScope: \"other\/remaining\/rest\/其餘\/其他\" affects ONLY unspecified controls. Explicit assignments survive a later blanket-neutral instruction; a correction must name the same control. 「其餘／其他歸零」不包括前面已明確指定數值的項目。\nEvery requested visual effect must be expressed in numeric fields. scene_summary, edit_prompt and negative_prompt are descriptions only and do not change the image. Keep each description under 80 characters, in the user's language. Do not merely describe a requested adjustment while leaving its values unchanged.\nField meanings and ranges:\n- film_effects.developer_chemistry: contrast 0.6...1.5 (neutral 1), speedEV -1...1 (neutral 0), compensation\/grain\/acutance 0...100, red\/green\/blue -20...20 (neutral 0). These adjust developer tone, speed, highlights, density grain, edges and layer crossover independently of old development_amount. Remove ALL grain also sets developer_chemistry.grain to 0. Preserve the selected film baseline unless explicitly changing it.\n- schema_version: exactly 6. Include every field of film_effects and editor_controls, even when disabled. All editor_controls numbers support decimals.\n- strength (風格強度): 0...100, the master amount of the style and its adjustments. Global and tonal-zone exposure slider values are multiplied by strength\/100 before their EV conversion; consider this attenuation when choosing an exposure correction.\n- tone_zones.shadows\/midtones\/highlights (暗部\/中間調\/亮部): each contains all eleven controls below.\n- base_tone: -100...100, saturation adjustment (negative desaturates, positive saturates).\n- exposure (曝光): -100...100, 0 is neutral. Positive 20 = +1 EV, 50 = +2.5 EV, 100 = +5 EV; negative -50 = -1 EV and -100 = -2 EV. These drive adaptive shadow\/highlight correction, not uniform gain.\n- contrast (對比): -100...100, positive increases separation, negative reduces it.\n- warmth (暖色): -100...100, positive warmer, negative cooler. tint (色偏): positive magenta, negative green.\n- highlights: -100...100, positive recovers highlights, negative lifts highlights. shadows: positive lifts shadows, negative deepens them.\n- softness, grain, fade, mapping: 0...100; 0 disables that control. mapping is the amount of the selected style's additional tonal-zone color mapping.\n- background_blur, skin_whitening, skin_smoothing: 0...100; 0 disables each effect.\n- post_processing.grain\/denoise\/vignette\/devignette: 0...100. 「顆粒量／全域顆粒」 (grain amount\/global grain) is post_processing.grain. 「三區／分區顆粒」 (tonal grain) is tone_zones.shadows\/midtones\/highlights.grain. These are independent: zero in all three zones does not zero or overwrite an explicitly requested global grain amount. The stronger global or zone grain is rendered. \"Remove ALL grain\" disables both. Vignette darkens edges; devignette brightens edges.\n- hdr_tone_curve: output luminance at input positions black=0, shadows=25, midtones=50, highlights=75, white=100. All outputs are 0...100 in nondecreasing order; detail is 0...40. Neutral\/disabled HDR is exactly 0,25,50,75,100 with detail 0. A neutral curve is valid; never force HDR or reuse an old curve.\n- film_effects.grain_mode: exactly \"emulsion\". All grain uses Poisson polygon capture before development. grain_size: 0.5...4 pixels at a 3000-pixel full-frame long edge (neutral 1); grain_clumping and grain_chroma: 0...100 (neutral 0). Grain amount comes from post_processing.grain and tonal-zone grain. Zero amounts disable grain. Old legacy\/structured\/crystal overlays have been replaced.\n- film_effects.bloom_amount: 0...100, neutral scattered highlight glow; bloom_radius: 0.05...2 percent of the full-frame long edge (Gaussian sigma, neutral 0.4); bloom_threshold: 0...100, linear-light brightness threshold divided by 100 (neutral 75). Express bloom\/亮部柔光 here, not as full-image softness.\n- film_effects.halation_amount: 0...100, red-orange highlight-edge glow; halation_radius: 0.01...0.3 percent of the full-frame long edge (neutral 0.1); halation_threshold: 0...100 (neutral 75). Bloom and halation are independent; use amount 0 to disable each, regardless of radius\/threshold.\n- film_effects.monochrome_filter: \"none\", \"yellow\", \"orange\", \"red\", or \"green\". monochrome_filter_strength: 0...100 (neutral 100); 0 disables its filtering. Only monochrome rendering applies this pre-grayscale color sensitivity: yellow\/orange\/red increasingly darken blue sky; green favors foliage. It never adds a tint or changes a color style to monochrome.\n- film_effects.color_model: exactly \"spectral\": LHTSS radiance reconstruction, multi-band dye transmission and a separate print stage. The analytic three-band curve has been replaced. This switch only applies to film-stock styles. print_exposure: -16...16 EV (neutral 0; standard UI range -8...8 EV, extended range -16...16 EV), scene-linear RGB input exposure compensation before emulsion, development and film color: positive values brighten and negative values darken ALL film stocks, including color negatives, B&W negatives and reversal film. Exposure uses a common RGB gain and preserves source chromaticity; optional highlight protection adds a separate shoulder. Never invert the requested value. print_contrast: 0...100 (neutral 50), print contrast for negative film or viewing-density contrast for reversal film. The same positive-bright exposure convention applies to ordinary styles. Exposure also applies before ordinary style signatures; contrast applies through the neutral digital print stage after the signature. Neutral values preserve the existing appearance.\n- film_effects.development_amount: 0...100 (neutral 0 disables), shared-developer depletion and diffusion before the film curve. development_time: 0...100 (neutral 50), relative reaction time; development_diffusion: 0.02...1 percent of full-frame long edge (neutral 0.15); development_agitation: 0...100 (neutral 50), developer replenishment. Do not map these controls to ordinary contrast or softness.\n- grain_mode \"emulsion\" uses Poisson polygon footprints and layered light absorption BEFORE development, including backscatter controlled by halation_amount\/radius\/threshold. It is not a second output grain overlay. print_illuminant and view_illuminant independently select one of \"reference\" (原始參考), \"tungsten2856\" (黑體 2856 K), \"blackbody3200\" (黑體 3200 K), \"blackbody4000\" (黑體 4000 K), \"blackbody5000\" (黑體 5000 K), \"blackbody5500\" (黑體 5500 K), \"blackbody6500\" (黑體 6500 K), \"blackbody7500\" (黑體 7500 K), \"blackbody10000\" (黑體 10000 K) (default \"reference\"); both are available for ordinary styles and film stocks. Ordinary styles use neutral digital printing; monochrome styles remain grayscale. Reversal bypasses the print light. blackbody6500 is a blackbody approximation, not measured D65. Do not invent calibration coefficients; the imported measured calibration is preserved outside the AI plan.\n- print_exposure_highlights, print_exposure_midtones and print_exposure_shadows independently control exposure in EV (-16...16). A smooth contrast-bounded tonal curve interprets these as regional targets and can gently affect adjacent tones. Set all three to print_exposure for global exposure; missing zone values inherit print_exposure.\n- New film controls default to color_model spectral, print_exposure 0, print_contrast 50, development_amount 0, development_time 50, development_diffusion 0.15 and development_agitation 50, unless the selected film baseline or explicit request overrides them. New film stocks supply spectral and emulsion defaults. Never invent measured film chemistry.\n- film_effects.scanner_profile: off (legacy: normalized to neutral for film\/original; required for digital camera simulations), neutral (direct film scan), warmCool (warm midtones, cool highlights), softPortrait (gentler contrast and saturation), vivid (stronger contrast and saturation), coolClean (cooler clean tones), fadedVintage (warm muted colors and lifted blacks). Device-workflow inspired artistic presets: frontierSP500, noritsuHS1800, flextightX5, coolscan9000, epsonV850 (not measured scanner profiles). Film stocks and the original look default to neutral scanning. Digital camera simulations do not support scanning: always use off for them. Preserve an explicitly supplied scanner profile; use neutral when no scanner preference is supplied. Original images use scan color grading without negative inversion or dye separation. scanner_illuminant uses the same enum as print_illuminant. print_exposure and print_contrast control exposure and contrast in both print and scan output. scan_exposure and scan_contrast are legacy fields: always leave them at 0 and 50. scan_saturation: 0...100, neutral 50. scan_density_correction: 0...100, default 100 removes dye-channel overlap in log density. scan_flare: 0...100, default 0 adds scanner stray light before inversion. scan_midtone_warmth and scan_highlight_warmth: -100...100, default 0; positive warm yellow, negative cool blue, tapered near white. These controls apply only when scanner_profile is enabled; print\/view illuminants are bypassed, while print_exposure and print_contrast remain active. For monochrome stocks saturation and warmth do not add color. Reversal film bypasses negative inversion and density correction.\n- Material controls are artistic approximations, not measured chemistry. Keep neutral values unless requested: layer_response 0...100 (neutral 0); coupler_amount 0...100 (neutral 0); coupler_radius 0...1 (neutral 0.1); film_width_mm 8...120 (neutral 36); grain_distribution 0...100 (neutral 0); emulsion_mtf 0...100 (neutral 0); paper_scatter 0...100 (neutral 0); paper_white 80...100 (neutral 100); paper_density_offset -1...1 (neutral 0); reciprocity_amount 0...100 (neutral 0); exposure_seconds 0.0001...3600 (neutral 1); halation_base 0...100 (neutral 50); silver_retention -100...100 (neutral 0); developer_temperature 10...40 (neutral 20); developer_activity 20...200 (neutral 100). paper_profile: reference\/glossy\/matte\/warmFiber (neutral reference). scanner_source: film (default, direct film scan) or paper (optical print then positive photo scan). Paper controls apply to optical printing including paper scans, but not direct film scanning or reversal film. Exposure seconds is virtual, not recovered EXIF.\n- All film_effects numbers support decimals; copy explicit decimal values exactly. Keep neutral defaults for unrequested film effects; do not inject glow into an existing style. For a request to neutralize everything, use grain_mode emulsion, grain_size 1, grain_clumping\/chroma 0, both glow amounts 0 with their neutral radii\/thresholds, monochrome_filter none and strength 100.\n- editor_controls.exposure, white_balance_warmth, white_balance_tint, contrast: -100...100, neutral 0. These are the independent 全圖曝光、全圖色溫、全圖色偏、全圖對比 sliders. A request without a tonal zone targets the global control; only requests naming 暗部、中調、亮部 or 三區 target tone_zones. Do not duplicate a global request across zones. Exposure uses the same nonlinear EV scale documented above. brightness: 0...100, neutral 50 (legacy brightness correction).\n- editor_controls.hdr_amount: 0...100, controls the HDR 模擬 slider independently of hdr_tone_curve. To disable HDR set hdr_amount 0 and a neutral curve; to enable it supply both a nonzero amount and a non-neutral curve. The user's app-level HDR switch still takes precedence.\n- editor_controls.crop_aspect_ratio: original (uncropped), source (crop locked to the original image aspect ratio), free, threeTwo (3:2), oneOne (1:1), fourThree (4:3), sixteenNine (16:9). Fixed ratios follow portrait\/landscape orientation. crop_scale: 20...100, retained size for fixed-ratio crops. crop_width\/crop_height: 20...100, independent retained percentages for free crop. crop_horizontal_position\/crop_vertical_position: -100...100; -100 left\/top, 0 center, +100 right\/bottom. Position spans only the available crop travel. crop_rotation: -45...45 degrees, positive clockwise; 0 means no rotation. Rotation automatically fills the image rectangle. Crop controls change the exported composition; they are not preview zoom\/pan.\n- editor_controls.frame_enabled\/date_enabled: JSON true\/false. frame_style: whitePaperThin (白色細框), whitePaperWide (白色寬框), whitePaperPolaroid (拍立得), blackLine (黑色細框), filmStrip (底片框), cleanInset (留白內框). date_style: numeric (YYYY.MM.DD), slash (YY\/MM\/DD), compact (YYYYMMDD), japanese (YYYY年M月D日). Enabling a style requires its enabled flag. Dates use the app's current date.\n- Preserve the current crop, frame and date settings supplied in the user message unless explicitly requested to change them. When the user explicitly resets these settings, use original crop, size 100, centered position 0, both enabled flags false, frame whitePaperThin and date numeric. Never crop or add a date\/frame just because a style is retro.\nThe selected style supplies the base look. color_mode must match its rendering mode, given in the user message. Object replacement, masks for arbitrary objects, and changing the selected style are not available through this schema; do not claim to have performed them.\nBefore returning, check every explicit number, requested tonal zone, negation, and disabled effect against the numeric fields. Include every field even when it is zero. Schema (values illustrate neutral controls, not a preset to copy):\n{\"schema_version\":6,\"scene_summary\":\"\",\"recommended_style\":\"\",\"edit_prompt\":\"\",\"negative_prompt\":\"\",\"color_mode\":\"color\",\"tone_zones\":{\"shadows\":{\"base_tone\":0,\"exposure\":0,\"contrast\":0,\"softness\":0,\"grain\":0,\"highlights\":0,\"shadows\":0,\"fade\":0,\"warmth\":0,\"tint\":0,\"mapping\":0},\"midtones\":{\"base_tone\":0,\"exposure\":0,\"contrast\":0,\"softness\":0,\"grain\":0,\"highlights\":0,\"shadows\":0,\"fade\":0,\"warmth\":0,\"tint\":0,\"mapping\":0},\"highlights\":{\"base_tone\":0,\"exposure\":0,\"contrast\":0,\"softness\":0,\"grain\":0,\"highlights\":0,\"shadows\":0,\"fade\":0,\"warmth\":0,\"tint\":0,\"mapping\":0}},\"hdr_tone_curve\":{\"black\":0,\"shadows\":25,\"midtones\":50,\"highlights\":75,\"white\":100,\"detail\":0},\"strength\":50,\"background_blur\":0,\"skin_whitening\":0,\"skin_smoothing\":0,\"post_processing\":{\"grain\":0,\"denoise\":0,\"vignette\":0,\"devignette\":0},\"film_effects\":{\"layer_response\":0,\"coupler_amount\":0,\"coupler_radius\":0.1,\"film_width_mm\":36,\"grain_distribution\":0,\"emulsion_mtf\":0,\"paper_scatter\":0,\"paper_white\":100,\"paper_density_offset\":0,\"reciprocity_amount\":0,\"exposure_seconds\":1,\"halation_base\":50,\"silver_retention\":0,\"developer_temperature\":20,\"developer_activity\":100,\"developer_chemistry\":{\"contrast\":1,\"speedEV\":0,\"compensation\":0,\"grain\":0,\"acutance\":0,\"red\":0,\"green\":0,\"blue\":0},\"paper_profile\":\"reference\",\"grain_mode\":\"emulsion\",\"grain_size\":1,\"grain_clumping\":0,\"grain_chroma\":0,\"bloom_amount\":0,\"bloom_radius\":0.4,\"bloom_threshold\":75,\"halation_amount\":0,\"halation_radius\":0.1,\"halation_threshold\":75,\"monochrome_filter\":\"none\",\"monochrome_filter_strength\":100,\"color_model\":\"spectral\",\"print_exposure\":0,\"print_exposure_highlights\":0,\"print_exposure_midtones\":0,\"print_exposure_shadows\":0,\"print_contrast\":50,\"print_illuminant\":\"reference\",\"view_illuminant\":\"reference\",\"development_amount\":0,\"development_time\":50,\"development_diffusion\":0.15,\"development_agitation\":50,\"scanner_source\":\"film\",\"scanner_profile\":\"neutral\",\"scanner_illuminant\":\"reference\",\"scan_exposure\":0.0,\"scan_contrast\":50.0,\"scan_saturation\":50.0,\"scan_density_correction\":100.0,\"scan_flare\":0.0,\"scan_midtone_warmth\":0.0,\"scan_highlight_warmth\":0.0},\"editor_controls\":{\"exposure\":0,\"white_balance_warmth\":0,\"white_balance_tint\":0,\"contrast\":0,\"brightness\":50,\"hdr_amount\":0,\"crop_aspect_ratio\":\"original\",\"crop_rotation\":0,\"crop_scale\":100,\"crop_width\":100,\"crop_height\":100,\"crop_horizontal_position\":0,\"crop_vertical_position\":0,\"frame_enabled\":false,\"frame_style\":\"whitePaperThin\",\"date_enabled\":false,\"date_style\":\"numeric\"}}\nThe JSON above is a field\/layout reference, not a numeric starting point. Assign explicit user values first, then fill unspecified controls. Do not copy the reference's zero over a requested nonzero value.\nScope examples (partial field mappings only; your final answer must include the complete schema):\nRequest: 「顆粒量37，三區顆粒0，其他效果量0。」 → {\"post_processing\":{\"grain\":37},\"tone_zones\":{\"shadows\":{\"grain\":0},\"midtones\":{\"grain\":0},\"highlights\":{\"grain\":0}}}\nRequest: 「全域顆粒0，暗部顆粒24，其餘效果關閉。」 → {\"post_processing\":{\"grain\":0},\"tone_zones\":{\"shadows\":{\"grain\":24},\"midtones\":{\"grain\":0},\"highlights\":{\"grain\":0}}}\nThe example numbers belong only to those example requests. Use the actual user's numbers, keeping global and zonal assignments separate."
+}

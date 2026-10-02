@@ -31,7 +31,7 @@ Surface Pipeline::unary(unsigned op, Surface src, const std::vector<float> &p, c
     context.dispatch(op, src, src, src, out, out, p, table, 0, tag);
     return out;
 }
-Surface Pipeline::gaussian(Surface src, double sigma, const std::string &tag) {
+Surface Pipeline::gaussian(Surface src, double sigma, const std::string &tag, bool clamp_edges) {
     if (!(sigma > 0))
         return src;
     if (!std::isfinite(sigma) || sigma > 10000)
@@ -47,12 +47,13 @@ Surface Pipeline::gaussian(Surface src, double sigma, const std::string &tag) {
     for (auto value : weights)
         p.push_back(float(value / total));
     auto scratch = context.create(src.width, src.height);
-    context.dispatch(3, src, src, src, scratch, scratch, p, table, 0, tag + "-x");
-    // 第二軸讀獨立 scratch，沿用來源配置作為輸出，不覆寫尚需取樣的像素。
-    context.dispatch(3, scratch, scratch, scratch, src, src, p, table, 1, tag + "-y");
-    return src;
+    context.dispatch(clamp_edges ? 3 : 45, src, src, src, scratch, scratch, p, table, 0, tag + "-x");
+    // Surface 可能被同一張運算圖的多個分支持有；不得覆寫其他分支仍需使用的來源。
+    auto output = context.create(src.width, src.height);
+    context.dispatch(clamp_edges ? 3 : 45, scratch, scratch, scratch, output, output, p, table, 1, tag + "-y");
+    return output;
 }
-Surface Pipeline::resize(Surface src, double scale) {
+Surface Pipeline::resize(Surface src, double scale, bool clamp_edges) {
     if (scale >= 1)
         return src;
     if (!(scale > 0))
@@ -62,7 +63,7 @@ Surface Pipeline::resize(Surface src, double scale) {
     // CILanczosScaleTransform 大幅縮小會分段減半，再做最後一次 Lanczos。
     // 保留原始目標範圍，避免奇數尺寸的中途進位改變最終高度／寬度。
     while (scale < .5) {
-        src = resize(std::move(src), .5);
+        src = resize(std::move(src), .5, clamp_edges);
         scale *= 2;
     }
     auto height = src.height;
@@ -93,7 +94,7 @@ Surface Pipeline::resize(Surface src, double scale) {
             }
             params[base + 1] = float(total);
         }
-        context.dispatch(4, src, src, src, out, out, params, table, axis, "lanczos");
+        context.dispatch(clamp_edges ? 34 : 4, src, src, src, out, out, params, table, axis, "lanczos");
         src = std::move(out);
     }
     return src;

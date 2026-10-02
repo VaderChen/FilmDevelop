@@ -30,11 +30,11 @@ if(PHOTOCORE_VULKAN_FILM OR PHOTOCORE_VULKAN_APP)
   add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/film.comp.spv"
     COMMAND "${PHOTOCORE_GLSLANG}" -V --target-env vulkan1.1
       "${CMAKE_CURRENT_SOURCE_DIR}/vulkan/film.comp" -o "${CMAKE_CURRENT_BINARY_DIR}/film.comp.spv"
-    DEPENDS vulkan/film.comp VERBATIM)
+    DEPENDS vulkan/film.comp vulkan/optics.glsl vulkan/digital.glsl vulkan/camera.glsl vulkan/skin.glsl VERBATIM)
   # 共用產物只有一個生成目標，避免平行建置兩個執行檔時同時覆寫 shader／解析器。
   add_custom_target(photo_core_vulkan_generated DEPENDS
     "${CMAKE_CURRENT_BINARY_DIR}/film.comp.spv" "${CMAKE_CURRENT_BINARY_DIR}/vulkan-recipe.cpp")
-  add_executable(photo_core_vulkan_film vulkan/main.cpp vulkan/runtime.cpp vulkan/pipeline.cpp
+  add_executable(photo_core_vulkan_film vulkan/main.cpp vulkan/runtime.cpp vulkan/pipeline.cpp vulkan/optics.cpp vulkan/digital.cpp
     src/film_data.cpp "${CMAKE_CURRENT_BINARY_DIR}/vulkan-recipe.cpp")
   target_include_directories(photo_core_vulkan_film PRIVATE src vulkan)
   target_include_directories(photo_core_vulkan_film SYSTEM PRIVATE third_party)
@@ -43,7 +43,7 @@ if(PHOTOCORE_VULKAN_FILM OR PHOTOCORE_VULKAN_APP)
   add_test(NAME vulkan_film_help COMMAND photo_core_vulkan_film --help)
   add_test(NAME vulkan_film_cli_smoke COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/film_cli_smoke.py"
     $<TARGET_FILE:photo_core_vulkan_film>)
-  add_executable(photo_core_vulkan_verify vulkan/verify.cpp vulkan/runtime.cpp vulkan/pipeline.cpp
+  add_executable(photo_core_vulkan_verify vulkan/verify.cpp vulkan/runtime.cpp vulkan/pipeline.cpp vulkan/optics.cpp vulkan/digital.cpp
     src/film_data.cpp "${CMAKE_CURRENT_BINARY_DIR}/vulkan-recipe.cpp")
   target_include_directories(photo_core_vulkan_verify PRIVATE src vulkan)
   target_include_directories(photo_core_vulkan_verify SYSTEM PRIVATE third_party)
@@ -57,7 +57,7 @@ if(PHOTOCORE_VULKAN_FILM OR PHOTOCORE_VULKAN_APP)
   add_test(NAME vulkan_resource_lifetime COMMAND photo_core_vulkan_lifetime
     "${CMAKE_CURRENT_BINARY_DIR}/film.comp.spv")
   add_executable(photo_core_vulkan_stage_benchmark vulkan/stage_benchmark.cpp vulkan/runtime.cpp
-    vulkan/pipeline.cpp src/film_data.cpp "${CMAKE_CURRENT_BINARY_DIR}/vulkan-recipe.cpp")
+    vulkan/pipeline.cpp vulkan/optics.cpp vulkan/digital.cpp src/film_data.cpp "${CMAKE_CURRENT_BINARY_DIR}/vulkan-recipe.cpp")
   target_include_directories(photo_core_vulkan_stage_benchmark PRIVATE src vulkan)
   target_include_directories(photo_core_vulkan_stage_benchmark SYSTEM PRIVATE third_party)
   target_link_libraries(photo_core_vulkan_stage_benchmark PRIVATE photocore_film Vulkan::Vulkan)
@@ -94,7 +94,7 @@ if(Python3_Interpreter_FOUND AND NOT CMAKE_CROSSCOMPILING)
 endif()
 
 add_library(photocore_film src/film.cpp src/film_data.cpp src/film_image.cpp
-  src/film_development.cpp src/film_spectral.cpp src/film_scanner.cpp)
+  src/film_development.cpp src/film_spectral.cpp src/film_scanner.cpp src/film_optics.cpp src/film_digital.cpp)
 target_link_libraries(photocore_film PUBLIC photocore)
 target_include_directories(photocore_film SYSTEM PRIVATE third_party)
 add_executable(photo_core_film src/film_main.cpp)
@@ -144,7 +144,7 @@ endif()
 if(PHOTOCORE_VULKAN_APP)
   set_target_properties(photocore PROPERTIES POSITION_INDEPENDENT_CODE ON)
   add_library(PhotoCompute SHARED ../../Vendor/PhotoCompute/src/PhotoCompute.cpp
-    vulkan/runtime.cpp vulkan/pipeline.cpp src/film_data.cpp "${CMAKE_CURRENT_BINARY_DIR}/vulkan-recipe.cpp")
+    vulkan/runtime.cpp vulkan/pipeline.cpp vulkan/optics.cpp vulkan/digital.cpp src/film_data.cpp "${CMAKE_CURRENT_BINARY_DIR}/vulkan-recipe.cpp")
   target_include_directories(PhotoCompute PRIVATE src vulkan)
   target_include_directories(PhotoCompute SYSTEM PRIVATE third_party ${Vulkan_INCLUDE_DIRS})
   target_link_libraries(PhotoCompute PRIVATE photocore)
@@ -160,6 +160,21 @@ if(PHOTOCORE_VULKAN_APP)
   target_include_directories(photo_compute_plan_verify PRIVATE ../../Vendor/PhotoCompute/src)
   target_include_directories(photo_compute_plan_verify SYSTEM PRIVATE third_party)
   target_link_libraries(photo_compute_plan_verify PRIVATE PhotoCompute)
+  add_executable(photo_compute_semantics_verify verification/app_semantics.cpp)
+  target_include_directories(photo_compute_semantics_verify PRIVATE src ../../engine/cpp ../../Vendor/PhotoCompute/src)
+  target_include_directories(photo_compute_semantics_verify SYSTEM PRIVATE third_party)
+  target_link_libraries(photo_compute_semantics_verify PRIVATE PhotoCompute photocore_film)
+  add_test(NAME app_semantics COMMAND photo_compute_semantics_verify "${CMAKE_CURRENT_BINARY_DIR}/film-data" "${CMAKE_CURRENT_BINARY_DIR}/film.comp.spv" "${CMAKE_CURRENT_SOURCE_DIR}/../../desktop/internal/recipes/catalog.json")
+  add_executable(photo_compute_styles_verify verification/app_styles.cpp)
+  target_include_directories(photo_compute_styles_verify PRIVATE src ../../engine/cpp ../../Vendor/PhotoCompute/src)
+  target_include_directories(photo_compute_styles_verify SYSTEM PRIVATE third_party)
+  target_link_libraries(photo_compute_styles_verify PRIVATE PhotoCompute photocore_film)
+  add_executable(photo_compute_optics_verify verification/app_optics.cpp)
+  target_include_directories(photo_compute_optics_verify PRIVATE src ../../Vendor/PhotoCompute/src)
+  target_include_directories(photo_compute_optics_verify SYSTEM PRIVATE third_party)
+  target_link_libraries(photo_compute_optics_verify PRIVATE PhotoCompute photocore_film)
+  add_test(NAME app_film_optics COMMAND photo_compute_optics_verify
+    "${CMAKE_CURRENT_SOURCE_DIR}/data" "${CMAKE_CURRENT_BINARY_DIR}/film.comp.spv")
   add_test(NAME app_resident_compute_plan COMMAND photo_compute_plan_verify
     "${CMAKE_CURRENT_SOURCE_DIR}/data" "${CMAKE_CURRENT_BINARY_DIR}/film.comp.spv")
 endif()

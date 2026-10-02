@@ -407,7 +407,8 @@ input:focus-visible {
   box-shadow: inset 0 0 70px rgba(0, 0, 0, 0.18);
 }
 
-.preview-image {
+.preview-image,
+.crop-held-image {
   position: absolute;
   left: 24px;
   top: 24px;
@@ -420,6 +421,22 @@ input:focus-visible {
   user-select: none;
   -webkit-user-drag: none;
   pointer-events: none;
+}
+
+.crop-preview-hold {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  overflow: hidden;
+  background: var(--canvas);
+  pointer-events: none;
+}
+
+.crop-preview-hold-content {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-origin: center;
 }
 
 .crop-source-image {

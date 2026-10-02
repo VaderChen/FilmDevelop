@@ -151,6 +151,9 @@ actor PhotoRepairService {
             try Task.checkCancellation()
             let target = package.appendingPathComponent(name)
             if Self.matchesDigest(target, digest) { completed += size; downloadProgress(.init(received: completed, total: total)); continue }
+            #if FILMDEVELOP_GO_HOST
+            throw PhotoRepairError.invalidModel
+            #else
             progress("首次使用：正在下載修復模型（約 217 MB）…")
             let url = URL(string: "https://huggingface.co/mlboydaisuke/LaMa-CoreML/resolve/\(Self.revision)/LaMa.mlpackage/\(name)")!
             let previous = completed
@@ -166,6 +169,7 @@ actor PhotoRepairService {
             try FileManager.default.moveItem(at: temporary, to: target)
             completed += size
             downloadProgress(.init(received: completed, total: total))
+            #endif
         }
         progress("正在準備本機修復工具…")
         downloadProgress(.init(received: total, total: total, preparing: true))
@@ -190,6 +194,7 @@ actor PhotoRepairService {
     }
 }
 
+#if !FILMDEVELOP_GO_HOST
 // 使用 session delegate 回報實際下載位元組，取消時同步結束傳輸。
 final class PhotoRepairTransfer: NSObject, URLSessionDownloadDelegate, @unchecked Sendable {
     private let lock = NSLock()
@@ -269,3 +274,5 @@ final class PhotoRepairTransfer: NSObject, URLSessionDownloadDelegate, @unchecke
         downloadSession?.finishTasksAndInvalidate()
     }
 }
+
+#endif

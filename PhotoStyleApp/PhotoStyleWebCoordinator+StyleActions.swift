@@ -275,7 +275,7 @@ extension PhotoStyleWebCoordinator {
             ? (customFilmBaseAdjustment ?? .default(for: style)) : adjustmentStore.adjustment(for: style)
         let hasAvailableAI = aiModelStore.status.ready && !aiModelStore.isBusy
         if !hasAvailableAI || style == .original {
-            return StyleAdjustmentStore.defaultAdjustment(for: style, previous: previous, preservingCropFrom: currentAdjustment)
+            return LegacyStyleAdjustmentStore.defaultAdjustment(for: style, previous: previous, preservingCropFrom: currentAdjustment)
         }
         let currentExposure = currentAdjustment.exposure
         var nextAdjustment = previous

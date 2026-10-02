@@ -36,8 +36,9 @@ extension PhotoBackendRouter {
     static func decodeRAW(data: Data, url: URL, backend: PhotoRAWBackend, lensCorrection: Bool) -> PhotoImage? {
         let request = PhotoRAWDecodeRequest(data: data, url: url, lensCorrection: lensCorrection)
         if let result = raw(backend).decode(request) { return result }
-        guard backend == .software, var fallback = raw(.system).decode(request) else { return nil }
-        fallback.softwareRAWFallback = true
+        let alternative: PhotoRAWBackend = backend == .system ? .software : .system
+        guard var fallback = raw(alternative).decode(request) else { return nil }
+        fallback.softwareRAWFallback = backend == .software
         return fallback
     }
     static func decode(data: Data, url: URL, backend: PhotoRAWBackend, lensCorrection: Bool) -> PhotoImage? {
@@ -48,16 +49,18 @@ extension PhotoBackendRouter {
 /// 格式辨識、既有系統解碼及相容性處理集中於影像輸入層，不依賴 UI coordinator。
 enum PhotoImageDecoder {
     private static let imageDecodeContext = PhotoImageRenderPrecision.makeContext()
+    // UTI 登錄受系統版本及其他 App 影響，已知 RAW 副檔名仍須走感光資料解碼。
+    private static let rawExtensions = Set("3fr arw cr2 cr3 crw dng erf fff iiq kdc mef mos mrw nef nrw orf pef raf raw rw2 rwl sr2 srf srw x3f".split(separator: " ").map(String.init))
     static func decode(data: Data, url: URL, backend: PhotoRAWBackend, lensCorrection: Bool) -> PhotoImage? {
         let correctLens = lensCorrection
         let selectedBackend = backend
+        let isRAWFile = rawExtensions.contains(url.pathExtension.lowercased())
+            || UTType(filenameExtension: url.pathExtension)?.conforms(to: .rawImage) == true
         if let source = CGImageSourceCreateWithData(data as CFData, nil) {
             // Nikon NEF can be reported as public.tiff with a tiny embedded JPEG
             // at index zero. Decode camera RAW before accepting that raster image.
-            let isRAWFile = UTType(filenameExtension: url.pathExtension)?.conforms(to: .rawImage) == true
             if sourceContainsRAWData(source) || isRAWFile {
-                let image = PhotoBackendRouter.decodeRAW(data: data, url: url, backend: selectedBackend, lensCorrection: correctLens)
-                if image != nil || selectedBackend == .software { return image }
+                return PhotoBackendRouter.decodeRAW(data: data, url: url, backend: selectedBackend, lensCorrection: correctLens)
             }
             if let image = decodeImageSource(source) {
                 return image
@@ -65,7 +68,7 @@ enum PhotoImageDecoder {
         }
 
         if let image = PhotoBackendRouter.decodeRAW(data: data, url: url, backend: selectedBackend, lensCorrection: correctLens) { return image }
-        if selectedBackend == .software && UTType(filenameExtension: url.pathExtension)?.conforms(to: .rawImage) == true { return nil }
+        if isRAWFile { return nil }
 
         if let image = PhotoImage(data: data) {
             return image
@@ -141,9 +144,8 @@ enum PhotoImageDecoder {
         if Self.rawBitmapIsCollapsed(decoded),
            let bitmap = PhotoRAWThumbnail.make(from: data, maxPixel: Int(max(output.extent.width, output.extent.height))),
            bitmap.width >= 1024, bitmap.height >= 1024 {
-            var fallback = PhotoImage(cgImage: bitmap, usesEmbeddedRAWPreview: true)
-            fallback.rawDecoderBackend = .system
-            if Self.rawPreviewHasVisibleContent(fallback) { return fallback }
+            // 內嵌 JPEG 只能用於列表／載入提示；不可冒充 RAW 編輯來源。
+            if Self.rawPreviewHasVisibleContent(PhotoImage(cgImage: bitmap)) { return nil }
         }
         // 另存預設 RAW 顯影，保留每張照片的基準曝光、色調增強與白平衡。
         // 不使用內嵌 JPEG 代替 RAW，也不把顯示曲線灌入底片的線性輸入。

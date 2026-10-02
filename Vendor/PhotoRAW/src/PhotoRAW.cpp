@@ -3,6 +3,8 @@
 #include "OptimizedMapping.hpp"
 #include <map>
 #include <mutex>
+#include <cstring>
+#include <ctime>
 
 namespace {
 std::mutex decoderMutex;
@@ -16,6 +18,37 @@ std::map<std::filesystem::path, std::unique_ptr<Mapping>> mappings;
 void checked(int error) { if(error) throw std::runtime_error(libraw_strerror(error)); }
 }
 extern "C" const char* photo_raw_error() { return lastError.c_str(); }
+extern "C" int photo_raw_metadata(const unsigned char* bytes, size_t length, PhotoRAWMetadata* out) {
+    if(!out) return -1;
+    *out = {};
+    try {
+        if(!bytes || !length) throw std::runtime_error("Invalid RAW input");
+        std::lock_guard<std::mutex> lock(decoderMutex);
+        auto raw = std::make_unique<photoraw::CpuRaw>();
+        checked(raw->open_buffer(const_cast<unsigned char*>(bytes),length));
+        const auto& data = raw->imgdata;
+        out->width = data.sizes.width; out->height = data.sizes.height;
+        // LibRaw 的三個翻轉位元對應 EXIF 1～8，輸出尺寸採顯示方向。
+        constexpr unsigned orientations[]{1,2,4,3,5,8,6,7};
+        out->orientation = data.sizes.flip >= 0 && data.sizes.flip < 8 ? orientations[data.sizes.flip] : 1;
+        if(out->orientation >= 5) std::swap(out->width,out->height);
+        out->iso = data.other.iso_speed; out->exposure = data.other.shutter;
+        out->aperture = data.other.aperture; out->focal_length = data.other.focal_len;
+        out->focal_length_35mm = data.lens.FocalLengthIn35mmFormat;
+        auto copy = [](auto& destination,const auto& source){std::strncpy(destination,source,sizeof(destination)-1);};
+        copy(out->make,data.idata.make); copy(out->model,data.idata.model);
+        copy(out->lens_make,data.lens.LensMake); copy(out->lens,data.lens.Lens); copy(out->lens_serial,data.lens.LensSerial);
+        if(data.other.timestamp > 0) {
+            // EXIF 字串由 LibRaw 以本地時間解析；CIFF 在未定義 LOCALTIME 的
+            // 共用建置中直接保留相機時鐘的秒數，須用 UTC 拆回原始年月日時。
+            const bool ciff = length >= 14 && std::memcmp(bytes + 6, "HEAPCCDR", 8) == 0;
+            const auto* captured = ciff ? std::gmtime(&data.other.timestamp) : std::localtime(&data.other.timestamp);
+            if(captured) std::strftime(out->captured_at,sizeof(out->captured_at),"%Y:%m:%d %H:%M:%S",captured);
+        }
+        lastError.clear(); return 0;
+    } catch(const std::exception& e) {lastError=e.what();*out={};return -1;}
+    catch(...) {lastError="Unknown RAW metadata error";*out={};return -1;}
+}
 extern "C" void photo_raw_free(PhotoRAWPixels* out) {
     if(!out) return;
     std::free(out->linear_rgba); std::free(out->display_rgb); *out = {};

@@ -56,7 +56,29 @@ struct Profile {
     std::map<std::string, CalibrationData> calibrations;
     Json defaults;
 };
+struct DigitalLook {
+    int dimension = 0;
+    Json casts, spatial;
+    std::vector<float> axis;
+    std::vector<float> affine;
+    std::vector<float> table;
+    std::vector<float> monochrome_curve;
+    std::vector<float> output_curve;
+    std::vector<float> camera;
+};
+struct ToneMapping {
+    Matrix rows;
+    V bias;
+    std::vector<float> curve;
+};
 struct Database {
+    std::vector<std::array<float,9>> frame_sampling;
+    std::vector<unsigned char> frame_phase_indices;
+    std::vector<float> white_balance;
+    std::vector<float> vignette;
+    Matrix white_balance_matrix(double warmth, double tint) const;
+    std::map<std::string,std::array<ToneMapping,3>> tone_mappings;
+    std::map<std::string, DigitalLook> digital;
     std::map<std::string, Profile> profiles;
     std::map<std::string, std::array<double, 13>> lights, filters;
     std::map<std::string, std::pair<Matrix, Matrix>> light_matrices;
@@ -74,6 +96,26 @@ Image chemistry(Image source, const Effects &e, double strength, bool monochrome
 Image spectral(Image source, const Effects &e, double strength, const Profile &profile, const Database &data);
 Image character(Image source, const Profile &profile);
 Image scanner(Image source, const Effects &e, const Database &data, bool monochrome);
+Image light_scatter(Image source, const Effects &e, double strength);
+Image emulsion(Image source, const Effects &e, const Json &adjustment, double strength,
+               bool monochrome, bool preview);
+Image guided_smooth(Image image, double epsilon);
+Image tone_masks(const Image &image);
+Image digital_look(Image source, const DigitalLook &look);
+Image plan_tone(Image source, const Json &adjustment, double strength, bool monochrome, const Database &data);
+Image local_tone(Image source, const Json &adjustment, double strength, bool hdr);
+Image lab_adjustment(Image source, const Json &adjustment);
+Image lens_shading(Image source, const Json &adjustment, double strength, const Database &data);
+Image white_balance(Image source, const Json &adjustment, double strength, const Database &data);
+std::pair<double,double> neutral_balance(V sample, double warmth, double tint, double strength, const Database &data);
+Image tone_zones(Image source, const Json &adjustment, double strength, bool monochrome, const std::string &style, const Database &data);
+Image digital_print(Image source, const Effects &effects, const Database &data);
+inline V monochrome_weights(const Effects &e,double strength) {
+    V filter=w;auto name=e.text("monochrome_filter","none");
+    if(name=="yellow")filter={.34,.63,.03};else if(name=="orange")filter={.58,.40,.02};else if(name=="red")filter={.82,.17,.01};else if(name=="green")filter={.12,.84,.04};
+    return mix(w,filter,e.get("monochrome_filter_strength")/100*strength);
+}
+Image monochrome_filter(Image source, const Effects &effects, double strength);
 V grade(V rgb, double saturation, double mid_warmth, double high_warmth, const std::vector<double> &style,
         bool monochrome);
 } // namespace photocore::film_cpu

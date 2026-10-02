@@ -5,6 +5,7 @@ import Vision
 
 enum PhotoStyleAdjustmentMapper {
     private static let statisticsContext = PhotoImageRenderPrecision.makeContext()
+    #if !FILMDEVELOP_GO_HOST
     static func adjustment(
         from plan: PhotoStylePlan,
         style: PhotoStyle,
@@ -193,6 +194,7 @@ enum PhotoStyleAdjustmentMapper {
         return fallback.clamped(to: -100...100)
     }
 
+    #endif
     static func imageBasedAutoCorrection(for image: PhotoImage, baseAdjustment: StyleAdjustment) -> StyleAdjustment? {
         guard let stats = AutoImageStats(image: image) else { return nil }
 

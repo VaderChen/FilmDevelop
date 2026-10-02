@@ -67,7 +67,7 @@ final class PhotoDeepShadowLuminanceModel: @unchecked Sendable {
     private enum ModelError: Error { case missingResource, invalidOutput }
     private func loadModel() throws -> MLModel {
         if let model { return model }
-        guard let url = Bundle.module.url(forResource: "LYTLuminance", withExtension: "mlpackage", subdirectory: "Resources") else { throw ModelError.missingResource }
+        guard let url = PhotoSharedResources.bundle.url(forResource: "LYTLuminance", withExtension: "mlpackage", subdirectory: "Resources") else { throw ModelError.missingResource }
         let configuration = MLModelConfiguration()
         configuration.computeUnits = .all
         // Keep Core ML's compiled package across launches. A changed model spec

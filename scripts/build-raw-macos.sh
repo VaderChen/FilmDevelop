@@ -2,9 +2,11 @@
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 source "$ROOT_DIR/scripts/require-apple-silicon.sh"
+/usr/bin/python3 "$ROOT_DIR/scripts/build-raw-dependencies.py" macos-arm64
 /usr/bin/python3 - "$ROOT_DIR" <<'PY'
 import concurrent.futures, fcntl, gzip, hashlib, json, os, pathlib, re, shutil, subprocess, sys, tarfile, urllib.request
 root = pathlib.Path(sys.argv[1])
+dependencies = json.loads((root / '.cache/photoraw-dependencies/macos-arm64/dependencies.json').read_text())
 vendor = root / 'Vendor/PhotoRAW'
 build = root / '.cache/photoraw-macos'
 output = vendor / 'macos'
@@ -15,6 +17,9 @@ with (build / 'build.lock').open('w') as lock:
     sdk = subprocess.check_output(['xcrun', '--sdk', 'macosx', '--show-sdk-path'], text=True).strip()
     clang = subprocess.check_output(['xcrun', '--find', 'clang++'], text=True).strip()
     digest.update((sdk + subprocess.check_output([clang, '--version'], text=True)).encode())
+    digest.update((root / 'scripts/build-raw-dependencies.py').read_bytes())
+    for library in dependencies['libraries']:
+        digest.update(pathlib.Path(library).read_bytes())
     inputs = [root / 'scripts/build-raw-macos.sh'] + sorted(p for d in ('src', 'Mapping') for p in (vendor/d).rglob('*') if p.is_file() and not p.name.startswith('.') and not p.name.endswith('.bak'))
     for p in inputs:
         digest.update(str(p.relative_to(root)).encode()); digest.update(p.read_bytes())
@@ -51,14 +56,16 @@ with (build / 'build.lock').open('w') as lock:
     def compile_source(p):
         obj = objects/(hashlib.sha256(str(p).encode()).hexdigest()+'.o')
         subprocess.run([clang,'-arch','arm64','-isysroot',sdk,'-mmacosx-version-min=14.0','-std=c++17','-O3',
-            '-DNDEBUG','-DLIBRAW_NODLL','-DLIBRAW_NOTHREADS','-DUSE_ZLIB','-fno-fast-math','-fvisibility=hidden','-w',
-            '-I',str(source),'-c',str(p),'-o',str(obj)],check=True)
+            '-DNDEBUG','-DLIBRAW_NODLL','-DLIBRAW_NOTHREADS','-DUSE_ZLIB','-DUSE_JPEG','-DUSE_JPEG8','-DUSE_X3FTOOLS',
+            '-fno-fast-math','-ffp-contract=off','-fvisibility=hidden','-w','-I',str(source)] +
+            [arg for include in dependencies['includes'] for arg in ('-I',include)] +
+            ['-c',str(p),'-o',str(obj)],check=True)
         return obj
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
         compiled = list(executor.map(compile_source,sources))
     archive.parent.mkdir(parents=True,exist_ok=True)
     temporary = archive.with_suffix('.a.new')
-    subprocess.run(['xcrun','libtool','-static','-o',str(temporary)]+[str(p) for p in compiled],check=True)
+    subprocess.run(['xcrun','libtool','-static','-o',str(temporary)]+[str(p) for p in compiled]+dependencies['libraries'],check=True)
     temporary.replace(archive)
     (output/'include').mkdir(exist_ok=True)
     shutil.copyfile(vendor/'src/PhotoRAW.h',output/'include/PhotoRAW.h')
@@ -72,7 +79,12 @@ with (build / 'build.lock').open('w') as lock:
     (output/'RAWLicenses').mkdir(exist_ok=True)
     for name in ('COPYRIGHT','LICENSE.CDDL','LICENSE.LGPL'):
         shutil.copyfile(source/name,output/'RAWLicenses'/name)
-    (output/'RAWLicenses/SOURCE.txt').write_text('LibRaw 0.22.2, distributed under CDDL 1.0.\nUnmodified source: https://github.com/LibRaw/LibRaw/tree/0.22.2\nArchive: https://codeload.github.com/LibRaw/LibRaw/tar.gz/refs/tags/0.22.2\nSHA256: '+sha+'\nBuilt without OpenMP, RawSpeed, DNG SDK or additional demosaic packs.\n')
+    for item in dependencies['licenses']:
+        shutil.copyfile(item['source'],output/'RAWLicenses'/item['name'])
+    x3f=(source/'src/x3f/x3f_utils_patched.cpp').read_text().split('/*',1)[1].split('*/',1)[0]
+    (output/'RAWLicenses/X3F-LICENSE.txt').write_text(x3f.strip()+'\n')
+    (output/'RAWLicenses/DEPENDENCIES.json').write_text(json.dumps(dependencies['sources'],indent=2)+'\n')
+    (output/'RAWLicenses/SOURCE.txt').write_text('LibRaw 0.22.2, distributed under CDDL 1.0.\nUnmodified source: https://github.com/LibRaw/LibRaw/tree/0.22.2\nArchive: https://codeload.github.com/LibRaw/LibRaw/tar.gz/refs/tags/0.22.2\nSHA256: '+sha+'\nEnabled: zlib, JPEG DNG, X3F. Built without OpenMP, RawSpeed, DNG SDK, GPR SDK or additional demosaic packs.\n')
     stamp.write_text(fingerprint+'\n')
     print('Built '+str(archive),flush=True)
 PY

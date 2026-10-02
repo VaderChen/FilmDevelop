@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FC0110010000000000000001 /* LegacyStyleAdjustmentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC0110020000000000000001 /* LegacyStyleAdjustmentStore.swift */; };
 		FA3000010000000000000004 /* RAWLicenses in Resources */ = {isa = PBXBuildFile; fileRef = FA3000020000000000000004 /* RAWLicenses */; };
 		FA3000010000000000000003 /* RAWMapping in Resources */ = {isa = PBXBuildFile; fileRef = FA3000020000000000000003 /* RAWMapping */; };
 		FA3000010000000000000002 /* PhotoStyleWebCoordinator+Acceleration.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA3000020000000000000002 /* PhotoStyleWebCoordinator+Acceleration.swift */; };
@@ -91,6 +92,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		FC0110020000000000000001 /* LegacyStyleAdjustmentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyStyleAdjustmentStore.swift; sourceTree = "<group>"; };
 		FA3000020000000000000004 /* RAWLicenses */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Vendor/PhotoRAW/macos/RAWLicenses"; sourceTree = SOURCE_ROOT; };
 		FA3000020000000000000003 /* RAWMapping */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Vendor/PhotoRAW/macos/RAWMapping"; sourceTree = SOURCE_ROOT; };
 		FA3000020000000000000002 /* PhotoStyleWebCoordinator+Acceleration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhotoStyleWebCoordinator+Acceleration.swift"; sourceTree = "<group>"; };
@@ -263,6 +265,7 @@
 				44F8E5152C00100100000001 /* PhotoStyleWebCoordinator+Bridge.swift */,
 				44F8E51F2C00100100000001 /* PhotoStyleWebBridgeMessage.swift */,
 					44F8E5032C00100100000001 /* PhotoStyle.swift */,
+				FC0110020000000000000001 /* LegacyStyleAdjustmentStore.swift */,
 				AC2409240000000000000001 /* PhotoStyleWebCoordinator+Repair.swift */,
 				AC2409240000000000000000 /* PhotoRepairService.swift */,
 				44F8E5232C00100100000001 /* Comparable+Clamped.swift */,
@@ -446,6 +449,7 @@
 				AD2302012C00100100000001 /* PhotoAppRelease.swift in Sources */,
 				44F8E6022C00100100000001 /* ContentView.swift in Sources */,
 				44F8E6032C00100100000001 /* PhotoStyle.swift in Sources */,
+				FC0110010000000000000001 /* LegacyStyleAdjustmentStore.swift in Sources */,
 				AC2409240000000000000011 /* PhotoStyleWebCoordinator+Repair.swift in Sources */,
 				AC2409240000000000000010 /* PhotoRepairService.swift in Sources */,
 				44F8E6222C00100100000001 /* Comparable+Clamped.swift in Sources */,
