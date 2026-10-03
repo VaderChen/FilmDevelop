@@ -1,6 +1,6 @@
 # Go 桌面宿主與跨平台進度
 
-更新日期：2026-10-03，版本 **1.26.1003 build 0018**。`run.command` 建置並開啟 **Go／Wails 主程序＋Swift／C++ 影像引擎**。Go 共用 UI、照片、配方、設定、資料移轉、模型、MCP、更新與匯出流程；macOS 使用 Swift／Apple 框架及 C++，Windows 使用 C++／WIC／Vulkan。
+更新日期：2026-10-03，版本 **1.26.1003 build 0924**。`run.command` 建置並開啟 **Go／Wails 主程序＋Swift／C++ 影像引擎**。Go 共用 UI、照片、配方、設定、資料移轉、模型、MCP、更新與匯出流程；macOS 使用 Swift／Apple 框架及 C++，Windows 使用 C++／WIC／Vulkan。
 
 macOS 支援 Apple Silicon、macOS 14 以上；Windows 支援 10／11 x64，版本文字附 **Beta**。兩平台均已接通底片、編輯、RAW 備援、AI 分析與修復、匯出及資料移轉；平台差異與實測界線列於文末。
 ## 分工
@@ -114,7 +114,9 @@ python3 engine/verification/preview-cache-smoke.py
 
 已在 Windows 10 x64／GTX 1060 實機驗證 JPEG／RAW、CPU／Vulkan、全部既有配方、裁切與裝飾、色彩空間、EXIF、16 bit 匯出、GGUF 圖文推論及 ONNX LaMa 修復。Mac 使用 MLX Qwen 與 Core ML LaMa 驗證同一 Go 流程。304 組 Swift 影像參考在兩平台 CPU／GPU 共 1,216 組比較通過；主體、景深、降噪與日期字形不在該逐像素門檻內。最新 UI 及資料移轉另有實際 Wails／WebView2 Smoke，詳見 [功能恢復紀錄](RESTORATION.md)。
 
-RAW 矩陣為 44 份、17 品牌、31 機型；共用 LibRaw 成功 38／44，嚴格數值比較 37／38。Nikon HE／HE*、GoPro GPR 的直接解碼仍缺失。WIC／Apple 原生 RAW 顯影、裁切與鏡頭校正可能不同；LibRaw 仍經 RGB16，不能宣稱保留所有場景線性 HDR。Windows 11、缺少 Runtime 的乾淨安裝及更多 GPU 驅動尚未完整實測；Windows 安裝器未簽 Authenticode，因此保留 Beta。
+先前 44 份、17 品牌、31 機型的直接 LibRaw 解碼基線為 38／44，嚴格數值比較為 37／38。build 0924 加入由使用者另行安裝 Adobe DNG Converter 的補充解碼，涵蓋 Nikon HE／HE* 與 GoPro GPR；Mac 47 份、Windows 20 份，以及 Windows 預設系統模式的 14 份缺失格式均通過首次預覽、暖快取及匯出。這不代表 LibRaw 本身已新增 HE／GPR 解碼器，完整比對與安裝條件見 [補充解碼紀錄](../engine/verification/raw/supplemental-decoder.md)。
+
+WIC／Apple 原生 RAW 顯影、裁切與鏡頭校正可能不同；LibRaw 仍經 RGB16，不能宣稱保留所有場景線性 HDR。Windows 11、缺少 Runtime 的乾淨系統及更多 GPU 驅動尚未完整實測；Windows 執行檔未簽 Authenticode，因此保留 Beta。
 
 本機封裝不等於正式公證。正式 Mac DMG 使用下列命令，簽署所有內嵌執行檔／套件，提交 Apple 公證，附加並驗證 App／DMG 票證；任何失敗都不替換正式產物。身份及 profile 由本機提供，不寫入儲存庫：
 

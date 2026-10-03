@@ -2,6 +2,8 @@
 
 更新日期：2026-10-03。驗收依據為舊 macOS 桌面的實際操作、原始碼及保存資料。預設入口為 `run.command`，Go／Wails 管理 UI、主程序及共用業務；Swift／C++ 負責原生影像、推論與硬體計算。逐版的使用者可見差異另見 [CHANGELOG](../CHANGELOG.md)，本文件保留各輪驗證範圍與限制。
 
+目前版本為 **1.26.1003 build 0924**。各節保留當輪的測試狀態；早期「未發布／未公證」及 RAW 缺口不是目前版本的結論。最新補充解碼見下節，正式成品驗證見文末 build 0924 紀錄。
+
 ## 已依序接回
 
 | 順序 | 模組 | 結果 |
@@ -121,7 +123,9 @@ Go race／vet、35 項桌面 Smoke 與 9 個真實 RAW 切換案例通過。新�
 
 比對證據：`restoration-shared-comparison.json`（本機 `build/restoration-shared-comparison.json`），以及相鄰的 baseline／current log。此基線不影響已通過的 Go 移植金樣本與桌面 Smoke，但完整原生測試仍不是 Release 全綠狀態。
 
-## Windows 與發布界線
+## 早期恢復階段的 Windows 與發布界線
+
+以下三段記錄初次恢復時的狀態；後續公證、正式發布與補充 RAW 解碼已另有逐版紀錄。
 
 Windows 安裝檔已加入 C++／WIC 工作程序；37 款配方、編輯、AI／修復及裝飾已接入。下方「Windows 原生解碼與自動加速」保留早期測試基線，最新驗證及尚未對齊的項目以文末「混合架構對齊」為準。Nikon HE／HE* RAW 等差異仍未解決，不能宣稱所有功能已完全對齊。
 
@@ -713,3 +717,30 @@ Windows 交付改為完整解壓後即可執行的 ZIP，內附原廠 VC++ x64 R
 | `FilmDevelop-1.26.1003-build0018-windows-x64-portable.zip` | 315,212,352 bytes | `3f91fc22af847abba883a3ff20d9ca64fd1832233bc64a5dc5785835b6dac5cc` |
 
 建置來源提交為 `4ad539e97cec1ff39679125c5f957af453f7a6a3`；此後僅補發布文件與文件產生器同步，App／引擎來源未變更。`RELEASE_NOTES.md` 也由共用四語資料產生，避免保留舊版摘要。完整證據在本機 `build/release-notes-20261003`；Release 提供成品 SHA-256 與不含私人路徑的驗證摘要。Windows 實機驗證為 10 x64，沒有把 Windows 11、乾淨系統或其他 GPU 列為已測。完整 RAW／CPU／GPU 金樣本矩陣本輪未重跑，先前的 RAW 缺口、平台差異及 Swift XCTest 失敗基線仍依前文保留。
+
+## 1.26.1003 build 0924：補充 RAW 解碼與正式成品驗證（2026-10-03）
+
+本次與上一個公開 Release **1.26.1003 build 0018** 比較，補上 Nikon HE／HE* NEF 與 GoPro GPR 的共同解碼、列表縮圖、缺少工具時的官方下載及安裝後重新偵測。四語 README、CHANGELOG、Release 與 App 更新摘要共用逐版資料；舊版紀錄仍保留。完整功能驗證及 Adobe 部署條件見 [補充 RAW 解碼紀錄](../engine/verification/raw/supplemental-decoder.md)。
+
+| 本次重新執行的正式成品驗證 | 結果 |
+| --- | --- |
+| Go 與共用介面 | engine、application、host、photos、releasenotes、updater 的 race／vet，JavaScript 語法、契約產物及差異空白檢查通過；47 項 Wails 桌面 Smoke 通過，含缺少 RAW 解碼器的下載／重新偵測介面。 |
+| Mac 正式 DMG | 標準與 Swift 過渡包均通過 Developer ID 簽章、Apple 公證、票證及 Gatekeeper；標準 App 啟動，原片／Portra 匯出與參考逐像素相同。過渡包內嵌標準 App 的 110 個檔案完全相同。 |
+| Mac 正式 RAW 引擎 | 從正式 DMG 取出的引擎，完成 Nikon HE* NEF 與 GPR 的首次預覽、暖快取、匯出，共 6 項；完整感光尺寸及來源雜湊檢查通過。 |
+| 舊 Swift 一次性移轉 | 真正 Swift 選包／準備、過渡啟動器、安裝 helper、標準 App 再開全部通過；16 份既有測試資料保持原樣。 |
+| Windows 10 x64／GTX 1060 | 正式 ZIP 經完整 SHA-256 驗證，在全新資料夾解壓後通過 6 組實機 Smoke：產品識別、逐檔清單、12 個 Microsoft 原廠 Runtime 簽章及 app-local 載入、更新、正式 GUI、WebView2。170 個封裝檔案含清單本身，更新工具驗證其中 169 個內容。 |
+| Windows 更新與一般介面 | 更新 9 組、含子案例 23 項通過且未略過；14 項 JPEG／曝光／配方／GPU／RAW 設定及四語更新摘要通過，實際計算後端為 Vulkan。 |
+| Windows 正式 RAW 引擎與介面 | NEF／GPR 在 software 與預設 system 模式各跑首次預覽、暖快取、匯出，共 12 項通過；另通過 GPR 列表縮圖，以及真實 HE* NEF 的 14 項 WebView2 操作。Adobe 測試工具另置於測試目錄，未放入 ZIP。 |
+| 封裝與私密資料 | 先清空專案 `dist` 再重建；4 項發布流程 Smoke、673 份追蹤檔案檢查及 Windows 170 個封裝檔案稽核通過。`pack.command`、私人絕對路徑、權杖、RAW 測試原檔與 Adobe 程式均未加入公開成品。 |
+
+本輪封裝前的完整 RAW 驗證為 Mac 47 份／141 次，Windows 20 份／60 次，Windows 系統模式缺失格式 14 份／42 次，另有縮圖、取消、原檔保存與 EXIF 驗證。正式包的上表為另一次從成品執行的 Smoke；沒有把這次少量成品案例當作重跑所有影像金樣本。
+
+| 正式附件 | 大小 | SHA-256 |
+| --- | ---: | --- |
+| `FilmDevelop-1.26.1003-build0924-macos-arm64.dmg` | 87,330,964 bytes | `7a0c396c008dc9722cd2856f0ced4b15323a22ba2273de1fe39b254d21e23a8b` |
+| `FilmYourPhoto-1.26.1003-build-0924-arm64.dmg` | 92,244,047 bytes | `bb26929d124f4352b4417435127f76829cebea97989e084da2eeff97f1192459` |
+| `FilmDevelop-1.26.1003-build0924-windows-x64-portable.zip` | 315,254,256 bytes | `e7e0e921c48990fa51d444f76ae9a2078dfd14ef08d69639e849dce934289d39` |
+
+建置來源提交為 `f1c0697e2b1f8fcca09123f7ccb35cfb41df6f97`，來源目錄在封裝時沒有未提交變更；之後僅補桌面文件與正式驗證紀錄，App／引擎來源未更動。Release 附上 `SHA256SUMS.txt` 與不含私人路徑的 `release-validation.json`。完整本機證據位於 `build/release-raw-20261003-0924`。
+
+補充解碼需要使用者另行安裝 Adobe DNG Converter。Windows 實機仍為 Windows 10，未把 Windows 11、乾淨系統或其他 GPU 列為已測；Windows 執行檔未簽 Authenticode，ZIP 不保證消除來源提示。JPEG XL／Enhanced DNG、完整場景線性 HDR、Apple／WIC 原生色彩與裁切、部分模型與字形仍有差異。原有 Swift XCTest 的 10 個案例／20 個失敗斷言基線未於本輪修正，不宣稱所有功能或跨平台像素已完全一致。
