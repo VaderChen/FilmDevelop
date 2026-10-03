@@ -110,7 +110,11 @@ python3 engine/verification/preview-cache-smoke.py
 
 ## 資料移轉、平台驗證與發布
 
+啟動時立即顯示等待對話框；首次從 FilmYourPhoto 移轉時，列出設定、舊照片紀錄保存、目錄掃描與調整移轉等階段。有確定總量時顯示實際處理數與階段進度條，未知總量時顯示轉圈及經過時間。完成後自動關閉並開放操作，較晚載入的介面也可取得最新進度。
+
 首次啟動讀取舊 Swift 設定、自訂底片、星級、分類、照片配方與主體遮罩；逐欄與逐項保存來源指紋及移轉收據。新版既有值、已刪除項目與明確還原優先，避免重複移轉覆蓋。舊檔案原樣封存，損壞項目個別隔離。設定頁可查看移轉紀錄，匯出資料庫，或匯入並重新定位。匯出包不包含原照片或 MCP 權杖；僅有舊雜湊而缺少路徑的紀錄需要使用者協助定位。
+
+build 1109 的啟動／移轉與共用對話框在 Mac WKWebView、Windows 10 WebView2 各通過 119 項檢查；Mac 另通過 47 項一般功能 Smoke。正式 DMG、公證、舊 Swift 識別移轉及 Windows ZIP 解壓／Runtime／GUI／更新交接與還原皆有本次成品證據；模擬更新子程序被 Defender 攔截，改用完整正式 App 完成補驗，原失敗紀錄與方法詳見[本版驗證紀錄](RESTORATION.md)。
 
 已在 Windows 10 x64／GTX 1060 實機驗證 JPEG／RAW、CPU／Vulkan、全部既有配方、裁切與裝飾、色彩空間、EXIF、16 bit 匯出、GGUF 圖文推論及 ONNX LaMa 修復。Mac 使用 MLX Qwen 與 Core ML LaMa 驗證同一 Go 流程。304 組 Swift 影像參考在兩平台 CPU／GPU 共 1,216 組比較通過；主體、景深、降噪與日期字形不在該逐像素門檻內。最新 UI 及資料移轉另有實際 Wails／WebView2 Smoke，詳見 [功能恢復紀錄](RESTORATION.md)。
 
