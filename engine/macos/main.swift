@@ -120,7 +120,7 @@ struct WorkerFailure: Error {
             return try payload([
                 "platform": "darwin-arm64", "engine": "swift-native", "protocolVersion": 1,
                 "recipeVersion": 1, "adjustmentVersion": 12,
-                "methods": ["capabilities", "render", "preview", "thumbnail", "whiteBalance", "metadata", "reveal", "trash", "analysis", "infer", "prepareRepair", "repair"],
+                "methods": ["capabilities", "render", "preview", "thumbnail", "whiteBalance", "metadata", "rawProbe", "reveal", "trash", "analysis", "infer", "prepareRepair", "repair"],
                 "mlx": FileManager.default.isExecutableFile(atPath: Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/MLX/photostyle-mlx").path),
                 "computeBackends": compute, "rawDecoders": ["system", "software"],
                 "formats": PhotoExportFormat.allCases.map { ["id": $0.rawValue, "bitDepths": $0.supportedBitDepths] },
@@ -205,6 +205,14 @@ struct WorkerFailure: Error {
             values["resolvedPaths"] = resolvedPaths
             values["webPreferences"] = legacyWebPreferences()
             return try payload(values)
+        case "rawProbe":
+            let value = try strictPayload(request.payload, as: FileRequest.self)
+            let url = URL(fileURLWithPath: value.path)
+            let values = try url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
+            guard values.isRegularFile == true, let size = values.fileSize, size > 0, size <= 1_073_741_824 else {
+                throw WorkerFailure(code: "invalidRequest", message: "RAW 來源無法讀取或過大")
+            }
+            return try payload(PhotoSoftwareRAWDecoder.probe(data: Data(contentsOf: url, options: .mappedIfSafe)))
         case "metadata":
             let value = try strictPayload(request.payload, as: FileRequest.self)
             let url = URL(fileURLWithPath: value.path)
@@ -288,8 +296,22 @@ struct WorkerFailure: Error {
 
     static func sourceImage(_ input: ImageInput) throws -> PhotoImage {
         let url = URL(fileURLWithPath: input.path)
-        guard let backend = PhotoRAWBackend(rawValue: input.rawDecoder),
-              let image = PhotoBackendRouter.decode(data: try Data(contentsOf: url, options: .mappedIfSafe), url: url, backend: backend, lensCorrection: input.lensCorrection) else {
+        return try decodeSource(input, data: Data(contentsOf: url, options: .mappedIfSafe), url: url, purpose: .completeWithPreview)
+    }
+
+    static func decodeSource(_ input: ImageInput, data: Data, url: URL, purpose: PhotoRAWDecodePurpose) throws -> PhotoImage {
+        guard let backend = PhotoRAWBackend(rawValue: input.rawDecoder) else {
+            throw WorkerFailure(code: "invalidRequest", message: "RAW 解析設定不符")
+        }
+        // 明確選擇 LibRaw 時，由 Go 補足缺少的感光解碼器，避免悄悄改用另一套色彩處理。
+        if backend == .software, PhotoSoftwareRAWDecoder.probe(data: data)["supported"] as? Bool == false {
+            throw WorkerFailure(code: "rawConversionRequired", message: "此 RAW 壓縮方式需要補充解碼器")
+        }
+        guard let image = PhotoBackendRouter.decode(data: data, url: url, backend: backend,
+                                                   lensCorrection: input.lensCorrection, purpose: purpose) else {
+            if PhotoSoftwareRAWDecoder.probe(data: data)["supported"] as? Bool == false {
+                throw WorkerFailure(code: "rawConversionRequired", message: "此 RAW 壓縮方式需要補充解碼器")
+            }
             throw WorkerFailure(code: "decodeFailed", message: "無法解碼來源照片")
         }
         return image
@@ -405,10 +427,7 @@ struct WorkerFailure: Error {
             cache = previewCache
         } else { cache = PreviewCache() }
         if cache.source == nil {
-            guard let decoded = PhotoBackendRouter.decode(data: bytes, url: inputURL, backend: raw,
-                                                          lensCorrection: job.input.lensCorrection, purpose: decodePurpose) else {
-                throw WorkerFailure(code: "decodeFailed", message: "無法解碼來源照片")
-            }
+            let decoded = try decodeSource(job.input, data: bytes, url: inputURL, purpose: decodePurpose)
             cache.source = decoded
             cache.sourcePurpose = decodePurpose
         }

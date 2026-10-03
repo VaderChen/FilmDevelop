@@ -48,7 +48,7 @@ func Canonical(path string) (string, error) {
 
 var extensions = func() map[string]bool {
 	values := map[string]bool{}
-	for _, ext := range strings.Fields("jpg jpeg jpe png tif tiff webp heic heif avif bmp gif jp2 j2k pict pic 3fr arw cr2 cr3 crw dng erf fff iiq kdc mef mos mrw nef nrw orf pef raf raw rw2 rwl srw sr2 srf x3f") {
+	for _, ext := range strings.Fields("jpg jpeg jpe png tif tiff webp heic heif avif bmp gif jp2 j2k pict pic 3fr arw cr2 cr3 crw dng erf fff gpr iiq kdc mef mos mrw nef nrw orf pef raf raw rw2 rwl srw sr2 srf x3f") {
 		values["."+ext] = true
 	}
 	return values

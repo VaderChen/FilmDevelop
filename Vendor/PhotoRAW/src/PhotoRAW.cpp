@@ -18,6 +18,27 @@ std::map<std::filesystem::path, std::unique_ptr<Mapping>> mappings;
 void checked(int error) { if(error) throw std::runtime_error(libraw_strerror(error)); }
 }
 extern "C" const char* photo_raw_error() { return lastError.c_str(); }
+extern "C" int photo_raw_probe(const unsigned char* bytes, size_t length, PhotoRAWInfo* out) {
+    if (!out) return -1;
+    *out = {};
+    try {
+        if (!bytes || !length) throw std::runtime_error("Invalid RAW input");
+        std::lock_guard<std::mutex> lock(decoderMutex);
+        auto raw = std::make_unique<photoraw::CpuRaw>();
+        checked(raw->open_buffer(const_cast<unsigned char*>(bytes), length));
+        libraw_decoder_info_t decoder{};
+        checked(raw->get_decoder_info(&decoder));
+        out->supported = !(decoder.decoder_flags & LIBRAW_DECODER_UNSUPPORTED_FORMAT);
+        out->dng = raw->imgdata.idata.dng_version != 0;
+        out->mosaic = raw->imgdata.idata.filters != 0;
+        out->width = raw->imgdata.sizes.width;
+        out->height = raw->imgdata.sizes.height;
+        if (raw->imgdata.sizes.flip & 4) std::swap(out->width, out->height);
+        if (!out->width || !out->height) throw std::runtime_error("Invalid RAW dimensions");
+        lastError.clear(); return 0;
+    } catch (const std::exception& e) { lastError = e.what(); *out = {}; return -1; }
+    catch (...) { lastError = "Unknown RAW probe error"; *out = {}; return -1; }
+}
 extern "C" int photo_raw_dimensions(const unsigned char* bytes, size_t length, unsigned* width, unsigned* height) {
     if (!width || !height) return -1;
     *width = *height = 0;
@@ -94,6 +115,12 @@ extern "C" int photo_raw_decode(const unsigned char* bytes, size_t length, int h
         p.half_size=half; p.four_color_rgb=0; p.highlight=0;
         p.exp_correc=0; p.threshold=0; p.med_passes=0; p.fbdd_noiserd=0; p.user_flip=-1;
         checked(raw.open_buffer(const_cast<unsigned char*>(bytes),length));
+        libraw_decoder_info_t decoder{};
+        checked(raw.get_decoder_info(&decoder));
+        if (decoder.decoder_flags & LIBRAW_DECODER_UNSUPPORTED_FORMAT) {
+            lastError = "RAW compression requires an additional decoder";
+            return -2;
+        }
         checked(raw.unpack()); checked(raw.dcraw_process());
         auto linear = raw.render(true);
         // Gamma affects final materialization only. Reuse the developed raster

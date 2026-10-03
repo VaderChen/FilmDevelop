@@ -151,6 +151,10 @@ func (c *Client) Close() error {
 	defer func() { <-c.gate }()
 	c.closePreview()
 	c.clearPreviewSource()
+	if c.rawConversions != nil {
+		c.rawConversions.close()
+		c.rawConversions = nil
+	}
 	return nil
 }
 

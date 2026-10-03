@@ -246,7 +246,7 @@ class Worker {
          {"adjustmentVersion", 12},
          {"mlx", false},
          {"methods",
-          {"capabilities", "thumbnail", "metadata", "preview", "render", "whiteBalance", "prepareRepair", "repair", "analysis", "infer"}},
+          {"capabilities", "thumbnail", "metadata", "rawProbe", "preview", "render", "whiteBalance", "prepareRepair", "repair", "analysis", "infer"}},
          {"computeBackends", backends},
          {"gpu", gpu ? gpu->information() : Json(nullptr)},
          {"computeBackendLabels",
@@ -271,7 +271,7 @@ class Worker {
            "主體／深度模型、降噪、景深與日期字形採跨平台實作，與 Apple 框架的像素結果可能不同。",
            "系統 RAW 優先使用 WIC；不支援來源時改用內建 LibRaw。WIC "
            "鏡頭校正由解析器決定；LibRaw 目前未提供鏡頭校正與場景線性 HDR。"
-           "目前的系統解析器與 LibRaw 不支援 Nikon HE／HE* 完整顯影。"}}});
+           "LibRaw 本身不支援 Nikon HE／HE*；宿主會偵測補充 RAW 解碼器。"}}});
     return value;
   }
   void validate(const filmdevelop::contract::RenderJob &job) {
@@ -456,6 +456,8 @@ class Worker {
                 {"computeRoute", accelerated ? "vulkan" : "cpu"},
                 {"computeFallback", accelerated ? "" : gpuFailure},
                 {"rawDecoder", cached->backend},
+                // 編輯來源經 IWICDevelopRaw／LibRaw 驗證；相機內嵌圖只供縮圖介面使用。
+                {"embeddedRAWPreview", false},
                 {"systemRAWFallback", cached->systemFallback},
                 {"subjectDetected",subject!=nullptr},
                 {"depthAvailable",depth!=nullptr},
@@ -549,6 +551,10 @@ public:
       auto decoded=codec.decode(value.input.path,0,false,value.input.rawDecoder);
       auto source=filmdevelop::apply_repair_patches(std::move(decoded.image),patchesFor(value.recipe.repairPatches));
       return repair_photo(source,value.strokes,fs::u8path(value.modelDirectory),inferenceRuntime(),codec);
+    }
+    if (request.method == "rawProbe") {
+      auto v = request.payload.get<filmdevelop::contract::FileRequest>();
+      return codec.rawProbe(v.path);
     }
     if (request.method == "metadata") {
       auto v = request.payload.get<filmdevelop::contract::FileRequest>();

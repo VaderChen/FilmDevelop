@@ -54,7 +54,7 @@ extension PhotoBackendRouter {
 enum PhotoImageDecoder {
     private static let imageDecodeContext = PhotoImageRenderPrecision.makeContext()
     // UTI 登錄受系統版本及其他 App 影響，已知 RAW 副檔名仍須走感光資料解碼。
-    private static let rawExtensions = Set("3fr arw cr2 cr3 crw dng erf fff iiq kdc mef mos mrw nef nrw orf pef raf raw rw2 rwl sr2 srf srw x3f".split(separator: " ").map(String.init))
+    private static let rawExtensions = Set("3fr arw cr2 cr3 crw dng erf fff gpr iiq kdc mef mos mrw nef nrw orf pef raf raw rw2 rwl sr2 srf srw x3f".split(separator: " ").map(String.init))
     static func decode(data: Data, url: URL, backend: PhotoRAWBackend, lensCorrection: Bool, purpose: PhotoRAWDecodePurpose = .completeWithPreview) -> PhotoImage? {
         let correctLens = lensCorrection
         let selectedBackend = backend

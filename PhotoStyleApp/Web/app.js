@@ -886,7 +886,7 @@
       L.html('<aside class="preview-histogram" aria-label="RGB 三原色直方圖"') + (state.histogramVisible && !cropEditorVisible ? '' : ' hidden') + L.html('><div class="histogram-heading"><button type="button" data-close-histogram aria-label="關閉直方圖">×</button></div><canvas width="256" height="100" role="img" aria-label="目前預覽的紅、綠、藍亮度分布"></canvas><div class="histogram-scale"><span>0</span><span>255</span></div></aside>'),
       '</div>',
       '<footer class="canvas-footer"><span class="preview-status">' + escapeHtml(previewStatusText()) + '</span>',
-      L.html('<div class="preview-feedback" data-preview-feedback role="status" aria-live="polite" hidden><span class="preview-spinner" aria-hidden="true"></span><strong data-preview-feedback-title></strong><button data-action="cancelSubjectMaskDetection" type="button" hidden>取消偵測</button><button data-action="retryPreview" type="button" hidden>重新載入預覽</button></div>'),
+      L.html('<div class="preview-feedback" data-preview-feedback role="status" aria-live="polite" hidden><span class="preview-spinner" aria-hidden="true"></span><strong data-preview-feedback-title></strong><button data-action="cancelSubjectMaskDetection" type="button" hidden>取消偵測</button><button data-action="setupRAWDecoder" type="button" hidden>安裝 RAW 解碼器</button><button data-action="retryPreview" type="button" hidden>重新載入預覽</button></div>'),
       state.hasImage ? '<span class="canvas-hint">' + renderHelp(L.text("滾輪可放大縮小，放大後按住滑鼠左鍵拖曳移動；按「符合視窗」還原。按住空白鍵或右下角的比較按鈕可看原圖。"), L.text("原圖比較")) + L.html('</span><div class="canvas-actions"><button class="canvas-export" data-action="saveImage" type="button" title="匯出照片（⌘S）"') + (!state.canSave || photoIsBusy(state) ? ' disabled' : '') + '>' + iconSvg("exportImage") + L.html('匯出</button><div class="zoom-controls"><button data-zoom="zoomOut" aria-label="縮小" title="縮小（⌘−）">−</button><button data-zoom="zoomFit" title="符合視窗（⌘0）">符合視窗</button><button data-zoom="zoomIn" aria-label="放大" title="放大（⌘+）">＋</button></div></div>') : '<span class="canvas-hint">' + renderHelp(L.text("影像處理皆在這部 Mac 上完成。"), L.text("本機處理")) + '</span>',
       '</footer>', renderPhotoDirectory(), '</div>',
       L.html('<aside class="adjustment-pane" aria-label="影像調整" data-scroll-region="adjustments"') + (state.repairEditing ? ' inert' : '') + '>',
@@ -3344,7 +3344,7 @@
     var retainedPreview = !!image && !!image._hasDisplayedPreview;
     var placeholder = frame.querySelector(".preview-loading-image");
     if (placeholder) placeholder.hidden = ready || retainedPreview;
-    var failed = !processing && !decoding && ((!!image && (!ready || image._previewError)) || (state.hasImage && !state.outputImage));
+    var failed = !processing && !decoding && (state.previewFailed || (!!image && (!ready || image._previewError)) || (state.hasImage && !state.outputImage));
     var active = processing || decoding || revealing;
     frame.setAttribute("aria-busy", active ? "true" : "false");
     // 讀圖、顯影與主體偵測共用照片下方狀態列，不覆蓋照片或中斷編輯。
@@ -3353,7 +3353,8 @@
     feedback.querySelector(".preview-spinner").hidden = !active;
     feedback.querySelector("[data-action=cancelSubjectMaskDetection]").hidden = !detecting;
     feedback.querySelector("[data-action=retryPreview]").hidden = !failed;
-    feedback.querySelector("[data-preview-feedback-title]").textContent = L.text(failed ? "無法顯示照片預覽"
+    feedback.querySelector("[data-action=setupRAWDecoder]").hidden = !failed || !state.rawDecoderRequired;
+    feedback.querySelector("[data-preview-feedback-title]").textContent = L.text(failed && state.rawDecoderRequired ? "此 RAW 需要補充解碼器" : failed ? "無法顯示照片預覽"
       : detecting ? "正在偵測主體遮罩"
       : state.isLoadingImage || (state.isRenderingPreview && state.previewPhase === "thumbnail") ? "正在讀取圖片"
       : state.isRenderingPreview || cropPreviewHandoff ? "正在更新預覽" : "正在顯示照片");

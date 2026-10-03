@@ -441,6 +441,8 @@ func (a *App) sendState(full bool) {
 		"sourceImage": a.sourcePreview, "cropSourceImage": a.cropPreview, "repairSourceImage": a.cropPreview, "outputImage": a.outputPreview,
 		"loadingPreviewImage":           a.loadingPreview,
 		"previewPhase":                  previewPhase,
+		"rawDecoderRequired":            needsRAWDecoder(a.previewError),
+		"previewFailed":                 a.previewError != nil && !errors.Is(a.previewError, context.Canceled),
 		"isSwitchingComputeBackend":     a.switchingComputeBackend(),
 		"computeBackendSwitchRequestID": a.computeSwitchRequestID,
 		"sourceImageSize":               object{"width": a.renderInfo["cropWidth"], "height": a.renderInfo["cropHeight"]},
@@ -732,8 +734,10 @@ func (a *App) handle(message object) error {
 		a.preview()
 		return nil
 	case "retryPreview":
-		a.preview()
+		a.retryPreview()
 		return nil
+	case "setupRAWDecoder":
+		return a.setupRAWDecoder()
 	case "setLanguage", "setShowAllFilms", "setExposureExpansionEnabled", "setModernFilmExposureEnabled", "setHighlightProtectionEnabled", "setLensCorrectionEnabled", "setHDRFeatureEnabled", "setOriginalResolutionEditing":
 		return a.setPreference(action, message)
 	case "chooseExportDirectory":

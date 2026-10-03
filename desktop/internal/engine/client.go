@@ -23,12 +23,13 @@ import (
 )
 
 type Client struct {
-	Executable    string
-	gate          chan struct{}
-	command       func(context.Context) *exec.Cmd
-	preview       *previewProcess
-	previewIdle   *time.Timer
-	previewSource *previewSource
+	Executable     string
+	gate           chan struct{}
+	command        func(context.Context) *exec.Cmd
+	preview        *previewProcess
+	previewIdle    *time.Timer
+	previewSource  *previewSource
+	rawConversions *rawConversionCache
 }
 
 func New(executable string) *Client {
@@ -64,6 +65,10 @@ func (c *Client) Call(ctx context.Context, method string, value any, progress fu
 
 // 呼叫方持有 gate；來源快照與原生解碼快取在同一個序列中更新。
 func (c *Client) callLocked(ctx context.Context, method string, value any, progress func(float64)) (json.RawMessage, error) {
+	return c.callWithRAWConversion(ctx, method, value, progress)
+}
+
+func (c *Client) callNativeLocked(ctx context.Context, method string, value any, progress func(float64)) (json.RawMessage, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}

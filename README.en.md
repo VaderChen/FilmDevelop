@@ -8,7 +8,7 @@ Give your photos a film look you love. Pick a film, adjust exposure, color and g
 
 ## Get the app
 
-[Download for Mac and Windows](https://github.com/VaderChen/FilmDevelop/releases/latest). Version **1.26.1003 build 0018**; Windows is labeled **Beta**.
+[Download for Mac and Windows](https://github.com/VaderChen/FilmDevelop/releases/latest). Version **1.26.1003 build 0924**; Windows is labeled **Beta**.
 
 Mac requires Apple Silicon and macOS 14+. Open the DMG and drag FilmDevelop into Applications. This release’s DMG and included app are Developer ID signed, Apple notarized and stapled. Windows requires Windows 10/11 x64 and WebView2. Fully extract the x64 portable ZIP and run FilmDevelop.exe. The VC++ x64 Runtime is included; the app is not Authenticode signed.
 
@@ -19,13 +19,13 @@ The old Swift Mac app can upgrade through Check for Updates. The FilmYourPhoto b
 <!-- release-summary:start -->
 ## What changed
 
-Compared with: **1.26.1002 build 2330**。
+Compared with: **1.26.1003 build 0018**。
 
-- **Fixed**：The update-complete dialog now lists actual additions, fixes and improvements, with a comparison version, in the selected interface language.
-- **Fixed**：When skipping versions, changes are grouped by release. If another dialog is open, the update summary is delivered again after it closes.
-- **Improved · Windows**：The Windows portable ZIP omits C++ debug data while retaining the existing image algorithms, lookup tables, models and Microsoft runtime.
-- **Added**：Added a version-by-version changelog. README summaries, in-app notes and GitHub releases share one four-language source, including the changes from build 1323 to build 2330.
-- **Improved**：The full release workflow clears the project dist directory once before building Mac and Windows in sequence, and validates release notes and the artifact list.
+- **Fixed**：Added a shared decoding fallback for Nikon HE/HE* NEF and GoPro GPR on Mac and Windows. When the system or LibRaw lacks a decoder, an installed Adobe DNG Converter creates a lossless RAW cache.
+- **Added**：When the additional decoder is missing, the photo footer offers Adobe’s official download page and a check-again action. Users complete Adobe’s installation themselves. FilmDevelop does not bundle the converter or automatically open an installation dialog during preview.
+- **Fixed**：GPR is now recognized by photo import and both RAW engines. Files without a usable embedded thumbnail can use the supplemental decoder, and checking again after installation restores failed list thumbnails.
+- **Improved**：Supplemental decoding preserves original photos, edit identities and capture EXIF. The cache validates content, has a size limit, supports cancellation and is removed on exit. Shared LibRaw still develops the full sensor data; camera JPEGs are not used as editing sources.
+- **Improved**：Validated 141 preview/export operations across 47 RAW files on Mac, 60 operations across 20 files on Windows, and 42 Windows System-mode operations. EXIF, dimensions and pixel differences are documented; unknown formats, JPEG XL/Enhanced DNG and pixel identity remain limited.
 
 [Full changelog](CHANGELOG.en.md)
 <!-- release-summary:end -->
@@ -66,7 +66,9 @@ Photos and edits stay on your computer. AI models need an initial download; once
 
 RAW and compute acceleration default to **System**, persist across launches and are checked against available hardware. Mac uses Apple acceleration. Windows prefers a tested Vulkan GPU and falls back to CPU. Built-in LibRaw provides fallback RAW decoding.
 
-The 44-file RAW corpus covers 17 brands and 31 camera models: LibRaw decodes 38 files, with 37 passing strict cross-platform comparisons. Nikon HE/HE* and GoPro GPR still have gaps. Native RAW rendering, subject/depth models, denoising and date fonts can differ between platforms. See the [verification record](desktop/RESTORATION.md).
+Sources that need an additional decoder, including Nikon HE/HE* NEF and GoPro GPR, can create lossless RAW caches automatically using the separately installed, free [Adobe DNG Converter](https://helpx.adobe.com/camera-raw/desktop/dng-and-file-formats/adobe-dng-converter.html). If it is missing, the photo footer offers the official download page and a check-again action. Adobe software is not bundled with FilmDevelop; original photos and capture EXIF are preserved.
+
+This release validates 47 RAW files on Mac, 20 on Windows, and 14 Windows System-mode samples, including the NEF/GPR gaps. Successful decoding does not imply support for every RAW format, full HDR range or pixel-identical platform output. JPEG XL/Enhanced DNG remains unverified. See the [supplemental RAW decoding record](engine/verification/raw/supplemental-decoder.md) for scope, deployment requirements and differences.
 
 Film and camera looks are simulations, not manufacturer presets or LUTs. Click a feature title in the app for help.
 

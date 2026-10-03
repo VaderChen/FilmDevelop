@@ -116,6 +116,7 @@
     "thumbnail",
     "whiteBalance",
     "metadata",
+    "rawProbe",
     "reveal",
     "trash",
     "analysis",

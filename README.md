@@ -8,7 +8,7 @@
 
 ## 下載使用
 
-[下載 Mac 與 Windows 版](https://github.com/VaderChen/FilmDevelop/releases/latest)。目前版本：**1.26.1003 build 0018**，Windows 標示 **Beta**。
+[下載 Mac 與 Windows 版](https://github.com/VaderChen/FilmDevelop/releases/latest)。目前版本：**1.26.1003 build 0924**，Windows 標示 **Beta**。
 
 | 平台 | 安裝方式與需求 |
 | --- | --- |
@@ -22,13 +22,13 @@
 <!-- release-summary:start -->
 ## 本次更新
 
-相較版本：**1.26.1002 build 2330**。
+相較版本：**1.26.1003 build 0018**。
 
-- **修正**：更新完成視窗改為顯示本次新增、修正與改善，列出比較版本，並依介面語言顯示繁中、英文、日文或韓文。
-- **修正**：跨版本升級會分版列出尚未看過的更新；其他對話框關閉後會再次顯示摘要，避免更新說明被略過。
-- **改善 · Windows**：Windows 免安裝 ZIP 縮減 C++ 除錯資料，保留原有影像演算、查表、模型與 Microsoft Runtime。
-- **新增**：新增逐版更新紀錄；README、程式摘要與 GitHub Release 使用同一份四語資料，並補列 build 2330 相較 build 1323 的差異。
-- **改善**：完整發布流程先清空專案 dist，再依序建置 Mac 與 Windows；驗證版本紀錄與成品清單，避免混入舊版封裝。
+- **修正**：補上 Nikon HE／HE* NEF 與 GoPro GPR 的共同解碼流程：系統或 LibRaw 缺少解碼器時，使用已安裝的 Adobe DNG Converter 建立無損 RAW 快取，支援 Mac 與 Windows。
+- **新增**：缺少補充解碼器時，在照片下方提供 Adobe 官方下載與重新偵測入口；使用者需自行完成原廠安裝。FilmDevelop 不內附 Adobe Converter，一般預覽不自動跳出安裝對話框。
+- **修正**：GPR 加入照片匯入及兩平台 RAW 辨識；沒有可用內嵌縮圖時也能補充解碼，安裝後重新偵測可恢復列表縮圖。
+- **改善**：補充解碼保留原始照片、調整識別與拍攝 EXIF；快取有內容驗證、容量上限、取消與結束清理。完整感光資料仍由共用 LibRaw 顯影，不以相機 JPEG 取代編輯來源。
+- **改善**：補驗 Mac 47 張 RAW 的 141 次預覽／匯出、Windows 20 張的 60 次工作及預設系統模式 42 次工作；公開 EXIF、尺寸及像素差異紀錄。未知格式、JPEG XL／Enhanced DNG 與逐像素一致性仍有限制。
 
 [完整更新紀錄](CHANGELOG.md)
 <!-- release-summary:end -->
@@ -69,7 +69,9 @@
 
 RAW 與計算加速預設使用 **系統**，選項會保存並在啟動時重新偵測。Mac 使用 Apple 原生加速；Windows 優先採用通過實際探測的 Vulkan GPU，無法使用時回退 CPU。系統 RAW 解碼失敗時，使用內建 LibRaw 備援。
 
-已測試 44 份、17 品牌、31 種機型的 RAW；共用 LibRaw 成功解碼 38 份，其中 37 份通過嚴格跨平台數值比對。Nikon HE／HE* 與 GoPro GPR 仍有缺口；原生 RAW、主體、景深、降噪與日期字形也可能因平台不同而有差異。詳細驗證範圍見[功能恢復紀錄](desktop/RESTORATION.md)。
+Nikon HE／HE* NEF、GoPro GPR 等缺少解碼器的來源，可使用另外安裝的免費 [Adobe DNG Converter](https://helpx.adobe.com/camera-raw/desktop/dng-and-file-formats/adobe-dng-converter.html) 自動建立無損 RAW 快取。未安裝時，照片下方會提供官方下載與重新偵測；Adobe 程式不內附於 FilmDevelop。原始照片與拍攝 EXIF 會保留。
+
+本版在 Mac 驗證 47 張 RAW、Windows 驗證 20 張及 14 張預設系統模式樣本，包含 NEF／GPR 缺失格式。成功解碼不代表所有 RAW、HDR 範圍或兩平台每個像素都相同；JPEG XL／Enhanced DNG 尚未驗收。詳細範圍、部署條件與差異見 [RAW 補充解碼紀錄](engine/verification/raw/supplemental-decoder.md)。
 
 底片與相機風格是模擬效果，並非原廠預設或 LUT。更多操作提示可直接點選 App 內的功能標題查看。
 

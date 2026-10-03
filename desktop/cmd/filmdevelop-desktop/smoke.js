@@ -99,6 +99,7 @@
         if (!loadingThumbnailCheck || !inlinePreviewCheck) return fail('未觀察到先顯示縮圖及下方進度提示的流程');
         completed.push('列表與主預覽共用縮圖，等待文字與轉圈位於照片下方');
         await verifyPreviewReveal();
+        await verifyRAWDecoderSetup();
         completed.push('開啟原圖與 38 個底片／相容配方目錄');
         const items = s.photoDirectory.items;
         if (items.length!==3 || items[0].name!=='photo2.bmp' || items[1].name!=='photo10.bmp' || !items[0].selected) return fail('目錄自然排序、選取或檔案過濾不符');
@@ -209,6 +210,21 @@
     const spinner=feedback?.querySelector('.preview-spinner');
     if(!feedback||feedback.hidden||!spinner||spinner.hidden||!feedback.querySelector('[data-preview-feedback-title]').textContent)throw new Error('預覽處理中未顯示等待文字與轉圈');
     if(frame.contains(feedback)||!feedback.closest('.canvas-footer')||feedback.getBoundingClientRect().top<frame.getBoundingClientRect().bottom-1)throw new Error('進度提示覆蓋照片，未位於顯示區下方');
+  }
+  async function verifyRAWDecoderSetup() {
+    const originalImage=document.querySelector('.preview-image').getAttribute('src');
+    window.handleNativeState({rawDecoderRequired:true,previewFailed:true});
+    const feedback=document.querySelector('[data-preview-feedback]');
+    if(feedback.hidden||feedback.querySelector('[data-action="setupRAWDecoder"]').hidden||!feedback.querySelector('.preview-spinner').hidden||document.querySelector('dialog[open]'))throw new Error('缺少解碼器時未在照片下方提供安裝入口');
+    if(document.querySelector('.preview-image').getAttribute('src')!==originalImage)throw new Error('缺少解碼器時移除了現有照片');
+    feedback.querySelector('[data-action="setupRAWDecoder"]').click();
+    await until(()=>document.querySelector('dialog[open]'),'RAW 解碼器安裝說明');
+    const labels=Array.from(document.querySelectorAll('dialog[open] button')).map(b=>b.textContent);
+    if(!labels.includes('Adobe 官方下載')||!labels.includes('重新偵測')||!labels.includes('取消'))throw new Error('解碼器安裝缺少官方下載或重新偵測操作');
+    await choose('重新偵測');
+    await idle(s=>!s.previewFailed&&!s.rawDecoderRequired);
+    if(!document.querySelector('[data-action="setupRAWDecoder"]').hidden)throw new Error('重新偵測完成仍顯示安裝提示');
+    completed.push('缺少 RAW 解碼器：照片下方安裝入口、官方下載說明、重新偵測及保留畫面');
   }
   async function verifyPreviewReveal() {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {

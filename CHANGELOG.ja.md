@@ -4,6 +4,18 @@
 
 <!-- 由 scripts/release_notes.py 產生；請修改 history.json。 -->
 
+## 1.26.1003 build 0924
+
+比較元：**1.26.1003 build 0018**。
+
+- **修正**：Mac と Windows に Nikon HE／HE* NEF と GoPro GPR の共通代替デコード経路を追加。システムや LibRaw にデコーダーがない場合、インストール済みの Adobe DNG Converter でロスレス RAW キャッシュを作成します。
+- **追加**：追加デコーダーがない場合は写真の下部に Adobe 公式ダウンロードと再検出の操作を表示します。Adobe のインストールは利用者が完了してください。Converter は同梱せず、通常のプレビュー中にインストール画面を自動表示しません。
+- **修正**：GPR を写真読み込みと両プラットフォームの RAW 判定に追加。利用可能な埋め込みサムネイルがない場合も追加デコードを利用でき、インストール後の再検出で一覧サムネイルを再試行します。
+- **改善**：追加デコードでは元写真、編集の識別情報、撮影 EXIF を保持します。キャッシュは内容検証、容量制限、キャンセル、終了時の削除に対応。共通 LibRaw が全画素のセンサーデータを現像し、カメラ内 JPEG を編集元にしません。
+- **改善**：Mac の RAW 47 ファイルでプレビュー・書き出し 141 回、Windows の 20 ファイルで 60 回、システム設定で 42 回を検証。EXIF、寸法、画素差を記録しました。未知の形式、JPEG XL／Enhanced DNG、画素単位の一致には制限が残ります。
+
+[ソースの差分](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-0018...v1.26.1003-build-0924) · [検証記録](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-0924/desktop/RESTORATION.md)
+
 ## 1.26.1003 build 0018
 
 比較元：**1.26.1002 build 2330**。

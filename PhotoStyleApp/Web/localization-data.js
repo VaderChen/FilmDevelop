@@ -3829,5 +3829,12 @@ window.PhotoLocalizationData = {
     "The new version has not confirmed launch. Open the app manually; the previous version is still backed up.",
     "新バージョンの起動が未確認です。App を手動で開いてください。旧バージョンのバックアップは保持されています。",
     "새 버전 실행이 아직 확인되지 않았습니다. 앱을 직접 여세요. 이전 버전 백업은 유지됩니다."
-  ]
+  ],
+  "安裝 RAW 解碼器": ["Install RAW decoder", "RAW デコーダーをインストール", "RAW 디코더 설치"],
+  "此 RAW 需要補充解碼器": ["This RAW needs an additional decoder", "この RAW には追加デコーダーが必要です", "이 RAW에는 추가 디코더가 필요합니다"],
+  "補充 RAW 解碼器": ["Additional RAW decoder", "追加 RAW デコーダー", "추가 RAW 디코더"],
+  "Adobe 官方下載": ["Download from Adobe", "Adobe 公式ダウンロード", "Adobe 공식 다운로드"],
+  "重新偵測": ["Check again", "再検出", "다시 검색"],
+  "此 RAW 需要補充解碼器。請從 Adobe 官方下載並安裝 DNG Converter，再按「重試」。": ["This RAW needs an additional decoder. Download and install DNG Converter from Adobe, then retry.", "この RAW には追加デコーダーが必要です。Adobe 公式サイトから DNG Converter をインストールして再試行してください。", "이 RAW에는 추가 디코더가 필요합니다. Adobe에서 DNG Converter를 다운로드하여 설치한 다음 다시 시도하세요."],
+  "此 RAW 需要 Adobe DNG Converter。請從 Adobe 官方下載適合系統的版本，依安裝程式完成授權與安裝，再回到這裡按「重新偵測」。\n安裝後會自動建立無損 RAW 快取，保留原始照片與拍攝 EXIF。": ["This RAW needs Adobe DNG Converter. Download the version for your system from Adobe and complete its license and installation steps. Then return here and choose “Check again”.\nLossless RAW caches will be created automatically, preserving the original photo and capture EXIF.", "この RAW には Adobe DNG Converter が必要です。Adobe 公式サイトから対応版をダウンロードし、使用許諾とインストールを完了してから「再検出」を選択してください。\nロスレス RAW キャッシュを自動作成し、元の写真と撮影 EXIF は保持します。", "이 RAW에는 Adobe DNG Converter가 필요합니다. Adobe에서 시스템에 맞는 버전을 다운로드하고 라이선스 및 설치 절차를 완료한 다음 돌아와서 “다시 검색”을 선택하세요.\n원본 사진과 촬영 EXIF를 보존하면서 무손실 RAW 캐시를 자동으로 만듭니다."]
 };

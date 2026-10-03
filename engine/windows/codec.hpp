@@ -47,6 +47,7 @@ public:
   Decoded decode(const std::string &path, unsigned maxPixel = 0,
                  bool thumbnail = false, const std::string &backend = "system");
   Json metadata(const std::string &path);
+  Json rawProbe(const std::string &path);
   photocore::Image decodeData(const std::vector<unsigned char> &bytes, bool mask = false);
   std::vector<unsigned char> encode(const photocore::Image &image,
                                     const std::string &format,

@@ -75,7 +75,7 @@ std::filesystem::path engineFolder() {
   path.resize(length);return std::filesystem::path(path).parent_path();
 }
 const std::set<std::wstring> rawExtensions{
-    L".3fr", L".arw", L".cr2", L".cr3", L".crw", L".dng", L".erf", L".fff", L".iiq",
+    L".3fr", L".arw", L".cr2", L".cr3", L".crw", L".dng", L".erf", L".fff", L".gpr", L".iiq",
     L".kdc", L".mef", L".mos", L".mrw", L".nef", L".nrw", L".orf", L".pef",
     L".raf", L".raw", L".rw2", L".rwl", L".sr2", L".srf", L".srw", L".x3f"};
 std::wstring lower(std::wstring value) {
@@ -143,8 +143,11 @@ Decoded softwareRAW(const std::string &path, unsigned maxPixel, bool thumbnail,
   const auto mapping =
       (std::filesystem::path(module).parent_path() / L"RAWMapping").u8string();
   PhotoRAWPixels pixels{};
-  if (photo_raw_decode(bytes.data(), bytes.size(), thumbnail ? 1 : 0,
-                       mapping.c_str(), &pixels) != 0)
+  const int rawStatus = photo_raw_decode(bytes.data(), bytes.size(), thumbnail ? 1 : 0,
+                                         mapping.c_str(), &pixels);
+  if (rawStatus == -2)
+    throw Failure("rawConversionRequired", "此 RAW 壓縮方式需要補充解碼器");
+  if (rawStatus != 0)
     throw Failure("decodeFailed",
                   std::string("RAW 解析失敗：") + photo_raw_error());
   struct PixelsLifetime {
@@ -451,6 +454,18 @@ Decoded Codec::decodeWebP(const std::string &path,unsigned maxPixel) {
     checked(rotate->Initialize(source.Get(),static_cast<WICBitmapTransformOptions>(transforms[file.orientation])),"無法套用 WebP 方向");source=rotate;
   }
   return {decodePixels(source,maxPixel,false),false,file.orientation,managed,"not-raw",false,std::nullopt};
+}
+Json Codec::rawProbe(const std::string &path) {
+  std::ifstream file(std::filesystem::u8path(path), std::ios::binary | std::ios::ate);
+  if (!file || file.tellg() <= 0 || file.tellg() > 1024LL * 1024 * 1024)
+    throw Failure("invalidRequest", "RAW 來源無法讀取或過大");
+  std::vector<unsigned char> bytes(static_cast<size_t>(file.tellg()));
+  file.seekg(0); file.read(reinterpret_cast<char *>(bytes.data()), bytes.size());
+  PhotoRAWInfo info{};
+  if (!file || photo_raw_probe(bytes.data(), bytes.size(), &info) != 0)
+    return {{"recognized", false}};
+  return {{"recognized", true}, {"supported", info.supported != 0}, {"dng", info.dng != 0},
+          {"mosaic", info.mosaic != 0}, {"width", info.width}, {"height", info.height}};
 }
 Json Codec::metadata(const std::string &path) {
   Json rawMetadata;

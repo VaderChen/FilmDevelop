@@ -42,7 +42,13 @@ func TestUpgradeRangeAndPlatform(t *testing.T) {
 func TestEarlierAndHistoricalUpgrade(t *testing.T) {
 	current, _ := updater.Parse(history.Releases[1].Tag)
 	n := ForUpgrade(current, "v1.26.0101-build-1", "windows")
-	if !n.EarlierHistory || len(n.Releases) != 2 || n.Releases[0].Tag != current.Tag() {
+	if !n.EarlierHistory || len(n.Releases) != len(history.Releases)-1 || n.Releases[0].Tag != current.Tag() {
 		t.Fatalf("舊版比較不得包含未來版本：%+v", n)
+	}
+	for _, release := range n.Releases {
+		version, err := updater.Parse(release.Tag)
+		if err != nil || version.After(current) {
+			t.Fatal("歷史更新摘要包含未來版本：", release.Tag)
+		}
 	}
 }

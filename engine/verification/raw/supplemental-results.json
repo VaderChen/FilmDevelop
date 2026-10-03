@@ -1,0 +1,234 @@
+{
+  "date": "2026-10-03",
+  "status": "1.26.1003 build 0924 的封裝前解碼驗證",
+  "decoder": {
+    "libraw": "0.22.2",
+    "converter": "Adobe DNG Converter 18.7",
+    "converterRedistributed": false,
+    "conversionOptions": [
+      "-c",
+      "-dng1.4",
+      "-p0"
+    ]
+  },
+  "macOS": {
+    "softwareSamples": 47,
+    "softwareRequests": 141,
+    "supplementalSamples": 14,
+    "systemGPRRequests": 3,
+    "supplementalThumbnailPassed": true,
+    "desktopSmokeChecks": 47
+  },
+  "windows": {
+    "system": "Windows 10 22H2 x64 (19045)",
+    "converterSignature": "Adobe Inc. / Valid",
+    "softwareSamples": 20,
+    "softwareRequests": 60,
+    "systemSupplementalSamples": 14,
+    "systemSupplementalRequests": 42,
+    "supplementalThumbnailPassed": true,
+    "sourceHashesAndFullDimensionsMatch": true,
+    "exifPhotos": 17,
+    "exifExports": 31
+  },
+  "comparison": {
+    "input": "各平台自行轉換原始 RAW，完整感光資料解碼後，以原片配方匯出 sRGB PNG16，最長邊 384 px。",
+    "unit": "RGB16 通道值 (0–65535)",
+    "pixelIdentical": false,
+    "meanAbsoluteDifferenceRange": [
+      6.27818104768154,
+      14.202084011501736
+    ],
+    "maximumDifference": 3343,
+    "maximumPerImageP99": 363,
+    "cases": [
+      {
+        "height": 256,
+        "id": "local-zf-01",
+        "max16": 1556,
+        "mean16": 11.924336751302084,
+        "p99_16": 171,
+        "rmse16": 51.268267328997325,
+        "width": 384
+      },
+      {
+        "height": 384,
+        "id": "local-zf-02",
+        "max16": 1218,
+        "mean16": 9.952779134114584,
+        "p99_16": 116,
+        "rmse16": 42.14889316636606,
+        "width": 256
+      },
+      {
+        "height": 256,
+        "id": "local-zf-03",
+        "max16": 388,
+        "mean16": 10.715311686197916,
+        "p99_16": 57,
+        "rmse16": 19.636729930939172,
+        "width": 384
+      },
+      {
+        "height": 256,
+        "id": "local-zf-04",
+        "max16": 478,
+        "mean16": 13.24412367078993,
+        "p99_16": 57,
+        "rmse16": 20.279062606077396,
+        "width": 384
+      },
+      {
+        "height": 384,
+        "id": "local-zf-05",
+        "max16": 933,
+        "mean16": 9.409077962239584,
+        "p99_16": 142,
+        "rmse16": 29.516549678364587,
+        "width": 256
+      },
+      {
+        "height": 256,
+        "id": "local-zf-06",
+        "max16": 497,
+        "mean16": 12.057861328125,
+        "p99_16": 169,
+        "rmse16": 35.827916976488204,
+        "width": 384
+      },
+      {
+        "height": 256,
+        "id": "local-zf-07",
+        "max16": 1410,
+        "mean16": 14.202084011501736,
+        "p99_16": 95,
+        "rmse16": 64.86892627989779,
+        "width": 384
+      },
+      {
+        "height": 256,
+        "id": "local-zf-08",
+        "max16": 1249,
+        "mean16": 9.579020182291666,
+        "p99_16": 316,
+        "rmse16": 51.28784423269637,
+        "width": 384
+      },
+      {
+        "height": 384,
+        "id": "local-zf-09",
+        "max16": 1091,
+        "mean16": 13.38753933376736,
+        "p99_16": 363,
+        "rmse16": 64.94480876894747,
+        "width": 256
+      },
+      {
+        "height": 256,
+        "id": "local-zf-10",
+        "max16": 986,
+        "mean16": 12.2734375,
+        "p99_16": 126,
+        "rmse16": 35.2168937794935,
+        "width": 384
+      },
+      {
+        "height": 384,
+        "id": "local-zf-11",
+        "max16": 718,
+        "mean16": 11.616526285807291,
+        "p99_16": 149,
+        "rmse16": 36.95329269217002,
+        "width": 256
+      },
+      {
+        "height": 256,
+        "id": "pixls-131",
+        "max16": 1368,
+        "mean16": 8.370503743489584,
+        "p99_16": 214,
+        "rmse16": 56.98772942306095,
+        "width": 384
+      },
+      {
+        "height": 254,
+        "id": "pixls-2060",
+        "max16": 3343,
+        "mean16": 6.27818104768154,
+        "p99_16": 189,
+        "rmse16": 38.98966749077401,
+        "width": 384
+      },
+      {
+        "height": 256,
+        "id": "pixls-6616",
+        "max16": 2111,
+        "mean16": 12.470957438151041,
+        "p99_16": 161,
+        "rmse16": 65.65965063112596,
+        "width": 384
+      },
+      {
+        "height": 256,
+        "id": "pixls-6617",
+        "max16": 2111,
+        "mean16": 12.430633544921875,
+        "p99_16": 157,
+        "rmse16": 66.56369231762547,
+        "width": 384
+      },
+      {
+        "height": 256,
+        "id": "pixls-6618",
+        "max16": 2111,
+        "mean16": 12.495371500651041,
+        "p99_16": 156,
+        "rmse16": 66.758429050246,
+        "width": 384
+      },
+      {
+        "height": 256,
+        "id": "pixls-6885",
+        "max16": 1136,
+        "mean16": 12.51615736219618,
+        "p99_16": 312,
+        "rmse16": 79.73365142571694,
+        "width": 384
+      },
+      {
+        "height": 256,
+        "id": "pixls-837",
+        "max16": 1677,
+        "mean16": 11.825897216796875,
+        "p99_16": 271,
+        "rmse16": 71.2767001980981,
+        "width": 384
+      },
+      {
+        "height": 256,
+        "id": "pixls-853",
+        "max16": 1136,
+        "mean16": 7.726535373263889,
+        "p99_16": 169,
+        "rmse16": 33.55399789907084,
+        "width": 384
+      },
+      {
+        "height": 288,
+        "id": "pixls-936",
+        "max16": 859,
+        "mean16": 7.737591025270062,
+        "p99_16": 191,
+        "rmse16": 40.353929560277344,
+        "width": 384
+      }
+    ]
+  },
+  "limits": [
+    "尚未驗證 JPEG XL／Enhanced DNG",
+    "未知相機與 Adobe 亦不支援的來源仍可能無法解碼",
+    "僅為指定樣本與環境驗證，未將 Win10 結果視為 Win11 實機通過",
+    "保留既有 LibRaw RGB16 高光限制及 Apple 原生有效裁切差異",
+    "完整匯出尺寸一致；D70 半尺寸預覽高度存在 1 px 捨入差異"
+  ]
+}
