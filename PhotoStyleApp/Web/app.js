@@ -1398,7 +1398,7 @@
     }
     dialog.innerHTML = '<div class="prompt-dialog-head"><div><h2 id="updateCompleteTitle">' + escapeHtml(L.text('更新完成')) +
       '</h2><p id="updateCompleteVersion">' + escapeHtml(L.text('目前版本：' + (payload.version || ''))) +
-      '</p></div><button type="button" class="collapse-button" data-update-close aria-label="' + escapeHtml(L.text('關閉')) + '">' +
+      '</p></div><button type="button" class="collapse-button" data-update-close aria-label="' + escapeHtml(L.text('關閉視窗')) + '">' +
       iconSvg('x') + '</button></div><div class="update-complete-body selectable">' + details +
       '</div><div class="prompt-dialog-actions"><button type="button" class="button primary" data-update-close autofocus>' +
       escapeHtml(L.text('好')) + '</button></div>';
@@ -1406,6 +1406,7 @@
       button.addEventListener('click', function () { dialog.close(); });
     });
     dialog.addEventListener('keydown', function (event) { event.stopPropagation(); });
+    dialog.addEventListener('keyup', function (event) { event.stopPropagation(); });
     dialog.addEventListener('close', function () {
       post('acknowledgeUpdateNotice', { tag: payload.tag });
       dialog.remove();
@@ -1425,17 +1426,18 @@
     var groups = payload.groups || [];
     dialog.innerHTML = '<div class="prompt-dialog-head"><div><h2 id="exifDialogTitle">EXIF</h2><p class="selectable">' +
       escapeHtml(payload.filename || "") + '</p></div><button class="collapse-button" data-exif-close aria-label="' +
-      escapeHtml(L.text("關閉")) + '">' + iconSvg("x") + '</button></div><div class="exif-dialog-body selectable">' +
+      escapeHtml(L.text("關閉視窗")) + '">' + iconSvg("x") + '</button></div><div class="exif-dialog-body selectable">' +
       (groups.length ? groups.map(function (group) {
         return '<section class="exif-group"><h3>' + escapeHtml(L.text(group.title)) + '</h3><dl>' +
           group.rows.map(function (row) { return '<div class="exif-row"><dt>' + escapeHtml(L.text(row.label)) +
             '</dt><dd>' + escapeHtml(row.value) + '</dd></div>'; }).join("") + '</dl></section>';
       }).join("") : '<p>' + escapeHtml(L.text(payload.message || "此檔案沒有可顯示的 EXIF 資訊。")) + '</p>') +
-      '</div><div class="prompt-dialog-actions"><button class="button primary" data-exif-close>' + escapeHtml(L.text("關閉")) + '</button></div>';
+      '</div><div class="prompt-dialog-actions"><button class="button primary" data-exif-close>' + escapeHtml(L.text("關閉視窗")) + '</button></div>';
     dialog.querySelectorAll("[data-exif-close]").forEach(function (button) {
       button.addEventListener("click", function () { dialog.close(); });
     });
     dialog.addEventListener("keydown", function (event) { event.stopPropagation(); });
+    dialog.addEventListener("keyup", function (event) { event.stopPropagation(); });
     dialog.addEventListener("close", function () { dialog.remove(); });
     document.body.appendChild(dialog);
     dialog.showModal();
@@ -1448,8 +1450,7 @@
     var prompt = localizedStylePrompt(style);
     var defaultPrompt = localizedStyleDefaultPrompt(style);
     return [
-      '<div class="prompt-dialog-backdrop" data-prompt-dialog-close>',
-      '<section class="prompt-dialog" role="dialog" aria-modal="true" aria-labelledby="promptDialogTitle">',
+      '<dialog id="promptEditorDialog" class="prompt-dialog" aria-labelledby="promptDialogTitle">',
       '<div class="prompt-dialog-head">',
       '<div><div class="help-label"><h2 id="promptDialogTitle">' + renderHelp(text("promptDialogHint"), text("promptDialogTitle")) + "</h2></div>",
       '<p>' + escapeHtml(styleTitle(style)) + "</p></div>",
@@ -1463,9 +1464,16 @@
       '<button class="button" data-prompt-dialog-close type="button">' + escapeHtml(text("cancel")) + "</button>",
       '<button class="button" data-prompt-reset="' + escapeHtml(style.id) + '" type="button">' + escapeHtml(text("restore")) + "</button>",
       "</div>",
-      "</section>",
-      "</div>"
+      "</dialog>"
     ].join("");
+  }
+
+  function closePromptDialog() {
+    var styleID = state.promptDialog.styleID;
+    state.promptDialog = { open: false, styleID: null };
+    render();
+    var opener = app.querySelector('[data-edit-style-prompt="' + CSS.escape(styleID || '') + '"]');
+    if (opener) opener.focus({ preventScroll: true });
   }
 
   function renderGlobalAdjustmentCard(adjustment) {
@@ -2615,11 +2623,17 @@
       });
     });
 
+    var promptDialog = app.querySelector("#promptEditorDialog");
+    if (promptDialog) {
+      promptDialog.addEventListener("cancel", function (event) { event.preventDefault(); closePromptDialog(); });
+      promptDialog.addEventListener("keydown", function (event) { event.stopPropagation(); });
+      promptDialog.addEventListener("keyup", function (event) { event.stopPropagation(); });
+      promptDialog.showModal();
+      promptDialog.querySelector("textarea").focus({ preventScroll: true });
+    }
     app.querySelectorAll("[data-prompt-dialog-close]").forEach(function (element) {
       element.addEventListener("click", function (event) {
-        if (event.target !== element && element.classList.contains("prompt-dialog-backdrop")) return;
-        state.promptDialog = { open: false, styleID: null };
-        render();
+        closePromptDialog();
       });
     });
 
@@ -2627,8 +2641,7 @@
       button.addEventListener("click", function () {
         var editor = app.querySelector("#promptEditorText");
         post("updateStylePrompt", { style: button.dataset.promptSave, language: languageKey(), prompt: editor ? editor.value : "" });
-        state.promptDialog = { open: false, styleID: null };
-        render();
+        closePromptDialog();
       });
     });
 
@@ -2637,8 +2650,7 @@
         var editor = app.querySelector("#promptEditorText");
         if (editor) editor.value = editor.dataset.defaultPrompt || "";
         post("resetStylePrompt", { style: button.dataset.promptReset, language: languageKey() });
-        state.promptDialog = { open: false, styleID: null };
-        render();
+        closePromptDialog();
       });
     });
 

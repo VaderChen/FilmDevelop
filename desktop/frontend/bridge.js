@@ -41,6 +41,19 @@
 (function () {
   "use strict";
   var current;
+  function text(value) { return window.PhotoL10n ? window.PhotoL10n.text(value) : value || ""; }
+  function detailText(payload) {
+    var value = payload.detail || "";
+    if (payload.literalDetail) return value;
+    var translated = text(value);
+    return translated !== value ? translated : value.split("\n").map(text).join("\n");
+  }
+  function close(dialog) {
+    if (current !== dialog) return;
+    current=null;dialog.close();dialog.remove();
+    var focus=dialog.previousFocus;
+    if (focus && focus.isConnected && !focus.closest("[inert]")) focus.focus({preventScroll:true});
+  }
   function updateProgress(dialog, payload) {
     if (typeof payload.progress !== "number" || !Number.isFinite(payload.progress)) return;
     var progress = dialog.querySelector("[data-host-progress]");
@@ -49,31 +62,33 @@
   }
   window.handleHostProgress = function (payload) {
     if (!current || current.dataset.hostID !== payload.id) return;
-    if (payload.close) { current.close();current.remove();current=null;return; }
-    if (Object.prototype.hasOwnProperty.call(payload, "detail")) current.querySelector("[data-host-detail]").textContent=payload.detail || "";
+    if (payload.close) { close(current);return; }
+    if (Object.prototype.hasOwnProperty.call(payload, "detail")) current.querySelector("[data-host-detail]").textContent=detailText(payload);
     updateProgress(current, payload);
   };
   window.handleHostDialog = function (payload) {
     if (window.dismissHostMenu) window.dismissHostMenu(false);
-    if (current) { current.close(); current.remove(); }
+    var previousFocus=current ? current.previousFocus : document.activeElement;
+    if (current) close(current);
     var dialog = document.createElement("dialog"); current = dialog; dialog.dataset.hostID = payload.id;
+    dialog.previousFocus=previousFocus;
     dialog.className = "host-dialog";
-    dialog.setAttribute("aria-label", payload.title);
-    var title = document.createElement("h2"); title.textContent = payload.title; title.style.marginTop = "0"; dialog.appendChild(title);
-    var detail = document.createElement("p"); detail.dataset.hostDetail = "true"; detail.textContent = payload.detail || ""; detail.style.whiteSpace="pre-wrap"; dialog.appendChild(detail);
+    dialog.setAttribute("aria-label", text(payload.title));
+    var title = document.createElement("h2"); title.textContent = text(payload.title); title.style.marginTop = "0"; dialog.appendChild(title);
+    var detail = document.createElement("p"); detail.dataset.hostDetail = "true"; detail.textContent = detailText(payload); detail.style.whiteSpace="pre-wrap"; dialog.appendChild(detail);
     var progress = document.createElement("progress"); progress.dataset.hostProgress = "true"; progress.className = "host-dialog-progress";
-    progress.max = 1; progress.value = 0; progress.hidden = true; progress.setAttribute("aria-label", payload.title); dialog.appendChild(progress);
+    progress.max = 1; progress.value = 0; progress.hidden = true; progress.setAttribute("aria-label", text(payload.title)); dialog.appendChild(progress);
     updateProgress(dialog, payload);
     var form=document.createElement("form");form.method="dialog";dialog.appendChild(form);
     var actions=document.createElement("div");actions.className="host-dialog-actions";form.appendChild(actions);
     var input;
     function finish(value,cancelled) {
       if (current !== dialog) return;
-      current=null;dialog.close();dialog.remove();
+      close(dialog);
       window.PhotoNativeBridge.post({action:"resolveDialog",id:payload.id,value:value || "",cancelled:!!cancelled});
     }
     function button(label,value,role) {
-      var b=document.createElement("button");b.type="button";b.textContent=label;
+      var b=document.createElement("button");b.type="button";b.textContent=text(label);
       b.className="host-dialog-button";
       b.dataset.role=role==="destructive"?"destructive":role==="secondary"?"secondary":"primary";
       b.onclick=function(){finish(value,false)};actions.appendChild(b);return b;
@@ -82,11 +97,17 @@
       payload.choices.forEach(function(c){button(c.label,c.id,c.role || (c.id==="cancel"?"secondary":"primary")).disabled=!!c.disabled});
     } else {
       input=document.createElement("input");input.type="text";input.value=payload.value || "";input.maxLength=2048;
-      input.setAttribute("aria-label",payload.title);input.style.cssText="box-sizing:border-box;width:100%;padding:10px;";form.insertBefore(input,actions);
-      var save=button("確定","");save.onclick=function(){finish(input.value,false)};
+      input.setAttribute("aria-label",text(payload.title));input.style.cssText="box-sizing:border-box;width:100%;padding:10px;";form.insertBefore(input,actions);
+      var save=button("確定","");save.onclick=function(){if(!save.disabled)finish(input.value,false)};
+      function validateInput(){save.disabled=!input.value.trim()}
+      input.addEventListener("input",validateInput);validateInput();
     }
-    var cancel=button("取消","","secondary");cancel.onclick=function(){finish("",true)};actions.prepend(cancel);
-    form.onsubmit=function(e){e.preventDefault();if(input)finish(input.value,false)};
+    // 取消／關閉由穩定的操作識別判斷，不依賴畫面語言或個別對話框標題。
+    var hasDismiss=(payload.choices || []).some(function(c){return c.id==="cancel" || c.id==="close"});
+    if(!hasDismiss){var cancel=button("取消","","secondary");cancel.onclick=function(){finish("",true)};actions.prepend(cancel)}
+    form.onsubmit=function(e){e.preventDefault();if(input && !save.disabled)finish(input.value,false)};
+    dialog.addEventListener("keydown",function(e){e.stopPropagation()});
+    dialog.addEventListener("keyup",function(e){e.stopPropagation()});
     dialog.addEventListener("cancel",function(e){e.preventDefault();finish("",true)});
     document.body.appendChild(dialog);dialog.showModal();if(input){input.focus();input.select()}
   };

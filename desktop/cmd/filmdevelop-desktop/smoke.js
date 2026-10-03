@@ -347,6 +347,8 @@
     const buttons=Array.from(document.querySelectorAll('dialog[open] button, .host-menu-item'));
     const button=buttons.find(b=>b.dataset.label===label||b.textContent===label);
     if(!button)throw new Error('找不到選項：'+label);
+    const input=document.querySelector('dialog[open] input');
+    if(input)input.dispatchEvent(new Event('input',{bubbles:true}));
     hostDialog=null;button.click();
   }
   function menuKey(key) {document.activeElement.dispatchEvent(new KeyboardEvent('keydown',{key,bubbles:true,cancelable:true}));}

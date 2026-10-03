@@ -515,7 +515,7 @@ func (a *App) handleModels(action string, m object) error {
 				}
 				return a.rescanModels(ctx, "")
 			})
-		})
+		}, dialogOptions{LiteralDetail: true})
 	}
 	return errors.New("未知模型操作")
 }

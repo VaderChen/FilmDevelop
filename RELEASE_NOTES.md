@@ -1,12 +1,23 @@
 [繁體中文](#繁體中文) · [English](#english) · [日本語](#日本語) · [한국어](#한국어)
 
-[macOS Apple Silicon DMG](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-1026/FilmDevelop-1.26.1003-build1026-macos-arm64.dmg) · [Windows x64 Beta](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-1026/FilmDevelop-1.26.1003-build1026-windows-x64-portable.zip) · [Swift Mac upgrade](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-1026/FilmYourPhoto-1.26.1003-build-1026-arm64.dmg) · [SHA-256](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-1026/SHA256SUMS.txt)
+[macOS Apple Silicon DMG](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-1109/FilmDevelop-1.26.1003-build1109-macos-arm64.dmg) · [Windows x64 Beta](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-1109/FilmDevelop-1.26.1003-build1109-windows-x64-portable.zip) · [Swift Mac upgrade](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-1109/FilmYourPhoto-1.26.1003-build-1109-arm64.dmg) · [SHA-256](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-1109/SHA256SUMS.txt)
 
 ## 繁體中文
 
-此發布說明已合併 **1.26.1003 build 0924** 的更新，以下按版本列出差異。
+此發布說明已合併 **1.26.1003 build 1026**, **1.26.1003 build 0924** 的更新，以下按版本列出差異。
 
 ### 本版更新
+
+相較版本：**1.26.1003 build 1026**。
+
+- **修正**：修正更新下載同時出現「取消」與「取消下載」，以及資訊視窗同時出現「取消」與「關閉」；共用對話框已有取消或關閉操作時，不再追加重複按鈕。
+- **修正**：補齊共用對話框的四語標題、說明、按鈕與進度文字；「關閉視窗」與開關的 Off 分開處理，檔名、模型名稱及使用者輸入保留原文。
+- **修正**：名稱輸入為空白時停用確認，Enter 也不會送出；對話框的鍵盤事件不再傳到背景裁切、修復與原圖比較，關閉後可恢復原控制項的焦點。
+- **改善**：提示詞編輯改用原生模態對話框，避免焦點移到背景；介面狀態更新保留草稿，取消後回到原本的編輯入口。
+
+[原始碼差異](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-1026...v1.26.1003-build-1109) · [驗證紀錄](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1109/desktop/RESTORATION.md)
+
+### 合併自 1.26.1003 build 1026
 
 相較版本：**1.26.1003 build 0924**。
 
@@ -28,13 +39,24 @@
 
 [原始碼差異](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-0018...v1.26.1003-build-0924) · [驗證紀錄](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-0924/desktop/RESTORATION.md)
 
-[完整更新紀錄](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1026/CHANGELOG.md) · [README](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1026/README.md) · [驗證紀錄 (JSON)](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-1026/release-validation.json)
+[完整更新紀錄](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1109/CHANGELOG.md) · [README](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1109/README.md) · [驗證紀錄 (JSON)](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-1109/release-validation.json)
 
 ## English
 
-These release notes include the changes from **1.26.1003 build 0924**, grouped by version below.
+These release notes include the changes from **1.26.1003 build 1026**, **1.26.1003 build 0924**, grouped by version below.
 
 ### Changes in this release
+
+Compared with: **1.26.1003 build 1026**。
+
+- **Fixed**：Fixed duplicate Cancel and Cancel download buttons in update downloads, and duplicate Cancel and Close actions in information dialogs. Shared dialogs no longer add a fallback Cancel when a dismiss action is already provided.
+- **Fixed**：Completed four-language titles, descriptions, buttons, and progress messages for shared dialogs. Closing a window is distinguished from the Off setting; filenames, model names, and user input remain unchanged.
+- **Fixed**：Blank names cannot be submitted by the confirmation button or Enter. Dialog key events no longer reach background crop, repair, and original-comparison controls, and focus returns to the original control when it remains available.
+- **Improved**：Prompt editing now uses a native modal dialog to keep focus out of the background. UI state refreshes preserve the draft, and cancelling returns focus to the original edit control.
+
+[Source comparison](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-1026...v1.26.1003-build-1109) · [Validation record](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1109/desktop/RESTORATION.md)
+
+### Included from 1.26.1003 build 1026
 
 Compared with: **1.26.1003 build 0924**。
 
@@ -56,13 +78,24 @@ Compared with: **1.26.1003 build 0018**。
 
 [Source comparison](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-0018...v1.26.1003-build-0924) · [Validation record](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-0924/desktop/RESTORATION.md)
 
-[Full changelog](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1026/CHANGELOG.en.md) · [README](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1026/README.en.md) · [Validation record (JSON)](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-1026/release-validation.json)
+[Full changelog](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1109/CHANGELOG.en.md) · [README](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1109/README.en.md) · [Validation record (JSON)](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-1109/release-validation.json)
 
 ## 日本語
 
-このリリースノートには **1.26.1003 build 0924** の更新内容を統合し、以下にバージョン別の差分を記載しています。
+このリリースノートには **1.26.1003 build 1026**, **1.26.1003 build 0924** の更新内容を統合し、以下にバージョン別の差分を記載しています。
 
 ### 今回の更新
+
+比較元：**1.26.1003 build 1026**。
+
+- **修正**：更新ダウンロードで「キャンセル」と「ダウンロードをキャンセル」、情報画面で「キャンセル」と「閉じる」が重複する問題を修正。キャンセルまたは閉じる操作が既にある場合、共通ダイアログは追加ボタンを表示しません。
+- **修正**：共通ダイアログのタイトル、説明、ボタン、進捗メッセージを4言語に対応。「閉じる」と設定の「オフ」を区別し、ファイル名、モデル名、入力内容は原文を保持します。
+- **修正**：名前が空白の場合は確認ボタンと Enter による送信を無効化。ダイアログのキー操作が背後のトリミング、修復、元画像比較に伝わらず、閉じた後は元の操作対象が残っていればフォーカスを戻します。
+- **改善**：プロンプト編集をネイティブのモーダルダイアログに変更し、背後へのフォーカス移動を防止。画面状態の更新でも下書きを保持し、キャンセル後は元の編集ボタンに戻ります。
+
+[ソースの差分](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-1026...v1.26.1003-build-1109) · [検証記録](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1109/desktop/RESTORATION.md)
+
+### 1.26.1003 build 1026 から統合した変更
 
 比較元：**1.26.1003 build 0924**。
 
@@ -84,13 +117,24 @@ Compared with: **1.26.1003 build 0018**。
 
 [ソースの差分](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-0018...v1.26.1003-build-0924) · [検証記録](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-0924/desktop/RESTORATION.md)
 
-[変更履歴](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1026/CHANGELOG.ja.md) · [README](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1026/README.ja.md) · [検証記録 (JSON)](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-1026/release-validation.json)
+[変更履歴](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1109/CHANGELOG.ja.md) · [README](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1109/README.ja.md) · [検証記録 (JSON)](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-1109/release-validation.json)
 
 ## 한국어
 
-이 릴리스 노트는 **1.26.1003 build 0924**의 변경 사항을 통합하며, 아래에 버전별 차이를 표시합니다.
+이 릴리스 노트는 **1.26.1003 build 1026**, **1.26.1003 build 0924**의 변경 사항을 통합하며, 아래에 버전별 차이를 표시합니다.
 
 ### 이번 릴리스의 변경 사항
+
+비교 버전: **1.26.1003 build 1026**。
+
+- **수정**：업데이트 다운로드의 취소 버튼과 정보 대화상자의 취소·닫기 버튼이 중복되는 문제를 수정했습니다. 취소 또는 닫기 동작이 이미 있으면 공통 대화상자에 취소 버튼을 추가하지 않습니다.
+- **수정**：공통 대화상자의 제목, 설명, 버튼 및 진행 메시지에 네 가지 언어를 적용했습니다. 창 닫기와 설정의 꺼짐을 구분하며 파일명, 모델명 및 사용자 입력은 원문을 유지합니다.
+- **수정**：이름이 비어 있으면 확인 버튼과 Enter로 제출할 수 없습니다. 대화상자 키 입력이 배경의 자르기, 복구 및 원본 비교에 전달되지 않으며, 기존 컨트롤이 남아 있으면 닫은 뒤 포커스를 복원합니다.
+- **개선**：프롬프트 편집에 기본 모달 대화상자를 사용해 배경으로 포커스가 이동하지 않도록 했습니다. 화면 상태가 갱신되어도 초안을 유지하며 취소하면 기존 편집 버튼으로 돌아갑니다.
+
+[소스 변경 비교](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-1026...v1.26.1003-build-1109) · [검증 기록](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1109/desktop/RESTORATION.md)
+
+### 1.26.1003 build 1026에서 통합한 변경 사항
 
 비교 버전: **1.26.1003 build 0924**。
 
@@ -112,4 +156,4 @@ Compared with: **1.26.1003 build 0018**。
 
 [소스 변경 비교](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-0018...v1.26.1003-build-0924) · [검증 기록](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-0924/desktop/RESTORATION.md)
 
-[전체 변경 기록](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1026/CHANGELOG.ko.md) · [README](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1026/README.ko.md) · [검증 기록 (JSON)](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-1026/release-validation.json)
+[전체 변경 기록](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1109/CHANGELOG.ko.md) · [README](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1109/README.ko.md) · [검증 기록 (JSON)](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-1109/release-validation.json)

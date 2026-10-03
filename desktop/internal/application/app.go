@@ -563,7 +563,7 @@ func (a *App) handle(message object) error {
 	}
 	switch action {
 	case "showMigrationReport":
-		return a.showDialog("資料移轉紀錄", a.migrationSummary(), "", []dialogChoice{{ID: "close", Label: "關閉"}}, func(string) error { return nil })
+		return a.showDialog("資料移轉紀錄", a.migrationSummary(), "", []dialogChoice{{ID: "close", Label: "關閉視窗"}}, func(string) error { return nil })
 	case "exportLibraryArchive":
 		return a.exportLibraryArchive()
 	case "importLibraryArchive":

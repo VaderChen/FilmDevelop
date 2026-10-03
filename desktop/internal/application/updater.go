@@ -153,7 +153,7 @@ func (a *App) downloadUpdate(asset updater.Asset, version updater.Version) error
 	a.updating = true
 	a.mu.Unlock()
 	a.state()
-	if err := a.showDialog("正在下載更新", asset.Name, "", []dialogChoice{{ID: "cancel", Label: "取消下載"}}, func(string) error { cancel(); return nil }); err != nil {
+	if err := a.showDialog("正在下載更新", asset.Name, "", []dialogChoice{{ID: "cancel", Label: "取消下載"}}, func(string) error { cancel(); return nil }, dialogOptions{LiteralDetail: true}); err != nil {
 		cancel()
 		a.mu.Lock()
 		a.updating = false

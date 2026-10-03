@@ -8,7 +8,7 @@ Give your photos a film look you love. Pick a film, adjust exposure, color and g
 
 ## Get the app
 
-[Download for Mac and Windows](https://github.com/VaderChen/FilmDevelop/releases/latest). Version **1.26.1003 build 1026**; Windows is labeled **Beta**.
+[Download for Mac and Windows](https://github.com/VaderChen/FilmDevelop/releases/latest). Version **1.26.1003 build 1109**; Windows is labeled **Beta**.
 
 Mac requires Apple Silicon and macOS 14+. Open the DMG and drag FilmDevelop into Applications. This release’s DMG and included app are Developer ID signed, Apple notarized and stapled. Windows requires Windows 10/11 x64 and WebView2. Fully extract the x64 portable ZIP and run FilmDevelop.exe. The VC++ x64 Runtime is included; the app is not Authenticode signed.
 
@@ -19,11 +19,12 @@ The old Swift Mac app can upgrade through Check for Updates. The FilmYourPhoto b
 <!-- release-summary:start -->
 ## What changed
 
-Compared with: **1.26.1003 build 0924**。
+Compared with: **1.26.1003 build 1026**。
 
-- **Added**：When the current photo requires a separately installed Adobe DNG Converter, a confirmation dialog now appears automatically. Confirming opens Adobe’s official download page in the system default browser, replacing the previous footer-only prompt.
-- **Improved**：Cancelling preserves the current view and does not repeatedly prompt when retrying the same photo. The footer can reopen the dialog. Prompts wait for other dialogs, ignore stale photos and unrelated errors, and include all four interface languages.
-- **Fixed**：The update download dialog now includes a progress bar synchronized with percentage and size from 0%, staying full during package verification. Cancellation clears temporary files, and stale download events cannot affect a newer dialog.
+- **Fixed**：Fixed duplicate Cancel and Cancel download buttons in update downloads, and duplicate Cancel and Close actions in information dialogs. Shared dialogs no longer add a fallback Cancel when a dismiss action is already provided.
+- **Fixed**：Completed four-language titles, descriptions, buttons, and progress messages for shared dialogs. Closing a window is distinguished from the Off setting; filenames, model names, and user input remain unchanged.
+- **Fixed**：Blank names cannot be submitted by the confirmation button or Enter. Dialog key events no longer reach background crop, repair, and original-comparison controls, and focus returns to the original control when it remains available.
+- **Improved**：Prompt editing now uses a native modal dialog to keep focus out of the background. UI state refreshes preserve the draft, and cancelling returns focus to the original edit control.
 
 [Full changelog](CHANGELOG.en.md)
 <!-- release-summary:end -->
