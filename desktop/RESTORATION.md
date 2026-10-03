@@ -939,4 +939,26 @@ Windows 仍為未簽 Authenticode 的 Beta 版本；本次實機限 Windows 10�
 
 顯影修正通過真實 macOS Wails 55 項 Smoke；節奏再調快後重跑 9 項顯影專項及 JPEG／複選匯出 Smoke。相同專項在修正前程式重現稀疏進度停滯，在新版通過逐幀更新、單調銜接、取消、過期工作及減少動態效果檢查。Go 全部 internal 套件的 race 測試與 vet 通過。
 
-正式套件的簽章、公證、啟動、匯出及 Windows 實機狀態會在封裝後逐項補入本節。封裝前 Windows x64 核心、DLL、回歸執行檔及原生引擎已交叉編譯通過；不將交叉編譯或 macOS／MoltenVK 執行當作 Windows 實機證據。
+正式成品驗證完成：
+
+| 驗證項目 | 結果 |
+| --- | --- |
+| macOS DMG | 標準及舊 Swift 升級相容包均完成 Developer ID 簽章、Apple 公證及票證。標準 DMG 掛載後通過 Gatekeeper、隔離啟動及 6 組膚質匯出；結果與封裝前參考逐像素相同。 |
+| macOS 顯影 | 真實 Wails 55 項 Smoke 通過；最後節奏調整後另通過 9 項顯影專項、21 項 JPEG／複選匯出 Smoke。相同稀疏進度測例在舊程式重現停滯，新版通過。 |
+| Windows 正式 ZIP | Windows 10 x64／GTX 1060 在全新目錄解壓，170 個產品檔案摘要、12 個 Microsoft Runtime 簽章與 app-local 載入通過；正式 GUI 正常啟動。 |
+| Windows WebView2 | 23 項 Smoke 通過，包含 9 項顯影專項、四語更新摘要、配方、預覽與 GPU 切換。顯影有效影格更新比例 100.0%，取消及減少動態效果模式正常。 |
+| Windows 算法與匯出 | 3 組 CPU／GPU 原生回歸通過；正式引擎以 CPU 回退與 Vulkan 各完成 6 組美白／柔膚 PNG 匯出。 |
+| Windows 更新 | 以正式 App 完成 build 1503 → 0036 升級，以及啟動確認失敗後還原；兩項均保留使用者測試檔案。 |
+| 封裝與來源 | 發布流程 4 項、Windows 封裝 11 項通過；Mac 標準／相容包／Windows 共 110／116／170 個檔案通過發布私密資料稽核；測試程序已收回。 |
+
+Windows 的 12 份正式 CPU／GPU PNG 已取回，與同版本 Mac 的對應成品逐像素比較；最大通道差為 `0.00154116144`，未達每通道 4/65535 的嚴格等同門檻。再以 build 1503 正式 Windows 引擎重做零效果基線，與本版原片逐像素相同，確認是既有原生色彩差異。Windows 本版 CPU／GPU 的 6 組對應成品最大差約 `1.53e-5`。完整差異保留在驗證附件，不宣稱跨平台成品完全一致。
+
+| 正式附件 | 大小 | SHA-256 |
+| --- | ---: | --- |
+| `FilmDevelop-1.26.1004-build0036-macos-arm64.dmg` | 87,408,422 bytes | `781883c3d64217f744ab31f21766ee3d4a0c2258a4d7efecb71cc8718a4b55e1` |
+| `FilmYourPhoto-1.26.1004-build-0036-arm64.dmg` | 92,541,128 bytes | `cc710a2d46de96880ebc6d07f2aa76a4a715647832c3da3a83615feef7fc1f5d` |
+| `FilmDevelop-1.26.1004-build0036-windows-x64-portable.zip` | 315,380,924 bytes | `904097db611b0b416f7c4edbbb3859f26239110fe486f2cea85275512040de2d` |
+
+正式成品來源為 `93d3f73f54eb4e970645d952d84639ff09fecc1c`，建置時工作目錄乾淨；封裝後僅更新驗證文件。Release 隨附 `SHA256SUMS.txt` 及 `release-validation.json`，本輪完整證據保留於 `build/digital-release-20261004/`。
+
+Windows 仍為未簽 Authenticode 的 Beta；本輪實機限 Windows 10／GTX 1060，未重跑所有 RAW、AI 模型、外接檔案系統與其他 GPU。動畫影格統計只代表本次視窗環境，不能當作所有負載下的保證。
