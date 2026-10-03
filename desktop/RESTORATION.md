@@ -914,3 +914,11 @@ Windows 本輪為 Windows 10 x64／GTX 1060，未另測 Windows 11、乾淨系�
 Windows 免安裝六組 Smoke 均通過，另完成上述正式 App 更新與還原。
 
 Windows 仍為未簽 Authenticode 的 Beta 版本；本次實機限 Windows 10／GTX 1060。完整 RAW、MLX／修復 AI 模型及外接檔案系統矩陣未於本次封裝重新執行，沿用既有紀錄，不由函式基準推論整體 App RSS 或所有硬體效能。
+
+### 同版 Release 整併（2026-10-03）
+
+`1.26.1003` 的公開 Release 統一至 [build 1503](https://github.com/VaderChen/FilmDevelop/releases/tag/v1.26.1003-build-1503)。以既有 `scripts/release-publications.json` 合併機制收錄 build 1300、1109、1026、0924、0018，並保留 build 0018 先前合併的 `1.26.1002 build 2330` 內容。四語發布說明各包含 33 項更新，依原版本列出差異；逐版 CHANGELOG、比較標籤及程式內依實際升級來源顯示摘要的機制均保留。
+
+合併說明發布後，已移除 build 1300、1109、0018 的舊 Release；build 0924、1026 的 Release 先前已整併。全部 Git 標籤保持原指向，build 1503 仍為 Latest。既有五個正式附件的 ID、大小與 SHA-256 均未變更，沿用上列 macOS、Windows 正式成品與驗證紀錄。
+
+本次發布整理通過四語文件一致性、28 組版本／語言完整性與五個附件下載指向檢查；`releasenotes`、`updater` 的 Go 測試通過，包含 macOS／Windows 摘要範圍與平台過濾。另核對本機五個正式附件與 GitHub SHA-256 相同，GitHub 發布前後所有 Git 標籤及其他 19 個版本的 Release 未變更。本次僅調整發布設定與文件，沒有重新封裝或重跑產品 GUI。合併前發布說明、中繼資料、舊版驗證附件與核對結果保留於 `build/release-merge-20261003/`。
