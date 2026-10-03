@@ -125,6 +125,16 @@
             "japanese": "ガイドフィルターのサンプリング座標とアップサンプリングを統一し、プレビュー、書き出し、タイル処理の差を低減。小さな係数画像を既存のキャッシュ上限内で GPU に保持し、CPU 読み戻しと再転送を削減します。",
             "korean": "가이드 필터의 샘플링 좌표와 업샘플링을 통일하여 미리보기, 내보내기와 타일 처리 간 차이를 줄입니다. 작은 계수 이미지를 기존 캐시 한도 내에서 GPU에 유지하여 CPU 읽기와 재전송을 줄입니다."
           }
+        },
+        {
+          "kind": "improved",
+          "inApp": true,
+          "text": {
+            "traditionalChinese": "改善輸出照片的顯影動畫：配合螢幕逐幀更新，最短顯現時間由 7 秒縮短為 6.2 秒，較久沒有進度回報時仍平順顯現，完成時連續減速定影；維持原有對話框、操作流程與預覽記憶體上限。",
+            "english": "Make the photo export reveal smoother with display-synchronized frames, a shorter minimum reveal of 6.2 seconds instead of 7, continuous motion between sparse progress reports, and a gradual finish. Preserve the existing dialog, workflow and preview memory limit.",
+            "japanese": "写真書き出し時の現像アニメーションを画面更新に同期し、最短表示時間を 7 秒から 6.2 秒に短縮。進捗通知の間隔が長い場合も滑らかに表示します。完了時は連続的に減速して定着し、既存のダイアログ、操作手順、プレビューのメモリ上限を維持します。",
+            "korean": "사진 내보내기 현상 애니메이션을 화면 갱신에 맞추고 최소 표시 시간을 7초에서 6.2초로 줄여 진행 알림 간격이 길어도 부드럽게 표시합니다. 완료 시 연속적으로 감속하며 기존 대화상자, 작업 흐름과 미리보기 메모리 한도를 유지합니다."
+          }
         }
       ]
     },

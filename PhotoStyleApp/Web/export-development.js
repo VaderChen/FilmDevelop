@@ -3,7 +3,7 @@
   var L = window.PhotoL10n;
 
   var historyKey = 'photoStyle.exportDuration.v1';
-  var minimumReveal = 7000;
+  var minimumReveal = 6200;
   var stages = {
     prepare: { order: 0, floor: 0, ceiling: 0.10, share: 0.12, text: '影像正在慢慢顯現' },
     render: { order: 1, floor: 0.08, ceiling: 0.72, share: 0.72, text: '影像正在慢慢顯現' },
@@ -44,6 +44,7 @@
     var detail = root.querySelector('span');
     var caption = root.querySelector('.development-caption');
     var current = null;
+    var frame = null;
     var timers = new Set();
     var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -56,6 +57,8 @@
     }
 
     function close() {
+      if (frame !== null) cancelAnimationFrame(frame);
+      frame = null;
       timers.forEach(clearTimeout);
       timers.clear();
       image.getAnimations().forEach(function (animation) { animation.cancel(); });
@@ -65,6 +68,7 @@
       root.hidden = true;
       root.removeAttribute('data-phase');
       image.removeAttribute('src');
+      image.style.removeProperty('will-change');
       onVisibilityChange();
     }
 
@@ -86,12 +90,23 @@
           + ') saturate(' + (0.2 + value * 0.8) + ') blur(' + (12 * Math.pow(1 - value, 2)) + 'px)';
     }
 
-    function tick(job) {
+    function stageFraction(job, now) {
+      var elapsed = Math.max(0, now - job.stageStarted);
+      var budget = Math.max(1000, job.estimated * stages[job.stage].share);
+      // 階段回報可能很稀疏；由最近觀測平順估算剩餘部分，仍受該階段上限約束。
+      return job.stageAnchor + (1 - job.stageAnchor) * elapsed / (elapsed + budget);
+    }
+
+    function tick(job, now) {
+      frame = null;
       if (current !== job) return;
-      var now = performance.now();
+      var previous = job.progress;
+      var delta = Math.max(0, now - job.lastTick);
       if (job.finishReady) {
         var fraction = clamp((now - job.finishStarted) / job.finishDuration, 0, 1);
-        job.progress = job.finishFrom + (1 - job.finishFrom) * smooth(fraction);
+        // 保留顯影當下的速度，再平順減速到完整照片，避免定影瞬間煞停。
+        var curve = smooth(fraction) + job.finishSlope * fraction * Math.pow(1 - fraction, 2);
+        job.progress = job.finishFrom + (1 - job.finishFrom) * curve;
         paint(job);
         if (fraction === 1) {
           root.dataset.phase = 'fixed';
@@ -106,21 +121,18 @@
         }
       } else {
         var stage = stages[job.stage];
-        var elapsed = Math.max(0, now - job.stageStarted);
-        var budget = Math.max(1000, job.estimated * stage.share);
-        // A slow stage keeps developing gently, but can never impersonate completed work.
-        var target = stage.floor + (stage.ceiling - stage.floor) * (
-          job.stageProgress == null ? elapsed / (elapsed + budget) : job.stageProgress);
+        var target = stage.floor + (stage.ceiling - stage.floor) * stageFraction(job, now);
         var visualAge = now - job.visualStarted;
         var visibleLimit = 0.94 * smooth(clamp((visualAge - 500) / minimumReveal, 0, 1));
         if (reducedMotion.matches) target = Math.min(target, 0.88);
         else target = Math.min(target, visibleLimit);
-        var delta = Math.max(0, now - job.lastTick);
         job.progress = Math.max(job.progress, job.progress + (target - job.progress) * (1 - Math.exp(-delta / 650)));
         paint(job);
       }
+      job.velocity = delta > 0 ? (job.progress - previous) / delta : 0;
       job.lastTick = now;
-      later(job, 50, function () { tick(job); });
+      // 交由螢幕更新時機排程，避免固定 50 ms 造成約 20 fps 的階梯感。
+      frame = requestAnimationFrame(function (timestamp) { tick(job, timestamp); });
     }
 
     this.isVisible = function () { return current !== null; };
@@ -134,7 +146,8 @@
       units = Number.isFinite(units) && units > 0 ? units : 1;
       var profile = typeof timing.profile === 'string' ? timing.profile : '';
       var job = { id: id, started: now, finishing: false, profile: profile, units: units,
-        estimated: estimate(profile, units), stage: 'prepare', stageStarted: now, progress: 0 };
+        estimated: estimate(profile, units), stage: 'prepare', stageStarted: now,
+        stageAnchor: 0, progress: 0, velocity: 0 };
       current = job;
       root.hidden = false;
       root.dataset.phase = 'developing';
@@ -142,13 +155,14 @@
       detail.textContent = L.text(stages.prepare.text);
       image.style.opacity = '0';
       image.style.filter = 'brightness(0)';
+      image.style.willChange = 'opacity, filter';
       if (!reducedMotion.matches) caption.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 650, delay: 300, fill: 'both' });
       onVisibilityChange();
       job.loading = load(job, source).then(function () {
         if (current !== job) return;
         job.visualStarted = performance.now();
         job.lastTick = job.visualStarted;
-        tick(job);
+        frame = requestAnimationFrame(function (timestamp) { tick(job, timestamp); });
       });
     };
 
@@ -159,10 +173,17 @@
       if (stageName !== job.stage) {
         job.stage = stageName;
         job.stageProgress = null;
+        job.stageAnchor = 0;
         job.stageStarted = performance.now();
       }
       if (typeof fraction === 'number' && Number.isFinite(fraction)) {
-        job.stageProgress = Math.max(job.stageProgress || 0, clamp(fraction, 0, 1));
+        fraction = clamp(fraction, 0, 1);
+        if (job.stageProgress == null || fraction > job.stageProgress) {
+          var now = performance.now();
+          job.stageAnchor = Math.max(stageFraction(job, now), fraction);
+          job.stageStarted = now;
+          job.stageProgress = fraction;
+        }
       }
       detail.textContent = L.text(stage.text);
     };
@@ -183,6 +204,7 @@
         job.finishDuration = reducedMotion.matches ? 140 : Math.max(
           500, minimumReveal - (now - job.visualStarted), (1 - job.progress) * 1600
         );
+        job.finishSlope = clamp(job.velocity * job.finishDuration / Math.max(1e-6, 1 - job.progress), 0, 3);
         job.finishReady = true;
         root.dataset.phase = 'fixing';
         detail.textContent = L.text('正在定影');

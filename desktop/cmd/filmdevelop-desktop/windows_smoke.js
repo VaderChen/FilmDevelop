@@ -72,7 +72,8 @@
       completed.push('RAW 選項切換完成');
     }
     completed.push(...await window.runUpdateNoticeSmoke());
-    window.runtime.EventsEmit('filmdevelop:smoke-result', {passed:true, completed, computeBackends:latest.computeBackends, rawDecoders:latest.rawDecoders, computeBackend:latest.computeBackend, rawDecoderBackend:latest.rawDecoderBackend});
+    completed.push(...await window.runDevelopmentSmoke());
+    window.runtime.EventsEmit('filmdevelop:smoke-result', {passed:true, completed, development:window.developmentSmokeMetrics, computeBackends:latest.computeBackends, rawDecoders:latest.rawDecoders, computeBackend:latest.computeBackend, rawDecoderBackend:latest.rawDecoderBackend});
   } catch (error) {
     window.runtime.EventsEmit('filmdevelop:smoke-result', {passed:false, error:String(error), completed});
   }

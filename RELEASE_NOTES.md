@@ -13,6 +13,7 @@
 - **修正**：分區淡化改用共同的單調亮度曲線，修正強烈暗部淡化時相鄰階調反轉；保留既有分區控制與操作方式。
 - **修正**：HDR 對數亮度重建保留純黑與極暗階調，避免數值穩定處理抬升黑位或截斷暗部；保留自訂黑位控制與浮點高光。
 - **改善**：統一導向濾波的取樣座標及上採樣，減少預覽、匯出與分塊運算差異；小型係數圖保留在 GPU 並沿用容量上限，減少 CPU 讀回與再次上傳。
+- **改善**：改善輸出照片的顯影動畫：配合螢幕逐幀更新，最短顯現時間由 7 秒縮短為 6.2 秒，較久沒有進度回報時仍平順顯現，完成時連續減速定影；維持原有對話框、操作流程與預覽記憶體上限。
 
 [原始碼差異](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-1503...v1.26.1004-build-0036) · [驗證紀錄](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-0036/desktop/RESTORATION.md)
 
@@ -29,6 +30,7 @@ Compared with: **1.26.1003 build 1503**。
 - **Fixed**：Use a shared monotonic luminance curve for tonal-zone fade, preventing adjacent tones from reversing under strong shadow fade while retaining existing zone controls and workflow.
 - **Fixed**：HDR log-luminance reconstruction preserves black and near-black gradations, avoiding lifted blacks or clipped shadows from numerical stabilization. Custom black-level controls and floating-point highlights remain available.
 - **Improved**：Align guided-filter sampling coordinates and upsampling to reduce differences between previews, exports and tiled rendering. Keep small coefficient images on the GPU within existing cache limits to avoid CPU readback and re-upload.
+- **Improved**：Make the photo export reveal smoother with display-synchronized frames, a shorter minimum reveal of 6.2 seconds instead of 7, continuous motion between sparse progress reports, and a gradual finish. Preserve the existing dialog, workflow and preview memory limit.
 
 [Source comparison](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-1503...v1.26.1004-build-0036) · [Validation record](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-0036/desktop/RESTORATION.md)
 
@@ -45,6 +47,7 @@ Compared with: **1.26.1003 build 1503**。
 - **修正**：階調別フェードに共通の単調輝度カーブを使用し、シャドウを強くフェードした際の隣接階調の反転を修正。既存の領域別コントロールと操作手順を維持します。
 - **修正**：HDR の対数輝度再構成で黒と極暗部の階調を保持し、数値安定化による黒浮きや暗部の切り捨てを修正。任意の黒レベル調整と浮動小数点ハイライトは維持します。
 - **改善**：ガイドフィルターのサンプリング座標とアップサンプリングを統一し、プレビュー、書き出し、タイル処理の差を低減。小さな係数画像を既存のキャッシュ上限内で GPU に保持し、CPU 読み戻しと再転送を削減します。
+- **改善**：写真書き出し時の現像アニメーションを画面更新に同期し、最短表示時間を 7 秒から 6.2 秒に短縮。進捗通知の間隔が長い場合も滑らかに表示します。完了時は連続的に減速して定着し、既存のダイアログ、操作手順、プレビューのメモリ上限を維持します。
 
 [ソースの差分](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-1503...v1.26.1004-build-0036) · [検証記録](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-0036/desktop/RESTORATION.md)
 
@@ -61,6 +64,7 @@ Compared with: **1.26.1003 build 1503**。
 - **수정**：명암 영역별 페이드에 공통 단조 휘도 곡선을 적용하여 강한 그림자 페이드에서 인접 계조가 뒤집히는 문제를 수정했습니다. 기존 영역별 제어와 작업 흐름은 유지합니다.
 - **수정**：HDR 로그 휘도 복원에서 검정과 극암부 계조를 보존하여 수치 안정화로 검정이 들뜨거나 어두운 계조가 잘리는 문제를 수정했습니다. 사용자 검정 레벨과 부동소수점 하이라이트는 유지합니다.
 - **개선**：가이드 필터의 샘플링 좌표와 업샘플링을 통일하여 미리보기, 내보내기와 타일 처리 간 차이를 줄입니다. 작은 계수 이미지를 기존 캐시 한도 내에서 GPU에 유지하여 CPU 읽기와 재전송을 줄입니다.
+- **개선**：사진 내보내기 현상 애니메이션을 화면 갱신에 맞추고 최소 표시 시간을 7초에서 6.2초로 줄여 진행 알림 간격이 길어도 부드럽게 표시합니다. 완료 시 연속적으로 감속하며 기존 대화상자, 작업 흐름과 미리보기 메모리 한도를 유지합니다.
 
 [소스 변경 비교](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-1503...v1.26.1004-build-0036) · [검증 기록](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-0036/desktop/RESTORATION.md)
 

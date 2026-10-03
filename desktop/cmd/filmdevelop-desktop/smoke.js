@@ -520,6 +520,8 @@
         if(Date.now()>deadline)throw new Error('MCP 匯出顯影對話框未完成收尾');
         await new Promise(resolve=>setTimeout(resolve,25));
       }
+      completed.push(...await window.runDevelopmentSmoke());
+      timings.development=window.developmentSmokeMetrics;
       stage=10;window.runtime.EventsEmit('filmdevelop:smoke-empty');
     } catch(error){fail(String(error)+"\n"+(error.stack||""))}
   }

@@ -15,6 +15,7 @@ Compared with: **1.26.1003 build 1503**。
 - **Fixed**：Use a shared monotonic luminance curve for tonal-zone fade, preventing adjacent tones from reversing under strong shadow fade while retaining existing zone controls and workflow.
 - **Fixed**：HDR log-luminance reconstruction preserves black and near-black gradations, avoiding lifted blacks or clipped shadows from numerical stabilization. Custom black-level controls and floating-point highlights remain available.
 - **Improved**：Align guided-filter sampling coordinates and upsampling to reduce differences between previews, exports and tiled rendering. Keep small coefficient images on the GPU within existing cache limits to avoid CPU readback and re-upload.
+- **Improved**：Make the photo export reveal smoother with display-synchronized frames, a shorter minimum reveal of 6.2 seconds instead of 7, continuous motion between sparse progress reports, and a gradual finish. Preserve the existing dialog, workflow and preview memory limit.
 
 [Source comparison](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-1503...v1.26.1004-build-0036) · [Validation record](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-0036/desktop/RESTORATION.md)
 
