@@ -90,21 +90,23 @@ func Paired(model string, candidates []string) (string, error) {
 	if len(candidates) == 1 {
 		return candidates[0], nil
 	}
-	sorted := append([]string{}, candidates...)
-	sort.Slice(sorted, func(i, j int) bool {
-		a, b := PairingScore(model, sorted[i]), PairingScore(model, sorted[j])
-		if a != b {
-			return a > b
-		}
-		return sorted[i] < sorted[j]
-	})
-	if len(sorted) == 0 {
+	if len(candidates) == 0 {
 		return "", errors.New("缺少對應的 mmproj 視覺編碼器")
 	}
-	if PairingScore(model, sorted[0]) == 0 || len(sorted) > 1 && PairingScore(model, sorted[0]) == PairingScore(model, sorted[1]) {
+	// 只需要唯一最高分；每個候選評分一次，毋須排序或複製候選清單。
+	best, bestScore, tied := "", 0, false
+	for _, candidate := range candidates {
+		score := PairingScore(model, candidate)
+		if score > bestScore {
+			best, bestScore, tied = candidate, score, false
+		} else if score == bestScore {
+			tied = true
+		}
+	}
+	if bestScore == 0 || tied {
 		return "", errors.New("同資料夾有多個 mmproj，無法確定配對")
 	}
-	return sorted[0], nil
+	return best, nil
 }
 func ValidateGGUF(path string) error {
 	f, err := os.Open(path)

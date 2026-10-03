@@ -4,6 +4,17 @@
 
 <!-- 由 scripts/release_notes.py 產生；請修改 history.json。 -->
 
+## 1.26.1003 build 1503
+
+相較版本：**1.26.1003 build 1300**。
+
+- **改善**：最佳化配方編輯、驗證與自訂底片預設，減少重複 JSON 解碼、複製及記憶體配置，保留既有功能、畫面與操作流程。
+- **改善**：遮罩資產改用最多 64 KiB 的串流緩衝區完成驗證與重複匯入比對；保留完整內容、尺寸及 SHA-256 檢查。
+- **改善**：模型配對每個候選只評分一次，照片自然排序每個檔案只建立一次排序鍵；維持原配對判斷、同分處理、順序及縮圖識別。
+- **改善**：最佳化 CPU Gaussian 取樣，維持原有浮點精度、權重及累加順序；macOS 與 Windows 各通過 114 組逐位元對照，Windows CPU／Vulkan 各 10 份匯出與 build 1300 完全相同。
+
+[原始碼差異](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-1300...v1.26.1003-build-1503) · [驗證紀錄](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1503/desktop/RESTORATION.md)
+
 ## 1.26.1003 build 1300
 
 相較版本：**1.26.1003 build 1109**。

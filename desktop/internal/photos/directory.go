@@ -6,11 +6,11 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"golang.org/x/text/collate"
@@ -82,7 +82,7 @@ func Scan(ctx context.Context, path string) (Directory, error) {
 	if !info.IsDir() {
 		return Directory{}, errors.New("選取的路徑不是資料夾")
 	}
-	result := Directory{Path: path, Entries: []Entry{}, ByID: map[string]Entry{}}
+	result := Directory{Path: path, Entries: []Entry{}}
 	for {
 		if err := ctx.Err(); err != nil {
 			return Directory{}, err
@@ -101,9 +101,8 @@ func Scan(ctx context.Context, path string) (Directory, error) {
 			}
 			entry := Entry{Name: candidate.Name(), Path: filepath.Join(path, candidate.Name()), Size: info.Size(), ModifiedNS: info.ModTime().UnixNano(), ModifiedAt: float64(info.ModTime().UnixMilli()) / 1000}
 			entry.ID = Identity(entry.Path)
-			entry.CacheKey = Identity(fmt.Sprintf("thumbnail-v2-content-256\n%s\n%d\n%d", entry.Path, entry.Size, entry.ModifiedNS))
+			entry.CacheKey = thumbnailIdentity(entry)
 			result.Entries = append(result.Entries, entry)
-			result.ByID[entry.ID] = entry
 		}
 		if errors.Is(readErr, io.EOF) {
 			break
@@ -112,15 +111,54 @@ func Scan(ctx context.Context, path string) (Directory, error) {
 			return Directory{}, readErr
 		}
 	}
+	result.ByID = make(map[string]Entry, len(result.Entries))
+	for _, entry := range result.Entries {
+		result.ByID[entry.ID] = entry
+	}
+	if len(result.Entries) < 2 {
+		return result, nil
+	}
 	order := collate.New(language.Und, collate.Numeric, collate.IgnoreCase)
-	sort.SliceStable(result.Entries, func(i, j int) bool {
-		a, b := result.Entries[i], result.Entries[j]
-		if compared := order.CompareString(a.Name, b.Name); compared != 0 {
-			return compared < 0
-		}
-		return a.Path < b.Path
-	})
+	var buffer collate.Buffer
+	keys := make([]string, len(result.Entries))
+	for i, entry := range result.Entries {
+		keys[i] = string(order.KeyFromString(&buffer, entry.Name))
+		buffer.Reset()
+	}
+	// 每個名稱只建立一次 Unicode／數字排序鍵；同名時仍依路徑穩定排序。
+	sort.Stable(directoryOrder{entries: result.Entries, keys: keys})
 	return result, nil
+}
+
+func thumbnailIdentity(entry Entry) string {
+	// 保持既有鍵值的位元組格式；整數直接寫入摘要輸入，省去格式化的中間物件。
+	const prefix = "thumbnail-v2-content-256\n"
+	data := make([]byte, 0, len(prefix)+len(entry.Path)+2+2*20)
+	data = append(data, prefix...)
+	data = append(data, entry.Path...)
+	data = append(data, '\n')
+	data = strconv.AppendInt(data, entry.Size, 10)
+	data = append(data, '\n')
+	data = strconv.AppendInt(data, entry.ModifiedNS, 10)
+	hash := sha256.Sum256(data)
+	return hex.EncodeToString(hash[:])
+}
+
+type directoryOrder struct {
+	entries []Entry
+	keys    []string
+}
+
+func (s directoryOrder) Len() int { return len(s.entries) }
+func (s directoryOrder) Less(i, j int) bool {
+	if s.keys[i] != s.keys[j] {
+		return s.keys[i] < s.keys[j]
+	}
+	return s.entries[i].Path < s.entries[j].Path
+}
+func (s directoryOrder) Swap(i, j int) {
+	s.entries[i], s.entries[j] = s.entries[j], s.entries[i]
+	s.keys[i], s.keys[j] = s.keys[j], s.keys[i]
 }
 
 func (e Entry) Unchanged() bool {

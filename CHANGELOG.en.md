@@ -4,6 +4,17 @@
 
 <!-- 由 scripts/release_notes.py 產生；請修改 history.json。 -->
 
+## 1.26.1003 build 1503
+
+Compared with: **1.26.1003 build 1300**。
+
+- **Improved**：Optimize recipe editing, validation and custom-film defaults by reducing repeated JSON decoding, copying and allocations, preserving features, layout and workflow.
+- **Improved**：Validate mask assets and compare existing imports with a streaming buffer capped at 64 KiB, retaining full content, dimensions and SHA-256 checks.
+- **Improved**：Score each model-pairing candidate once and build natural-sort keys once per photo, retaining pairing decisions, tie handling, ordering and thumbnail identities.
+- **Improved**：Optimize CPU Gaussian sampling while preserving floating-point precision, weights and accumulation order. All 114 bit-exact cases pass on both macOS and Windows; 10 exports per Windows CPU/Vulkan backend match build 1300 byte for byte.
+
+[Source comparison](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-1300...v1.26.1003-build-1503) · [Validation record](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1503/desktop/RESTORATION.md)
+
 ## 1.26.1003 build 1300
 
 Compared with: **1.26.1003 build 1109**。

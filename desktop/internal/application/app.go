@@ -92,6 +92,7 @@ type App struct {
 	selectedCustom           string
 	customBase               *contract.Recipe
 	customFilms              []CustomFilm
+	customDefaults           *customDefaultsCache
 	prompts                  map[string]map[string]string
 	dialog                   *pendingDialog
 

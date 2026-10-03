@@ -74,3 +74,18 @@ func BenchmarkRepairRevision(b *testing.B) {
 		}
 	}
 }
+
+func BenchmarkCustomDefaults(b *testing.B) {
+	a := efficiencyApp(b)
+	r := a.recipes["filmPortra400"]
+	a.customFilms = []CustomFilm{{ID: "custom-benchmark", Name: "量測底片", BaseStyle: r.Style, Adjustment: r.Adjustment}}
+	a.selectedCustom = a.customFilms[0].ID
+	a.currentDefaults()
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if len(a.currentDefaults()) < 100 {
+			b.Fatal("自訂底片預設不完整")
+		}
+	}
+}

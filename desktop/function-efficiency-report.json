@@ -1,0 +1,1780 @@
+{
+  "schema": 1,
+  "passed": true,
+  "date": "2026-10-03",
+  "baselineCommit": "8bdd6790907a3634c440ab41a253fc6374587711",
+  "scope": "build 1503 相較 build 1300 的函式最佳化；共用配方、遮罩資產、模型配對、照片目錄、自訂底片預設及 C++ CPU Gaussian。UI、操作流程、影像參數與契約未修改。",
+  "sourceFilesSHA256": {
+    "desktop/internal/application/app.go": "820f885f1d4ed1410bbd1ab90b5667018cad19615280edd7deeeaf9a53cada39",
+    "desktop/internal/application/library.go": "df838c4feddfcaf5f096ce28aa68b940ad7c32dea824731d365353517e3865c5",
+    "desktop/internal/models/catalog.go": "3f2e2478ce0995f0c84c8d01162c12691db5bb3211b3f02691bcd7b872f75e8a",
+    "desktop/internal/photos/directory.go": "f43d3881540086c2aeab4b38dd2bb8a6cd486aec4dd7b4558929b740587594f7",
+    "desktop/internal/recipes/library.go": "baef0c0282cf3c05e86a01c44cc88fb8cb501daf3814463fb8fdc520b7200bc9",
+    "desktop/internal/recipes/migration.go": "e85644d846b938fa7f3e766b1d78bc15b3d7dc43485019984e1f2a2436f9f9c3",
+    "desktop/internal/storage/assets.go": "50dcd26ab3e9c5e62611284446a88d333d7a79e762cba17af4a91d10d3864f83",
+    "experiments/PhotoCoreCpp/src/film_image.cpp": "72db1a95632029ce6641c74998231cbafc393ab60eb169102a085458cefbff3b"
+  },
+  "environment": {
+    "macOS": "27.0 / Apple M4 Pro / arm64",
+    "go": "go1.27.0",
+    "macCompiler": "Apple clang 21.0.0",
+    "windows": "Microsoft Windows NT 10.0.19045.0",
+    "windowsCPU": "Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz",
+    "windowsCompiler": "MinGW GCC 16.2.0；在 macOS 交叉編譯，於 Windows 實機執行"
+  },
+  "method": {
+    "go": "非 race 基準，-benchmem -count=3 -benchtime=400ms；各操作採三次中位數。固定輸入、目錄建立及初次資產匯入不計時，量測期間不並行編譯或執行其他效能測試。",
+    "native": "每輪預熱 3 次，再記錄 7 次；修改前後輪流執行 3 輪，各 21 次樣本取中位數。相同 Release 編譯器與 strict FP 選項，禁止 fast-math 與 FMA 合併。",
+    "fixtures": "配方採 filmPortra400；大型編輯含各 1 MiB 的 imageData 與 maskData。遮罩為 RGBA Float32、1／256／1024 邊長；照片目錄含 0／1／256／4096 個實際檔案及中文、重音、數字名稱。Gaussian 為 1024×768、sigma 1.5／4、兩種邊界模式。",
+    "memory": "allocatedBytes 是每次函式呼叫累計配置量 B/op，並非 RSS、峰值或整個 App 的記憶體。ImportMask 不含呼叫端原本持有的輸入陣列。",
+    "cache": "currentDefaults 為命中單筆快取的量測；第一次或配方變更仍須 Normalize／Project。保留一份投影與 32-byte 摘要，不保留原始 JSON 副本；刪除、切回內建或資料無效時清除。",
+    "nativeMemory": "Gaussian 保持原有影像緩衝區數量與 O(width×height) 空間，僅減少取樣邊界處理，未宣稱降低影像像素記憶體。"
+  },
+  "goMeasurements": [
+    {
+      "benchmark": "BenchmarkRecipeFunctions/Validate",
+      "beforeSamples": [
+        {
+          "nanoseconds": 27725.0,
+          "allocatedBytes": 15799,
+          "allocations": 368
+        },
+        {
+          "nanoseconds": 27594.0,
+          "allocatedBytes": 15795,
+          "allocations": 368
+        },
+        {
+          "nanoseconds": 27930.0,
+          "allocatedBytes": 15797,
+          "allocations": 368
+        }
+      ],
+      "afterSamples": [
+        {
+          "nanoseconds": 24683.0,
+          "allocatedBytes": 11888,
+          "allocations": 270
+        },
+        {
+          "nanoseconds": 24420.0,
+          "allocatedBytes": 11890,
+          "allocations": 270
+        },
+        {
+          "nanoseconds": 24410.0,
+          "allocatedBytes": 11889,
+          "allocations": 270
+        }
+      ],
+      "beforeMedian": {
+        "nanoseconds": 27725.0,
+        "allocatedBytes": 15797,
+        "allocations": 368
+      },
+      "afterMedian": {
+        "nanoseconds": 24420.0,
+        "allocatedBytes": 11889,
+        "allocations": 270
+      },
+      "timeReductionPercent": 11.92,
+      "allocationBytesReductionPercent": 24.74
+    },
+    {
+      "benchmark": "BenchmarkRecipeFunctions/Project",
+      "beforeSamples": [
+        {
+          "nanoseconds": 34867.0,
+          "allocatedBytes": 25189,
+          "allocations": 379
+        },
+        {
+          "nanoseconds": 34610.0,
+          "allocatedBytes": 25188,
+          "allocations": 379
+        },
+        {
+          "nanoseconds": 34697.0,
+          "allocatedBytes": 25189,
+          "allocations": 379
+        }
+      ],
+      "afterSamples": [
+        {
+          "nanoseconds": 28586.0,
+          "allocatedBytes": 16853,
+          "allocations": 274
+        },
+        {
+          "nanoseconds": 29500.0,
+          "allocatedBytes": 16857,
+          "allocations": 274
+        },
+        {
+          "nanoseconds": 29386.0,
+          "allocatedBytes": 16856,
+          "allocations": 274
+        }
+      ],
+      "beforeMedian": {
+        "nanoseconds": 34697.0,
+        "allocatedBytes": 25189,
+        "allocations": 379
+      },
+      "afterMedian": {
+        "nanoseconds": 29386.0,
+        "allocatedBytes": 16856,
+        "allocations": 274
+      },
+      "timeReductionPercent": 15.31,
+      "allocationBytesReductionPercent": 33.08
+    },
+    {
+      "benchmark": "BenchmarkRecipeFunctions/Edit",
+      "beforeSamples": [
+        {
+          "nanoseconds": 76755.0,
+          "allocatedBytes": 40102,
+          "allocations": 849
+        },
+        {
+          "nanoseconds": 76334.0,
+          "allocatedBytes": 40118,
+          "allocations": 849
+        },
+        {
+          "nanoseconds": 76187.0,
+          "allocatedBytes": 40097,
+          "allocations": 849
+        }
+      ],
+      "afterSamples": [
+        {
+          "nanoseconds": 47387.0,
+          "allocatedBytes": 17909,
+          "allocations": 382
+        },
+        {
+          "nanoseconds": 45874.0,
+          "allocatedBytes": 17906,
+          "allocations": 382
+        },
+        {
+          "nanoseconds": 46365.0,
+          "allocatedBytes": 17909,
+          "allocations": 382
+        }
+      ],
+      "beforeMedian": {
+        "nanoseconds": 76334.0,
+        "allocatedBytes": 40102,
+        "allocations": 849
+      },
+      "afterMedian": {
+        "nanoseconds": 46365.0,
+        "allocatedBytes": 17909,
+        "allocations": 382
+      },
+      "timeReductionPercent": 39.26,
+      "allocationBytesReductionPercent": 55.34
+    },
+    {
+      "benchmark": "BenchmarkRecipeFunctions/Normalize",
+      "beforeSamples": [
+        {
+          "nanoseconds": 111774.0,
+          "allocatedBytes": 55928,
+          "allocations": 1278
+        },
+        {
+          "nanoseconds": 111554.0,
+          "allocatedBytes": 55937,
+          "allocations": 1278
+        },
+        {
+          "nanoseconds": 110775.0,
+          "allocatedBytes": 55962,
+          "allocations": 1278
+        }
+      ],
+      "afterSamples": [
+        {
+          "nanoseconds": 82857.0,
+          "allocatedBytes": 37663,
+          "allocations": 912
+        },
+        {
+          "nanoseconds": 81964.0,
+          "allocatedBytes": 37663,
+          "allocations": 911
+        },
+        {
+          "nanoseconds": 81878.0,
+          "allocatedBytes": 37651,
+          "allocations": 911
+        }
+      ],
+      "beforeMedian": {
+        "nanoseconds": 111554.0,
+        "allocatedBytes": 55937,
+        "allocations": 1278
+      },
+      "afterMedian": {
+        "nanoseconds": 81964.0,
+        "allocatedBytes": 37663,
+        "allocations": 911
+      },
+      "timeReductionPercent": 26.53,
+      "allocationBytesReductionPercent": 32.67
+    },
+    {
+      "benchmark": "BenchmarkRecipeFunctions/EditWithRepair",
+      "beforeSamples": [
+        {
+          "nanoseconds": 4307221.0,
+          "allocatedBytes": 5605843,
+          "allocations": 881
+        },
+        {
+          "nanoseconds": 4370779.0,
+          "allocatedBytes": 5820361,
+          "allocations": 886
+        },
+        {
+          "nanoseconds": 4342745.0,
+          "allocatedBytes": 5460222,
+          "allocations": 885
+        }
+      ],
+      "afterSamples": [
+        {
+          "nanoseconds": 1854645.0,
+          "allocatedBytes": 2562921,
+          "allocations": 401
+        },
+        {
+          "nanoseconds": 1751766.0,
+          "allocatedBytes": 2598325,
+          "allocations": 405
+        },
+        {
+          "nanoseconds": 1743556.0,
+          "allocatedBytes": 2659528,
+          "allocations": 403
+        }
+      ],
+      "beforeMedian": {
+        "nanoseconds": 4342745.0,
+        "allocatedBytes": 5605843,
+        "allocations": 885
+      },
+      "afterMedian": {
+        "nanoseconds": 1751766.0,
+        "allocatedBytes": 2598325,
+        "allocations": 403
+      },
+      "timeReductionPercent": 59.66,
+      "allocationBytesReductionPercent": 53.65
+    },
+    {
+      "benchmark": "BenchmarkMaskFunctions/256/ValidateMask",
+      "beforeSamples": [
+        {
+          "nanoseconds": 110873.0,
+          "allocatedBytes": 0,
+          "allocations": 0
+        },
+        {
+          "nanoseconds": 108903.0,
+          "allocatedBytes": 0,
+          "allocations": 0
+        },
+        {
+          "nanoseconds": 108457.0,
+          "allocatedBytes": 0,
+          "allocations": 0
+        }
+      ],
+      "afterSamples": [
+        {
+          "nanoseconds": 100790.0,
+          "allocatedBytes": 0,
+          "allocations": 0
+        },
+        {
+          "nanoseconds": 90039.0,
+          "allocatedBytes": 0,
+          "allocations": 0
+        },
+        {
+          "nanoseconds": 92283.0,
+          "allocatedBytes": 0,
+          "allocations": 0
+        }
+      ],
+      "beforeMedian": {
+        "nanoseconds": 108903.0,
+        "allocatedBytes": 0,
+        "allocations": 0
+      },
+      "afterMedian": {
+        "nanoseconds": 92283.0,
+        "allocatedBytes": 0,
+        "allocations": 0
+      },
+      "timeReductionPercent": 15.26,
+      "allocationBytesReductionPercent": 0
+    },
+    {
+      "benchmark": "BenchmarkMaskFunctions/256/ValidateMaskAsset",
+      "beforeSamples": [
+        {
+          "nanoseconds": 539822.0,
+          "allocatedBytes": 1058065,
+          "allocations": 12
+        },
+        {
+          "nanoseconds": 539645.0,
+          "allocatedBytes": 1058061,
+          "allocations": 12
+        },
+        {
+          "nanoseconds": 539692.0,
+          "allocatedBytes": 1058060,
+          "allocations": 12
+        }
+      ],
+      "afterSamples": [
+        {
+          "nanoseconds": 460463.0,
+          "allocatedBytes": 66664,
+          "allocations": 13
+        },
+        {
+          "nanoseconds": 459855.0,
+          "allocatedBytes": 66664,
+          "allocations": 13
+        },
+        {
+          "nanoseconds": 483167.0,
+          "allocatedBytes": 66664,
+          "allocations": 13
+        }
+      ],
+      "beforeMedian": {
+        "nanoseconds": 539692.0,
+        "allocatedBytes": 1058061,
+        "allocations": 12
+      },
+      "afterMedian": {
+        "nanoseconds": 460463.0,
+        "allocatedBytes": 66664,
+        "allocations": 13
+      },
+      "timeReductionPercent": 14.68,
+      "allocationBytesReductionPercent": 93.7
+    },
+    {
+      "benchmark": "BenchmarkMaskFunctions/256/ImportExistingMask",
+      "beforeSamples": [
+        {
+          "nanoseconds": 892568.0,
+          "allocatedBytes": 1057755,
+          "allocations": 11
+        },
+        {
+          "nanoseconds": 892442.0,
+          "allocatedBytes": 1057754,
+          "allocations": 11
+        },
+        {
+          "nanoseconds": 892413.0,
+          "allocatedBytes": 1057754,
+          "allocations": 11
+        }
+      ],
+      "afterSamples": [
+        {
+          "nanoseconds": 780042.0,
+          "allocatedBytes": 66672,
+          "allocations": 13
+        },
+        {
+          "nanoseconds": 808807.0,
+          "allocatedBytes": 66672,
+          "allocations": 13
+        },
+        {
+          "nanoseconds": 789297.0,
+          "allocatedBytes": 66672,
+          "allocations": 13
+        }
+      ],
+      "beforeMedian": {
+        "nanoseconds": 892442.0,
+        "allocatedBytes": 1057754,
+        "allocations": 11
+      },
+      "afterMedian": {
+        "nanoseconds": 789297.0,
+        "allocatedBytes": 66672,
+        "allocations": 13
+      },
+      "timeReductionPercent": 11.56,
+      "allocationBytesReductionPercent": 93.7
+    },
+    {
+      "benchmark": "BenchmarkMaskFunctions/1024/ValidateMask",
+      "beforeSamples": [
+        {
+          "nanoseconds": 1786992.0,
+          "allocatedBytes": 0,
+          "allocations": 0
+        },
+        {
+          "nanoseconds": 1759421.0,
+          "allocatedBytes": 0,
+          "allocations": 0
+        },
+        {
+          "nanoseconds": 1742085.0,
+          "allocatedBytes": 0,
+          "allocations": 0
+        }
+      ],
+      "afterSamples": [
+        {
+          "nanoseconds": 1420421.0,
+          "allocatedBytes": 0,
+          "allocations": 0
+        },
+        {
+          "nanoseconds": 1475310.0,
+          "allocatedBytes": 0,
+          "allocations": 0
+        },
+        {
+          "nanoseconds": 1415987.0,
+          "allocatedBytes": 0,
+          "allocations": 0
+        }
+      ],
+      "beforeMedian": {
+        "nanoseconds": 1759421.0,
+        "allocatedBytes": 0,
+        "allocations": 0
+      },
+      "afterMedian": {
+        "nanoseconds": 1420421.0,
+        "allocatedBytes": 0,
+        "allocations": 0
+      },
+      "timeReductionPercent": 19.27,
+      "allocationBytesReductionPercent": 0
+    },
+    {
+      "benchmark": "BenchmarkMaskFunctions/1024/ValidateMaskAsset",
+      "beforeSamples": [
+        {
+          "nanoseconds": 8463403.0,
+          "allocatedBytes": 16786702,
+          "allocations": 12
+        },
+        {
+          "nanoseconds": 8448460.0,
+          "allocatedBytes": 16786696,
+          "allocations": 12
+        },
+        {
+          "nanoseconds": 8349071.0,
+          "allocatedBytes": 16786706,
+          "allocations": 12
+        }
+      ],
+      "afterSamples": [
+        {
+          "nanoseconds": 7560418.0,
+          "allocatedBytes": 66664,
+          "allocations": 13
+        },
+        {
+          "nanoseconds": 7515110.0,
+          "allocatedBytes": 66664,
+          "allocations": 13
+        },
+        {
+          "nanoseconds": 7410987.0,
+          "allocatedBytes": 66664,
+          "allocations": 13
+        }
+      ],
+      "beforeMedian": {
+        "nanoseconds": 8448460.0,
+        "allocatedBytes": 16786702,
+        "allocations": 12
+      },
+      "afterMedian": {
+        "nanoseconds": 7515110.0,
+        "allocatedBytes": 66664,
+        "allocations": 13
+      },
+      "timeReductionPercent": 11.05,
+      "allocationBytesReductionPercent": 99.6
+    },
+    {
+      "benchmark": "BenchmarkMaskFunctions/1024/ImportExistingMask",
+      "beforeSamples": [
+        {
+          "nanoseconds": 14165549.0,
+          "allocatedBytes": 16786395,
+          "allocations": 11
+        },
+        {
+          "nanoseconds": 14177732.0,
+          "allocatedBytes": 16786392,
+          "allocations": 11
+        },
+        {
+          "nanoseconds": 14026053.0,
+          "allocatedBytes": 16786402,
+          "allocations": 11
+        }
+      ],
+      "afterSamples": [
+        {
+          "nanoseconds": 12879850.0,
+          "allocatedBytes": 66672,
+          "allocations": 13
+        },
+        {
+          "nanoseconds": 13212899.0,
+          "allocatedBytes": 66672,
+          "allocations": 13
+        },
+        {
+          "nanoseconds": 12534178.0,
+          "allocatedBytes": 66672,
+          "allocations": 13
+        }
+      ],
+      "beforeMedian": {
+        "nanoseconds": 14165549.0,
+        "allocatedBytes": 16786395,
+        "allocations": 11
+      },
+      "afterMedian": {
+        "nanoseconds": 12879850.0,
+        "allocatedBytes": 66672,
+        "allocations": 13
+      },
+      "timeReductionPercent": 9.08,
+      "allocationBytesReductionPercent": 99.6
+    },
+    {
+      "benchmark": "BenchmarkPaired/4",
+      "beforeSamples": [
+        {
+          "nanoseconds": 9477.0,
+          "allocatedBytes": 2103,
+          "allocations": 96
+        },
+        {
+          "nanoseconds": 9740.0,
+          "allocatedBytes": 2105,
+          "allocations": 96
+        },
+        {
+          "nanoseconds": 9553.0,
+          "allocatedBytes": 2099,
+          "allocations": 96
+        }
+      ],
+      "afterSamples": [
+        {
+          "nanoseconds": 4288.0,
+          "allocatedBytes": 902,
+          "allocations": 42
+        },
+        {
+          "nanoseconds": 4279.0,
+          "allocatedBytes": 901,
+          "allocations": 42
+        },
+        {
+          "nanoseconds": 4307.0,
+          "allocatedBytes": 902,
+          "allocations": 42
+        }
+      ],
+      "beforeMedian": {
+        "nanoseconds": 9553.0,
+        "allocatedBytes": 2103,
+        "allocations": 96
+      },
+      "afterMedian": {
+        "nanoseconds": 4288.0,
+        "allocatedBytes": 902,
+        "allocations": 42
+      },
+      "timeReductionPercent": 55.11,
+      "allocationBytesReductionPercent": 57.11
+    },
+    {
+      "benchmark": "BenchmarkPaired/32",
+      "beforeSamples": [
+        {
+          "nanoseconds": 198558.0,
+          "allocatedBytes": 42448,
+          "allocations": 1914
+        },
+        {
+          "nanoseconds": 198679.0,
+          "allocatedBytes": 42366,
+          "allocations": 1914
+        },
+        {
+          "nanoseconds": 197681.0,
+          "allocatedBytes": 42421,
+          "allocations": 1914
+        }
+      ],
+      "afterSamples": [
+        {
+          "nanoseconds": 35592.0,
+          "allocatedBytes": 7664,
+          "allocations": 350
+        },
+        {
+          "nanoseconds": 35768.0,
+          "allocatedBytes": 7661,
+          "allocations": 350
+        },
+        {
+          "nanoseconds": 35702.0,
+          "allocatedBytes": 7666,
+          "allocations": 350
+        }
+      ],
+      "beforeMedian": {
+        "nanoseconds": 198558.0,
+        "allocatedBytes": 42421,
+        "allocations": 1914
+      },
+      "afterMedian": {
+        "nanoseconds": 35702.0,
+        "allocatedBytes": 7664,
+        "allocations": 350
+      },
+      "timeReductionPercent": 82.02,
+      "allocationBytesReductionPercent": 81.93
+    },
+    {
+      "benchmark": "BenchmarkPaired/128",
+      "beforeSamples": [
+        {
+          "nanoseconds": 323184.0,
+          "allocatedBytes": 70978,
+          "allocations": 3130
+        },
+        {
+          "nanoseconds": 325954.0,
+          "allocatedBytes": 70968,
+          "allocations": 3130
+        },
+        {
+          "nanoseconds": 326957.0,
+          "allocatedBytes": 70942,
+          "allocations": 3130
+        }
+      ],
+      "afterSamples": [
+        {
+          "nanoseconds": 145158.0,
+          "allocatedBytes": 30827,
+          "allocations": 1406
+        },
+        {
+          "nanoseconds": 144232.0,
+          "allocatedBytes": 30872,
+          "allocations": 1406
+        },
+        {
+          "nanoseconds": 143614.0,
+          "allocatedBytes": 30836,
+          "allocations": 1406
+        }
+      ],
+      "beforeMedian": {
+        "nanoseconds": 325954.0,
+        "allocatedBytes": 70968,
+        "allocations": 3130
+      },
+      "afterMedian": {
+        "nanoseconds": 144232.0,
+        "allocatedBytes": 30836,
+        "allocations": 1406
+      },
+      "timeReductionPercent": 55.75,
+      "allocationBytesReductionPercent": 56.55
+    },
+    {
+      "benchmark": "BenchmarkDirectoryScan/256",
+      "beforeSamples": [
+        {
+          "nanoseconds": 1157246.0,
+          "allocatedBytes": 549033,
+          "allocations": 4189
+        },
+        {
+          "nanoseconds": 1150110.0,
+          "allocatedBytes": 551785,
+          "allocations": 4189
+        },
+        {
+          "nanoseconds": 1152863.0,
+          "allocatedBytes": 551786,
+          "allocations": 4189
+        }
+      ],
+      "afterSamples": [
+        {
+          "nanoseconds": 609500.0,
+          "allocatedBytes": 480603,
+          "allocations": 3666
+        },
+        {
+          "nanoseconds": 589523.0,
+          "allocatedBytes": 480604,
+          "allocations": 3666
+        },
+        {
+          "nanoseconds": 579576.0,
+          "allocatedBytes": 480602,
+          "allocations": 3666
+        }
+      ],
+      "beforeMedian": {
+        "nanoseconds": 1152863.0,
+        "allocatedBytes": 551785,
+        "allocations": 4189
+      },
+      "afterMedian": {
+        "nanoseconds": 589523.0,
+        "allocatedBytes": 480603,
+        "allocations": 3666
+      },
+      "timeReductionPercent": 48.86,
+      "allocationBytesReductionPercent": 12.9
+    },
+    {
+      "benchmark": "BenchmarkDirectoryScan/4096",
+      "beforeSamples": [
+        {
+          "nanoseconds": 28648228.0,
+          "allocatedBytes": 9399581,
+          "allocations": 65853
+        },
+        {
+          "nanoseconds": 28781167.0,
+          "allocatedBytes": 9399919,
+          "allocations": 65854
+        },
+        {
+          "nanoseconds": 28448117.0,
+          "allocatedBytes": 9400091,
+          "allocations": 65856
+        }
+      ],
+      "afterSamples": [
+        {
+          "nanoseconds": 13059831.0,
+          "allocatedBytes": 8132351,
+          "allocations": 57612
+        },
+        {
+          "nanoseconds": 12785348.0,
+          "allocatedBytes": 8132359,
+          "allocations": 57612
+        },
+        {
+          "nanoseconds": 12119574.0,
+          "allocatedBytes": 8132332,
+          "allocations": 57612
+        }
+      ],
+      "beforeMedian": {
+        "nanoseconds": 28648228.0,
+        "allocatedBytes": 9399919,
+        "allocations": 65854
+      },
+      "afterMedian": {
+        "nanoseconds": 12785348.0,
+        "allocatedBytes": 8132351,
+        "allocations": 57612
+      },
+      "timeReductionPercent": 55.37,
+      "allocationBytesReductionPercent": 13.48
+    },
+    {
+      "benchmark": "BenchmarkCustomDefaults",
+      "beforeSamples": [
+        {
+          "nanoseconds": 156035.0,
+          "allocatedBytes": 81934,
+          "allocations": 1663
+        },
+        {
+          "nanoseconds": 154995.0,
+          "allocatedBytes": 81949,
+          "allocations": 1663
+        },
+        {
+          "nanoseconds": 156226.0,
+          "allocatedBytes": 81960,
+          "allocations": 1663
+        }
+      ],
+      "afterSamples": [
+        {
+          "nanoseconds": 661.5,
+          "allocatedBytes": 0,
+          "allocations": 0
+        },
+        {
+          "nanoseconds": 639.1,
+          "allocatedBytes": 0,
+          "allocations": 0
+        },
+        {
+          "nanoseconds": 634.1,
+          "allocatedBytes": 0,
+          "allocations": 0
+        }
+      ],
+      "beforeMedian": {
+        "nanoseconds": 156035.0,
+        "allocatedBytes": 81949,
+        "allocations": 1663
+      },
+      "afterMedian": {
+        "nanoseconds": 639.1,
+        "allocatedBytes": 0,
+        "allocations": 0
+      },
+      "timeReductionPercent": 99.59,
+      "allocationBytesReductionPercent": 100.0
+    },
+    {
+      "benchmark": "BenchmarkMaskFunctions/1/ValidateMask",
+      "beforeSamples": [
+        {
+          "nanoseconds": 3.617,
+          "allocatedBytes": 0,
+          "allocations": 0
+        },
+        {
+          "nanoseconds": 3.622,
+          "allocatedBytes": 0,
+          "allocations": 0
+        },
+        {
+          "nanoseconds": 3.685,
+          "allocatedBytes": 0,
+          "allocations": 0
+        }
+      ],
+      "afterSamples": [
+        {
+          "nanoseconds": 4.2,
+          "allocatedBytes": 0,
+          "allocations": 0
+        },
+        {
+          "nanoseconds": 4.111,
+          "allocatedBytes": 0,
+          "allocations": 0
+        },
+        {
+          "nanoseconds": 4.199,
+          "allocatedBytes": 0,
+          "allocations": 0
+        }
+      ],
+      "beforeMedian": {
+        "nanoseconds": 3.622,
+        "allocatedBytes": 0,
+        "allocations": 0
+      },
+      "afterMedian": {
+        "nanoseconds": 4.199,
+        "allocatedBytes": 0,
+        "allocations": 0
+      },
+      "timeReductionPercent": -15.93,
+      "allocationBytesReductionPercent": 0
+    },
+    {
+      "benchmark": "BenchmarkMaskFunctions/1/ValidateMaskAsset",
+      "beforeSamples": [
+        {
+          "nanoseconds": 13505.0,
+          "allocatedBytes": 1800,
+          "allocations": 12
+        },
+        {
+          "nanoseconds": 13535.0,
+          "allocatedBytes": 1800,
+          "allocations": 12
+        },
+        {
+          "nanoseconds": 13488.0,
+          "allocatedBytes": 1800,
+          "allocations": 12
+        }
+      ],
+      "afterSamples": [
+        {
+          "nanoseconds": 14208.0,
+          "allocatedBytes": 1144,
+          "allocations": 13
+        },
+        {
+          "nanoseconds": 13349.0,
+          "allocatedBytes": 1144,
+          "allocations": 13
+        },
+        {
+          "nanoseconds": 13551.0,
+          "allocatedBytes": 1144,
+          "allocations": 13
+        }
+      ],
+      "beforeMedian": {
+        "nanoseconds": 13505.0,
+        "allocatedBytes": 1800,
+        "allocations": 12
+      },
+      "afterMedian": {
+        "nanoseconds": 13551.0,
+        "allocatedBytes": 1144,
+        "allocations": 13
+      },
+      "timeReductionPercent": -0.34,
+      "allocationBytesReductionPercent": 36.44
+    },
+    {
+      "benchmark": "BenchmarkMaskFunctions/1/ImportExistingMask",
+      "beforeSamples": [
+        {
+          "nanoseconds": 12265.0,
+          "allocatedBytes": 1496,
+          "allocations": 11
+        },
+        {
+          "nanoseconds": 14403.0,
+          "allocatedBytes": 1496,
+          "allocations": 11
+        },
+        {
+          "nanoseconds": 13747.0,
+          "allocatedBytes": 1496,
+          "allocations": 11
+        }
+      ],
+      "afterSamples": [
+        {
+          "nanoseconds": 12205.0,
+          "allocatedBytes": 1168,
+          "allocations": 13
+        },
+        {
+          "nanoseconds": 12102.0,
+          "allocatedBytes": 1168,
+          "allocations": 13
+        },
+        {
+          "nanoseconds": 12550.0,
+          "allocatedBytes": 1168,
+          "allocations": 13
+        }
+      ],
+      "beforeMedian": {
+        "nanoseconds": 13747.0,
+        "allocatedBytes": 1496,
+        "allocations": 11
+      },
+      "afterMedian": {
+        "nanoseconds": 12205.0,
+        "allocatedBytes": 1168,
+        "allocations": 13
+      },
+      "timeReductionPercent": 11.22,
+      "allocationBytesReductionPercent": 21.93
+    },
+    {
+      "benchmark": "BenchmarkDirectoryScan/0",
+      "beforeSamples": [
+        {
+          "nanoseconds": 22214.0,
+          "allocatedBytes": 10080,
+          "allocations": 57
+        },
+        {
+          "nanoseconds": 21659.0,
+          "allocatedBytes": 10080,
+          "allocations": 57
+        },
+        {
+          "nanoseconds": 21615.0,
+          "allocatedBytes": 10080,
+          "allocations": 57
+        }
+      ],
+      "afterSamples": [
+        {
+          "nanoseconds": 20829.0,
+          "allocatedBytes": 4848,
+          "allocations": 46
+        },
+        {
+          "nanoseconds": 20381.0,
+          "allocatedBytes": 4848,
+          "allocations": 46
+        },
+        {
+          "nanoseconds": 20927.0,
+          "allocatedBytes": 4848,
+          "allocations": 46
+        }
+      ],
+      "beforeMedian": {
+        "nanoseconds": 21659.0,
+        "allocatedBytes": 10080,
+        "allocations": 57
+      },
+      "afterMedian": {
+        "nanoseconds": 20829.0,
+        "allocatedBytes": 4848,
+        "allocations": 46
+      },
+      "timeReductionPercent": 3.83,
+      "allocationBytesReductionPercent": 51.9
+    },
+    {
+      "benchmark": "BenchmarkDirectoryScan/1",
+      "beforeSamples": [
+        {
+          "nanoseconds": 24023.0,
+          "allocatedBytes": 13601,
+          "allocations": 78
+        },
+        {
+          "nanoseconds": 24840.0,
+          "allocatedBytes": 13601,
+          "allocations": 78
+        },
+        {
+          "nanoseconds": 23855.0,
+          "allocatedBytes": 13600,
+          "allocations": 78
+        }
+      ],
+      "afterSamples": [
+        {
+          "nanoseconds": 23216.0,
+          "allocatedBytes": 8216,
+          "allocations": 64
+        },
+        {
+          "nanoseconds": 23137.0,
+          "allocatedBytes": 8216,
+          "allocations": 64
+        },
+        {
+          "nanoseconds": 23352.0,
+          "allocatedBytes": 8216,
+          "allocations": 64
+        }
+      ],
+      "beforeMedian": {
+        "nanoseconds": 24023.0,
+        "allocatedBytes": 13601,
+        "allocations": 78
+      },
+      "afterMedian": {
+        "nanoseconds": 23216.0,
+        "allocatedBytes": 8216,
+        "allocations": 64
+      },
+      "timeReductionPercent": 3.36,
+      "allocationBytesReductionPercent": 39.59
+    }
+  ],
+  "nativeMeasurements": [
+    {
+      "function": "film_cpu::gaussian",
+      "width": 1024,
+      "height": 768,
+      "sigma": 1.5,
+      "clampEdges": false,
+      "platform": "macOS arm64",
+      "beforeMilliseconds": [
+        3.308083,
+        3.481292,
+        3.286541,
+        3.319375,
+        3.366833,
+        3.292709,
+        3.421542,
+        3.468,
+        3.316417,
+        3.339959,
+        3.307625,
+        3.315667,
+        3.315959,
+        3.331125,
+        3.609333,
+        3.739875,
+        3.59825,
+        3.609291,
+        3.602084,
+        3.581917,
+        3.892792
+      ],
+      "beforeMedianMilliseconds": 3.366833,
+      "afterMilliseconds": [
+        1.7375,
+        1.772417,
+        1.729125,
+        1.726834,
+        1.712625,
+        1.7335,
+        1.744458,
+        1.743334,
+        1.910041,
+        1.751834,
+        1.738667,
+        1.763458,
+        1.737583,
+        1.885083,
+        1.745125,
+        1.747833,
+        1.7285,
+        2.004125,
+        1.863083,
+        1.788,
+        1.770292
+      ],
+      "afterMedianMilliseconds": 1.745125,
+      "timeReductionPercent": 48.17
+    },
+    {
+      "function": "film_cpu::gaussian",
+      "width": 1024,
+      "height": 768,
+      "sigma": 1.5,
+      "clampEdges": true,
+      "platform": "macOS arm64",
+      "beforeMilliseconds": [
+        2.7635,
+        2.668375,
+        2.84375,
+        2.688125,
+        2.667584,
+        2.875333,
+        2.669209,
+        2.714167,
+        2.672416,
+        2.694417,
+        2.732666,
+        2.6585,
+        2.651375,
+        2.651958,
+        2.931459,
+        3.054625,
+        2.922167,
+        2.918125,
+        3.13825,
+        2.914,
+        2.911125
+      ],
+      "beforeMedianMilliseconds": 2.732666,
+      "afterMilliseconds": [
+        1.774958,
+        1.716667,
+        1.760208,
+        1.719834,
+        1.742166,
+        1.7585,
+        1.714958,
+        2.083042,
+        1.809833,
+        1.763542,
+        1.740292,
+        1.722958,
+        1.88475,
+        1.739125,
+        1.717417,
+        1.72,
+        1.949542,
+        1.861042,
+        1.739875,
+        1.71075,
+        1.727833
+      ],
+      "afterMedianMilliseconds": 1.740292,
+      "timeReductionPercent": 36.32
+    },
+    {
+      "function": "film_cpu::gaussian",
+      "width": 1024,
+      "height": 768,
+      "sigma": 4,
+      "clampEdges": false,
+      "platform": "macOS arm64",
+      "beforeMilliseconds": [
+        9.820417,
+        9.211333,
+        8.994917,
+        8.961959,
+        8.972792,
+        9.020625,
+        9.221084,
+        9.331292,
+        9.428834,
+        9.084708,
+        9.143791,
+        8.997,
+        9.169791,
+        9.073291,
+        9.834416,
+        9.830667,
+        9.891792,
+        9.914916,
+        9.815625,
+        9.805666,
+        9.848459
+      ],
+      "beforeMedianMilliseconds": 9.221084,
+      "afterMilliseconds": [
+        5.981625,
+        5.893584,
+        5.92225,
+        5.911,
+        5.876917,
+        5.89625,
+        5.975209,
+        6.130708,
+        6.165583,
+        6.036625,
+        6.517,
+        6.103166,
+        5.901958,
+        6.116208,
+        5.911417,
+        6.292958,
+        6.341541,
+        6.282041,
+        5.936708,
+        6.310042,
+        6.341708
+      ],
+      "afterMedianMilliseconds": 6.036625,
+      "timeReductionPercent": 34.53
+    },
+    {
+      "function": "film_cpu::gaussian",
+      "width": 1024,
+      "height": 768,
+      "sigma": 4,
+      "clampEdges": true,
+      "platform": "macOS arm64",
+      "beforeMilliseconds": [
+        7.456666,
+        7.453042,
+        7.414459,
+        7.475833,
+        7.549834,
+        7.441458,
+        7.464958,
+        7.635083,
+        7.467042,
+        7.43475,
+        7.635375,
+        7.468417,
+        7.586375,
+        7.43125,
+        8.231417,
+        8.53675,
+        8.395458,
+        8.299958,
+        8.212417,
+        8.591875,
+        10.192541
+      ],
+      "beforeMedianMilliseconds": 7.549834,
+      "afterMilliseconds": [
+        5.987209,
+        5.948334,
+        5.967959,
+        5.948292,
+        6.063833,
+        5.992,
+        6.153417,
+        6.062791,
+        6.160708,
+        6.121042,
+        5.947167,
+        6.099792,
+        6.13425,
+        5.913084,
+        6.288125,
+        6.154208,
+        5.93025,
+        6.186625,
+        6.155583,
+        5.991666,
+        6.090083
+      ],
+      "afterMedianMilliseconds": 6.063833,
+      "timeReductionPercent": 19.68
+    },
+    {
+      "function": "film_cpu::gaussian",
+      "width": 1024,
+      "height": 768,
+      "sigma": 1.5,
+      "clampEdges": false,
+      "platform": "Windows x64",
+      "beforeMilliseconds": [
+        25.268,
+        26.637,
+        30.715,
+        33.736,
+        25.557,
+        26.011,
+        29.291,
+        25.894,
+        25.391,
+        24.829,
+        25.39,
+        24.805,
+        24.955,
+        24.783,
+        28.089,
+        27.081,
+        24.606,
+        24.997,
+        24.959,
+        25.535,
+        25.366
+      ],
+      "beforeMedianMilliseconds": 25.391,
+      "afterMilliseconds": [
+        17.419,
+        17.086,
+        17.705,
+        17.651,
+        17.592,
+        18.102,
+        19.594,
+        27.43,
+        24.17,
+        22.146,
+        22.875,
+        23.218,
+        29.653,
+        21.805,
+        20.507,
+        19.798,
+        18.615,
+        20.855,
+        26.485,
+        20.992,
+        20.351
+      ],
+      "afterMedianMilliseconds": 20.507,
+      "timeReductionPercent": 19.24
+    },
+    {
+      "function": "film_cpu::gaussian",
+      "width": 1024,
+      "height": 768,
+      "sigma": 1.5,
+      "clampEdges": true,
+      "platform": "Windows x64",
+      "beforeMilliseconds": [
+        21.882,
+        21.778,
+        21.559,
+        22.508,
+        22.954,
+        24.052,
+        24.953,
+        21.496,
+        21.235,
+        21.46,
+        27.311,
+        25.133,
+        24.177,
+        22.51,
+        21.551,
+        21.128,
+        21.712,
+        21.153,
+        21.162,
+        23.672,
+        31.238
+      ],
+      "beforeMedianMilliseconds": 21.882,
+      "afterMilliseconds": [
+        20.615,
+        17.865,
+        18.784,
+        17.593,
+        20.049,
+        17.73,
+        17.282,
+        20.581,
+        30.225,
+        17.055,
+        17.793,
+        17.308,
+        17.092,
+        17.119,
+        19.098,
+        19.589,
+        19.997,
+        20.77,
+        22.574,
+        21.002,
+        19.648
+      ],
+      "afterMedianMilliseconds": 19.098,
+      "timeReductionPercent": 12.72
+    },
+    {
+      "function": "film_cpu::gaussian",
+      "width": 1024,
+      "height": 768,
+      "sigma": 4,
+      "clampEdges": false,
+      "platform": "Windows x64",
+      "beforeMilliseconds": [
+        51.879,
+        52.251,
+        56.846,
+        53.368,
+        59.397,
+        70.706,
+        55.829,
+        55.296,
+        55.682,
+        56.96,
+        58.074,
+        61.28,
+        57.239,
+        56.939,
+        53.514,
+        51.072,
+        51.366,
+        51.412,
+        51.753,
+        53.168,
+        53.469
+      ],
+      "beforeMedianMilliseconds": 55.296,
+      "afterMilliseconds": [
+        38.24,
+        34.956,
+        33.805,
+        35.829,
+        33.68,
+        36.932,
+        32.285,
+        30.946,
+        33.879,
+        31.233,
+        31.34,
+        32.07,
+        34.426,
+        31.519,
+        33.614,
+        37.754,
+        41.946,
+        35.27,
+        33.804,
+        33.364,
+        33.228
+      ],
+      "afterMedianMilliseconds": 33.804,
+      "timeReductionPercent": 38.87
+    },
+    {
+      "function": "film_cpu::gaussian",
+      "width": 1024,
+      "height": 768,
+      "sigma": 4,
+      "clampEdges": true,
+      "platform": "Windows x64",
+      "beforeMilliseconds": [
+        49.911,
+        48.827,
+        47.23,
+        51.355,
+        48.363,
+        48.464,
+        50.653,
+        44.245,
+        48.644,
+        49.28,
+        47.499,
+        44.829,
+        43.187,
+        43.206,
+        46.627,
+        48.762,
+        45.368,
+        51.481,
+        49.848,
+        49.251,
+        47.992
+      ],
+      "beforeMedianMilliseconds": 48.464,
+      "afterMilliseconds": [
+        32.595,
+        31.363,
+        31.59,
+        31.058,
+        34.567,
+        34.268,
+        32.814,
+        37.403,
+        32.019,
+        34.846,
+        34.185,
+        37.019,
+        36.434,
+        34.099,
+        34.775,
+        35.769,
+        33.318,
+        30.959,
+        31.146,
+        31.233,
+        31.036
+      ],
+      "afterMedianMilliseconds": 33.318,
+      "timeReductionPercent": 31.25
+    }
+  ],
+  "verification": {
+    "goInternalRacePackages": 12,
+    "goVet": true,
+    "swiftGoldenCases": 1957,
+    "recipeCopyEquivalenceCombinations": 147,
+    "modelPairingEquivalenceCombinations": 1040,
+    "maskValidationEquivalenceInputs": 53,
+    "nativeBitExactCasesPerPlatform": 114,
+    "nativeInvariantGroups": 3,
+    "addressAndUndefinedSanitizerGroups": 3,
+    "macOSUIChecks": 47,
+    "windowsUIChecks": [
+      {
+        "name": "WebView2 general",
+        "checks": 14,
+        "passed": true
+      },
+      {
+        "name": "WebView2 1",
+        "checks": 21,
+        "passed": true
+      },
+      {
+        "name": "WebView2 2",
+        "checks": 13,
+        "passed": true
+      }
+    ],
+    "windowsGoTests": [
+      {
+        "includingSubtestsPassed": 1961,
+        "name": "Go recipes",
+        "skipped": [],
+        "topLevelPassed": 4,
+        "passed": true
+      },
+      {
+        "includingSubtestsPassed": 6,
+        "name": "Go storage",
+        "skipped": [],
+        "topLevelPassed": 6,
+        "passed": true
+      },
+      {
+        "includingSubtestsPassed": 5,
+        "name": "Go models",
+        "skipped": [],
+        "topLevelPassed": 5,
+        "passed": true
+      },
+      {
+        "includingSubtestsPassed": 5,
+        "name": "Go photos",
+        "skipped": [],
+        "topLevelPassed": 5,
+        "passed": true
+      },
+      {
+        "includingSubtestsPassed": 124,
+        "name": "Go application",
+        "skipped": [
+          "--- SKIP: TestLegacyNativePreferencesMigration (0.00s)",
+          "--- SKIP: TestLegacyPhotoNativeSmoke (0.00s)",
+          "--- SKIP: TestSwiftPhotoIdentity (0.00s)",
+          "--- SKIP: TestLegacyCompleteLibraryArchiveSmoke (0.00s)",
+          "--- SKIP: TestLegacySubjectMaskNativeSmoke (0.00s)",
+          "--- SKIP: TestNativeRestoration (0.00s)",
+          "--- SKIP: TestOrganizationMigrationRejectsDamagedSourceAtomically/保存失敗 (0.05s)",
+          "--- SKIP: TestPreviewPerformanceSmoke (0.00s)"
+        ],
+        "topLevelPassed": 89,
+        "passed": true
+      }
+    ],
+    "windowsVulkanExports": [
+      {
+        "identicalToBuild1300": true,
+        "sha256": "33756FF9586615D2837B64F45DCE56A09D29BC30F0F6DB070B6F683E5F00629B",
+        "name": "original jpeg 完整匯出",
+        "passed": true
+      },
+      {
+        "identicalToBuild1300": true,
+        "sha256": "768E2A64F281EA5A9D4B252DB7708FCC972160E20410AD0F5F6DDBB95BA5F74F",
+        "name": "original png 完整匯出",
+        "passed": true
+      },
+      {
+        "identicalToBuild1300": true,
+        "sha256": "7EFCD293A1986DBFC5ADA5BF5D7C1F09E4F070C30F3FE2228800EBE4B1CA3741",
+        "name": "filmPortra400 jpeg 完整匯出",
+        "passed": true
+      },
+      {
+        "identicalToBuild1300": true,
+        "sha256": "50C8F823FA7D7F584D0E2B5DC62BA7DCFF6C9B0CB9303A400EA17703686969FB",
+        "name": "filmPortra400 png 完整匯出",
+        "passed": true
+      },
+      {
+        "identicalToBuild1300": true,
+        "sha256": "D767528430FC9B1B57609EC0A28BD59AE0EB8E2D69F68F9A6E5A98249607B878",
+        "name": "filmEktachrome100 jpeg 完整匯出",
+        "passed": true
+      },
+      {
+        "identicalToBuild1300": true,
+        "sha256": "046DF7037561A7836337ECB842E139BFC21F462B49DA7D12F355319F8ECCD2CB",
+        "name": "filmEktachrome100 png 完整匯出",
+        "passed": true
+      },
+      {
+        "identicalToBuild1300": true,
+        "sha256": "9FD976065493AEDF9B0A6E29C32CE1B6CE3DD1BE2EBF4874E2D9266A1CB5A8D8",
+        "name": "filmHP5 jpeg 完整匯出",
+        "passed": true
+      },
+      {
+        "identicalToBuild1300": true,
+        "sha256": "9712190C00E181710E391682DA6AC81F8F96673B6E608D4ED61507D7FD87174A",
+        "name": "filmHP5 png 完整匯出",
+        "passed": true
+      },
+      {
+        "identicalToBuild1300": true,
+        "sha256": "B69C420D5D0EF271A662F4164F0C7B204E358E3A5604FBA36C30478D3CCBFDD6",
+        "name": "gr3-negative jpeg 完整匯出",
+        "passed": true
+      },
+      {
+        "identicalToBuild1300": true,
+        "sha256": "A54D5273B3029A3E24CC570DE09D4A124561776AD98F782FFFC1FE4C0F27C324",
+        "name": "gr3-negative png 完整匯出",
+        "passed": true
+      }
+    ],
+    "windowsCPUExports": [
+      {
+        "identicalToBuild1300": true,
+        "sha256": "33756FF9586615D2837B64F45DCE56A09D29BC30F0F6DB070B6F683E5F00629B",
+        "name": "original jpeg 完整匯出",
+        "passed": true
+      },
+      {
+        "identicalToBuild1300": true,
+        "sha256": "768E2A64F281EA5A9D4B252DB7708FCC972160E20410AD0F5F6DDBB95BA5F74F",
+        "name": "original png 完整匯出",
+        "passed": true
+      },
+      {
+        "identicalToBuild1300": true,
+        "sha256": "04C0AB2345F020F2F546A14F43C9131BF5D9452AF3F1C7570119801EBE846A90",
+        "name": "filmPortra400 jpeg 完整匯出",
+        "passed": true
+      },
+      {
+        "identicalToBuild1300": true,
+        "sha256": "339AF85A66DE57C7C7B4E289F5165B6F3906EA2263F6CE351F8D29F8B30B65DC",
+        "name": "filmPortra400 png 完整匯出",
+        "passed": true
+      },
+      {
+        "identicalToBuild1300": true,
+        "sha256": "698EABAB010140795851BA266F2CDDF39477433C66C9AF7F58F15B1F97314851",
+        "name": "filmEktachrome100 jpeg 完整匯出",
+        "passed": true
+      },
+      {
+        "identicalToBuild1300": true,
+        "sha256": "5EE633B7A01051B153FCCFDEA404AAED6492F070DBFE7DDDC6BDE78FE0AD5DD7",
+        "name": "filmEktachrome100 png 完整匯出",
+        "passed": true
+      },
+      {
+        "identicalToBuild1300": true,
+        "sha256": "9F55E4F5FF4901D645BCCC838C13DDF7D1B3CFF2B46BE520D5D3638619A71A83",
+        "name": "filmHP5 jpeg 完整匯出",
+        "passed": true
+      },
+      {
+        "identicalToBuild1300": true,
+        "sha256": "3129347A507044F66FD8931B08058DB28C371F59C568F63D0C9BE15232A36E8D",
+        "name": "filmHP5 png 完整匯出",
+        "passed": true
+      },
+      {
+        "identicalToBuild1300": true,
+        "sha256": "B69C420D5D0EF271A662F4164F0C7B204E358E3A5604FBA36C30478D3CCBFDD6",
+        "name": "gr3-negative jpeg 完整匯出",
+        "passed": true
+      },
+      {
+        "identicalToBuild1300": true,
+        "sha256": "A54D5273B3029A3E24CC570DE09D4A124561776AD98F782FFFC1FE4C0F27C324",
+        "name": "gr3-negative png 完整匯出",
+        "passed": true
+      }
+    ],
+    "finalRecheck": "最後的極小遮罩緩衝區及 0／1 張照片捷徑，已重跑全部 Go race／vet、Mac 47 項 UI；Windows 補跑 storage／photos／application 及 48 項 UI。C++、配方與模型程式碼自首輪驗收後未變。",
+    "frontendAndContractDiffEmpty": true
+  },
+  "limits": [
+    "微基準只代表表列函式與輸入，不能直接推論整體預覽、啟動或 App RSS 的改善比例。",
+    "1×1 ValidateMask 的中位數由 3.622 ns 變為 4.199 ns；極小 ValidateMaskAsset 約持平。此差異完整保留，未宣稱所有輸入皆加速。",
+    "Windows 驗收為 Windows 10 x64；未另測 Windows 11 或 MSVC 編譯器。",
+    "Windows application 有 8 個環境／平台限定的測試項目略過，名稱列於 windowsGoTests；原生 CPU／Vulkan 匯出與實際 WebView2 操作另有本輪 Smoke 證據。"
+  ],
+  "completedAtUTC": "2026-10-03T06:07:12.726993+00:00",
+  "releaseTag": "v1.26.1003-build-1503"
+}

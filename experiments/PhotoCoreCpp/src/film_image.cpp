@@ -38,19 +38,32 @@ Image gaussian(Image in, double sigma, bool clamp_edges) {
     const Image *current = &in;
     for (int axis = 0; axis < 2; ++axis) {
         Image &out = axis == 0 ? scratch : in;
+        const std::size_t stride = axis == 0 ? 1 : in.width;
+        const std::size_t extent = axis == 0 ? in.width : in.height;
         parallel_rows(in.height, in.width, [&](std::size_t y) {
             for (std::size_t x = 0; x < in.width; ++x) {
-                V sum = rgb(sample(*current, long(x), long(y))) * weights[0];
-                double alpha = sample(*current, long(x), long(y)).a * weights[0];
-                for (int i = 1; i <= radius; ++i) {
-                    const auto &a =
-                        sample(*current, long(x) - (axis == 0 ? i : 0), long(y) - (axis == 1 ? i : 0));
-                    const auto &b =
-                        sample(*current, long(x) + (axis == 0 ? i : 0), long(y) + (axis == 1 ? i : 0));
-                    sum += (rgb(a) + rgb(b)) * weights[std::size_t(i)];
-                    alpha += (a.a + b.a) * weights[std::size_t(i)];
+                const std::size_t index = y * in.width + x;
+                const std::size_t position = axis == 0 ? x : y;
+                const auto &center = current->pixels[index];
+                V sum = rgb(center) * weights[0];
+                double alpha = center.a * weights[0];
+                if (position >= std::size_t(radius) && std::size_t(radius) < extent - position) {
+                    // 內部像素的取樣範圍已知有效，省去每個 tap 的邊界處理；加總順序不變。
+                    for (int i = 1; i <= radius; ++i) {
+                        const auto &a = current->pixels[index - std::size_t(i) * stride];
+                        const auto &b = current->pixels[index + std::size_t(i) * stride];
+                        sum += (rgb(a) + rgb(b)) * weights[std::size_t(i)];
+                        alpha += (a.a + b.a) * weights[std::size_t(i)];
+                    }
+                } else {
+                    for (int i = 1; i <= radius; ++i) {
+                        const auto &a = sample(*current, long(x) - (axis == 0 ? i : 0), long(y) - (axis == 1 ? i : 0));
+                        const auto &b = sample(*current, long(x) + (axis == 0 ? i : 0), long(y) + (axis == 1 ? i : 0));
+                        sum += (rgb(a) + rgb(b)) * weights[std::size_t(i)];
+                        alpha += (a.a + b.a) * weights[std::size_t(i)];
+                    }
                 }
-                out.pixels[y * in.width + x] = pixel(sum, float(alpha));
+                out.pixels[index] = pixel(sum, float(alpha));
             }
         });
         current = &out;

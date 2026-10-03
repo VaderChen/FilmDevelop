@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/VaderChen/FilmDevelop/internal/contract"
 )
@@ -88,6 +89,26 @@ func clone[T any](value T) T {
 	data, _ := json.Marshal(value)
 	var result T
 	_ = json.Unmarshal(data, &result)
+	return result
+}
+
+// Recipe 的可變資料只有兩個 RawMessage；各自複製及正規化，避免再解碼含大型修復貼片的外層 JSON。
+// 保留原 clone 的 HTML 跳脫、無效 UTF-8 替換、null 及無效 JSON 回傳零值語意。
+func cloneRecipe(value contract.Recipe) contract.Recipe {
+	adjustment, err := json.Marshal(value.Adjustment)
+	if err != nil {
+		return contract.Recipe{}
+	}
+	patches, err := json.Marshal(value.RepairPatches)
+	if err != nil {
+		return contract.Recipe{}
+	}
+	result := value
+	result.Adjustment, result.RepairPatches = adjustment, patches
+	if !utf8.ValidString(result.Style) {
+		style, _ := json.Marshal(result.Style)
+		_ = json.Unmarshal(style, &result.Style)
+	}
 	return result
 }
 
@@ -188,8 +209,14 @@ func validateShape(value, sample any, path string) error {
 			if !exists {
 				return fmt.Errorf("配方包含未知欄位：%s.%s", path, key)
 			}
-			if err := validateShape(child, expected, path+"."+key); err != nil {
-				return err
+			// 純量只需比對型別；完整路徑只在巢狀物件或錯誤時建立。
+			if reflect.TypeOf(child) != reflect.TypeOf(expected) {
+				return fmt.Errorf("配方欄位型別錯誤：%s.%s", path, key)
+			}
+			if _, nested := child.(object); nested {
+				if err := validateShape(child, expected, path+"."+key); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -236,11 +263,19 @@ func (l *Library) document(recipe contract.Recipe) (object, error) {
 	if err := json.Unmarshal(recipe.Adjustment, &document); err != nil {
 		return nil, err
 	}
+	if err := l.validateDocument(document, style); err != nil {
+		return nil, err
+	}
+	return document, nil
+}
+
+// 已解析的配方沿用同一套完整驗證，編輯／遷移後無須再解碼一次 JSON。
+func (l *Library) validateDocument(document, style object) error {
 	if document["schemaVersion"] != float64(12) {
-		return nil, errors.New("請先遷移舊配方；目前需要 schemaVersion 12")
+		return errors.New("請先遷移舊配方；目前需要 schemaVersion 12")
 	}
 	if err := validateShape(document, style["adjustment"], "adjustment"); err != nil {
-		return nil, err
+		return err
 	}
 	for key, path := range l.paths {
 		if _, hasRule := l.properties[key]; !hasRule {
@@ -248,14 +283,11 @@ func (l *Library) document(recipe contract.Recipe) (object, error) {
 		}
 		if value, exists := get(document, path); exists {
 			if err := l.checkControl(key, value); err != nil {
-				return nil, err
+				return err
 			}
 		}
 	}
-	if err := validateStructured(document); err != nil {
-		return nil, err
-	}
-	return document, nil
+	return validateStructured(document)
 }
 
 func (l *Library) Project(recipe contract.Recipe) (object, error) {
@@ -263,7 +295,8 @@ func (l *Library) Project(recipe contract.Recipe) (object, error) {
 	if err != nil {
 		return nil, err
 	}
-	result := object{"colorCalibrationName": "", "colorCalibrationStage": ""}
+	result := make(object, len(l.paths)+3)
+	result["colorCalibrationName"], result["colorCalibrationStage"] = "", ""
 	for key, path := range l.paths {
 		value, exists := get(document, path)
 		if !exists && strings.HasPrefix(key, "printExposure") {
@@ -293,7 +326,7 @@ func (l *Library) ProjectMany(recipes map[string]contract.Recipe) (map[string]ob
 	if len(recipes) > 256 {
 		return nil, errors.New("配方數量超過限制")
 	}
-	result := map[string]object{}
+	result := make(map[string]object, len(recipes))
 	for id, recipe := range recipes {
 		if id != recipe.Style {
 			return nil, errors.New("配方底片識別不符")
@@ -308,7 +341,7 @@ func (l *Library) ProjectMany(recipes map[string]contract.Recipe) (map[string]ob
 }
 
 func (l *Library) Edit(request contract.EditorRequest) (contract.Recipe, error) {
-	result := clone(request.Recipe)
+	result := cloneRecipe(request.Recipe)
 	document, err := l.document(result)
 	if err != nil {
 		return result, err
@@ -325,7 +358,7 @@ func (l *Library) Edit(request contract.EditorRequest) (contract.Recipe, error) 
 	}
 	// 整批先套用印相配方，再依原順序套用個別欄位。
 	sort.SliceStable(changes, func(i, j int) bool { return changes[i]["key"] == "printRecipe" && changes[j]["key"] != "printRecipe" })
-	originalHDR := clone(document["hdrToneCurve"])
+	originalHDRVisible := visibleHDR(document["hdrToneCurve"])
 	for _, change := range changes {
 		if crop, ok := change["cropValues"].(object); ok {
 			if len(crop) == 0 {
@@ -386,7 +419,7 @@ func (l *Library) Edit(request contract.EditorRequest) (contract.Recipe, error) 
 				if strings.HasPrefix(key, "crop") {
 					document["imageScoped"] = true
 				}
-				if key == "hdrAmount" && value.(float64) > 0 && !visibleHDR(originalHDR) {
+				if key == "hdrAmount" && value.(float64) > 0 && !originalHDRVisible {
 					document["hdrToneCurve"] = clone(l.manualHDR)
 				}
 			}
@@ -399,7 +432,11 @@ func (l *Library) Edit(request contract.EditorRequest) (contract.Recipe, error) 
 		document["skinWhitening"].(float64) > .001 || document["skinSmoothing"].(float64) > .001
 	result.Adjustment, err = json.Marshal(document)
 	if err == nil {
-		_, err = l.document(result)
+		if len(result.Adjustment) > contract.MaxMessageBytes {
+			err = errors.New("配方資料不完整或超過大小限制")
+		} else {
+			err = l.validateDocument(document, l.styles[result.Style])
+		}
 	}
 	return result, err
 }

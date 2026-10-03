@@ -4,6 +4,17 @@
 
 <!-- 由 scripts/release_notes.py 產生；請修改 history.json。 -->
 
+## 1.26.1003 build 1503
+
+比較元：**1.26.1003 build 1300**。
+
+- **改善**：配方編集・検証とカスタムフィルムの初期値を最適化し、JSON の重複デコード、コピー、メモリ割り当てを削減。既存機能、画面、操作手順を維持します。
+- **改善**：マスク資産の検証と既存データとの照合を最大 64 KiB のストリームバッファで実行。全内容、寸法、SHA-256 の検証を維持します。
+- **改善**：モデル対応候補の評価と写真の自然順ソートキーの生成を各 1 回に削減。対応判定、同点処理、並び順、サムネイル識別を維持します。
+- **改善**：CPU Gaussian のサンプリングを最適化し、浮動小数点精度、重み、加算順序を維持。macOS・Windows で各 114 件のビット単位比較に合格し、Windows CPU／Vulkan 各 10 件の書き出しが build 1300 と完全一致。
+
+[ソースの差分](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-1300...v1.26.1003-build-1503) · [検証記録](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1503/desktop/RESTORATION.md)
+
 ## 1.26.1003 build 1300
 
 比較元：**1.26.1003 build 1109**。

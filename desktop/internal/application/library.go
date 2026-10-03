@@ -1,6 +1,7 @@
 package application
 
 import (
+	"crypto/sha256"
 	_ "embed"
 	"encoding/json"
 	"errors"
@@ -43,6 +44,14 @@ type CustomFilm struct {
 	Name       string          `json:"name"`
 	BaseStyle  string          `json:"baseStyle"`
 	Adjustment json.RawMessage `json:"adjustment"`
+}
+
+// 僅保留目前底片的一份預設投影；完整配方摘要可辨識同 ID 的原地修改，無須保留原始 JSON 副本。
+// 與 defaultUI 相同，values 只供讀取；sendState 另建快照後才發布。
+type customDefaultsCache struct {
+	id, style  string
+	adjustment [sha256.Size]byte
+	values     object
 }
 
 func filmRecipe(f CustomFilm) contract.Recipe {
@@ -231,13 +240,19 @@ func (a *App) findFilm(id string) (CustomFilm, bool) {
 
 func (a *App) currentDefaults() object {
 	if film, ok := a.findFilm(a.selectedCustom); ok {
+		key := sha256.Sum256(film.Adjustment)
+		if cached := a.customDefaults; cached != nil && cached.id == film.ID && cached.style == film.BaseStyle && cached.adjustment == key {
+			return cached.values
+		}
 		r, err := a.services.NormalizeRecipe(filmRecipe(film))
 		if err == nil {
 			if values, err := a.services.ProjectRecipes(map[string]contract.Recipe{r.Style: r}); err == nil {
+				a.customDefaults = &customDefaultsCache{id: film.ID, style: film.BaseStyle, adjustment: key, values: values[r.Style]}
 				return values[r.Style]
 			}
 		}
 	}
+	a.customDefaults = nil
 	return a.defaultUI[a.selected]
 }
 func (a *App) recipeForLook(id string) (contract.Recipe, bool) {

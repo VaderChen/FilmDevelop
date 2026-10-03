@@ -15,7 +15,7 @@ import (
 // Normalize 將 schema 1–12 的既有配方移至 schema 12；保留修復貼片與主體遮罩設定。
 // 遷移預設取自原 Swift 解碼器，與新建底片的預設分開保存。
 func (l *Library) Normalize(recipe contract.Recipe) (contract.Recipe, error) {
-	result := clone(recipe)
+	result := cloneRecipe(recipe)
 	style, exists := l.styles[recipe.Style]
 	if !exists || recipe.Version != 1 || len(recipe.Adjustment) > contract.MaxMessageBytes || !json.Valid(recipe.RepairPatches) {
 		return result, errors.New("配方版本、底片或資料格式不符")
@@ -90,7 +90,10 @@ func (l *Library) Normalize(recipe contract.Recipe) (contract.Recipe, error) {
 	balance := document["vignette"].(float64) - document["devignette"].(float64)
 	document["vignette"], document["devignette"] = math.Max(0, balance), math.Max(0, -balance)
 	result.Adjustment, _ = json.Marshal(document)
-	return result, l.Validate(result)
+	if len(result.Adjustment) > contract.MaxMessageBytes {
+		return result, errors.New("配方資料不完整或超過大小限制")
+	}
+	return result, l.validateDocument(document, style)
 }
 
 func contains(values []string, wanted any) bool {

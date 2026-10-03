@@ -4,6 +4,17 @@
 
 <!-- 由 scripts/release_notes.py 產生；請修改 history.json。 -->
 
+## 1.26.1003 build 1503
+
+비교 버전: **1.26.1003 build 1300**。
+
+- **개선**：레시피 편집·검증과 사용자 필름 기본값을 최적화하여 반복 JSON 디코딩, 복사 및 메모리 할당을 줄입니다. 기존 기능, 화면과 작업 흐름은 유지합니다.
+- **개선**：최대 64 KiB의 스트리밍 버퍼로 마스크 자산을 검증하고 기존 가져오기와 비교합니다. 전체 내용, 크기 및 SHA-256 검사는 유지합니다.
+- **개선**：모델 연결 후보 평가는 후보당 한 번, 사진의 자연 정렬 키 생성은 파일당 한 번만 수행합니다. 연결 판단, 동점 처리, 순서와 썸네일 식별은 유지합니다.
+- **개선**：CPU Gaussian 샘플링을 최적화하며 부동소수점 정밀도, 가중치와 누적 순서를 유지합니다. macOS와 Windows 각각 114건의 비트 단위 비교를 통과했으며 Windows CPU/Vulkan별 내보내기 10건이 build 1300과 완전히 일치합니다.
+
+[소스 변경 비교](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-1300...v1.26.1003-build-1503) · [검증 기록](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1503/desktop/RESTORATION.md)
+
 ## 1.26.1003 build 1300
 
 비교 버전: **1.26.1003 build 1109**。
