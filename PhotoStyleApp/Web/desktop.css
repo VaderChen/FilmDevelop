@@ -323,6 +323,11 @@ dialog.update-complete-dialog::backdrop { background:rgba(0,0,0,.38); backdrop-f
 #promptEditorDialog::backdrop { background:rgba(18,17,15,.46); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
 .host-dialog { box-sizing:border-box; min-width:min(320px,calc(100vw - 32px)); max-width:min(520px,calc(100vw - 32px)); max-height:80vh; overflow:auto; border:1px solid var(--line-strong); border-radius:12px; padding:24px; background:var(--surface); color:var(--text); box-shadow:var(--shadow-lg); font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
 .host-dialog [data-host-detail] { overflow-wrap:anywhere; }
+.host-startup-dialog { width:min(500px,calc(100vw - 32px)); }
+.host-startup-dialog h2 { margin-top:0; }
+.host-startup-status { display:flex; align-items:center; gap:10px; }
+.host-startup-dialog [data-startup-item] { overflow-wrap:anywhere; min-height:1.5em; color:var(--muted); }
+.host-startup-dialog [data-startup-time] { margin-bottom:0; color:var(--muted); }
 .host-dialog-progress { display:block; width:100%; height:8px; border:0; border-radius:4px; overflow:hidden; appearance:none; background:var(--line-strong); color:var(--accent); }
 .host-dialog-progress[hidden] { display:none; }
 .host-dialog-progress::-webkit-progress-bar { background:var(--line-strong); border-radius:4px; }

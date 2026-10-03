@@ -104,13 +104,18 @@ func (a *App) archiveLegacyPhotos() error {
 	destination := filepath.Join(a.store.Root(), "legacy", "PhotoEdits")
 	original := a.legacyPhotoDirectory
 	if original != "" && filepath.Clean(original) != filepath.Clean(destination) {
+		a.reportStartup("保存舊版照片紀錄", true, 0, 0, "")
 		entries, err := os.ReadDir(original)
 		if err != nil && !errors.Is(err, os.ErrNotExist) {
 			return err
 		}
 		inventory := object{}
 		_, _ = a.store.LoadState("legacy-assets.json", &inventory)
-		for _, entry := range entries {
+		for i, entry := range entries {
+			if err := a.ctx.Err(); err != nil {
+				return err
+			}
+			a.reportStartup("保存舊版照片紀錄", true, i, len(entries), entry.Name())
 			if entry.IsDir() || entry.Type()&os.ModeSymlink != 0 {
 				continue
 			}
@@ -139,6 +144,7 @@ func (a *App) archiveLegacyPhotos() error {
 				}
 			}
 		}
+		a.reportStartup("保存舊版照片紀錄", true, len(entries), len(entries), "")
 		if len(inventory) > 0 {
 			if err := a.store.SaveState("legacy-assets.json", inventory); err != nil {
 				return err
@@ -176,15 +182,17 @@ func (a *App) archiveLegacyPhotos() error {
 			continue
 		}
 		seen[directory] = true
+		a.reportStartup("掃描舊版照片目錄", true, 0, 0, filepath.Base(directory))
 		scan, err := photos.Scan(a.ctx, directory)
 		if err != nil {
 			a.migrationProblem(directory, fmt.Errorf("照片目錄尚未定位：%w", err), destination)
 			continue
 		}
-		for _, entry := range scan.Entries {
+		for i, entry := range scan.Entries {
 			if err := a.ctx.Err(); err != nil {
 				return err
 			}
+			a.reportStartup("移轉照片調整與分類", true, i, len(scan.Entries), filepath.Base(directory)+" / "+entry.Name)
 			signature := fmt.Sprintf("%d:%d", entry.Size, entry.ModifiedNS)
 			if old := index[entry.Path]; old != nil && old["signature"] == signature {
 				if key, ok := old["key"].(string); ok {
@@ -230,7 +238,9 @@ func (a *App) archiveLegacyPhotos() error {
 			}
 			index[entry.Path] = object{"signature": signature, "key": key, "fingerprint": fingerprint}
 		}
+		a.reportStartup("移轉照片調整與分類", true, len(scan.Entries), len(scan.Entries), filepath.Base(directory))
 	}
+	a.reportStartup("儲存移轉結果", true, 0, 0, "")
 	return a.store.CommitStates(map[string]any{"photo-source-index.json": index, "organization.json": a.organization})
 }
 

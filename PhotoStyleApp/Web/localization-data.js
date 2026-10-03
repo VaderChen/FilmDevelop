@@ -3860,5 +3860,20 @@ window.PhotoLocalizationData = {
   "目前沒有已記錄的移轉問題。": ["No migration issues are currently recorded.", "現在、移行の問題は記録されていません。", "현재 기록된 이전 문제가 없습니다."],
   "保留原檔：{0}": ["Original retained: {0}", "保持した元のファイル：{0}", "보존된 원본: {0}"],
   "可移入 {0} 張照片；保留新版衝突 {1} 張；未定位 {2} 筆。": ["{0} photos can be imported; {1} current-version conflicts will be retained; {2} entries are unresolved.", "{0} 枚の写真を取り込めます。競合する現行版の {1} 枚を保持し、{2} 件の場所が未解決です。", "사진 {0}장을 가져올 수 있습니다. 충돌하는 현재 버전 {1}장은 유지되며, {2}개 항목의 위치가 확인되지 않았습니다."],
-  "原始照片不會改寫。": ["Original photos will not be modified.", "元の写真は変更されません。", "원본 사진은 변경되지 않습니다."]
+  "原始照片不會改寫。": ["Original photos will not be modified.", "元の写真は変更されません。", "원본 사진은 변경되지 않습니다."],
+  "正在準備 FilmDevelop": ["Preparing FilmDevelop", "FilmDevelop を準備中", "FilmDevelop 준비 중"],
+  "正在移轉舊版資料": ["Migrating data from the previous version", "旧バージョンのデータを移行中", "이전 버전 데이터 이전 중"],
+  "正在匯入 FilmYourPhoto 的設定與照片紀錄。原始照片與舊版資料會保留，完成後即可操作。": ["Importing FilmYourPhoto settings and photo records. Original photos and legacy data are preserved. You can use the app when this finishes.", "FilmYourPhoto の設定と写真の記録を取り込み中です。元の写真と旧データは保持されます。完了後に操作できます。", "FilmYourPhoto 설정과 사진 기록을 가져오는 중입니다. 원본 사진과 이전 데이터는 보존됩니다. 완료되면 앱을 사용할 수 있습니다."],
+  "正在載入設定與照片，完成後即可操作。": ["Loading settings and photos. You can use the app when this finishes.", "設定と写真を読み込み中です。完了後に操作できます。", "설정과 사진을 불러오는 중입니다. 완료되면 앱을 사용할 수 있습니다."],
+  "載入底片與分類": ["Loading films and categories", "フィルムと分類を読み込み中", "필름과 분류 불러오는 중"],
+  "偵測影像處理能力": ["Detecting image processing capabilities", "画像処理機能を確認中", "이미지 처리 기능 확인 중"],
+  "移轉舊版設定": ["Migrating previous settings", "旧バージョンの設定を移行中", "이전 버전 설정 이전 중"],
+  "保存舊版照片紀錄": ["Preserving previous photo records", "旧バージョンの写真記録を保存中", "이전 버전 사진 기록 보존 중"],
+  "掃描舊版照片目錄": ["Scanning previous photo folders", "旧バージョンの写真フォルダを確認中", "이전 사진 폴더 검색 중"],
+  "移轉照片調整與分類": ["Migrating photo adjustments and categories", "写真の調整と分類を移行中", "사진 조정 및 분류 이전 중"],
+  "儲存移轉結果": ["Saving migration results", "移行結果を保存中", "이전 결과 저장 중"],
+  "載入模型與更新設定": ["Loading models and update settings", "モデルと更新設定を読み込み中", "모델 및 업데이트 설정 불러오는 중"],
+  "還原上次照片": ["Restoring the previous photo", "前回の写真を復元中", "이전 사진 복원 중"],
+  "此階段已處理 {0} / {1} 項": ["This stage: {0} / {1} items processed", "この段階：{0} / {1} 件を処理済み", "현재 단계: {0} / {1}개 처리됨"],
+  "已經過 {0} 秒": ["Elapsed: {0} seconds", "経過時間：{0} 秒", "경과 시간: {0}초"]
 };

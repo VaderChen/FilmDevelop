@@ -6,7 +6,7 @@
   try {
     let nativeState=null;const originalState=window.handleNativeState;
     window.handleNativeState=function(payload){nativeState=payload;originalState(payload);};
-    await until(()=>document.querySelector('[data-page=settings]'),'設定頁未就緒');
+    await until(()=>document.querySelector('[data-page=settings]')&&!document.getElementById('hostStartupDialog'),'設定頁未就緒');
     let reply=null;const previous=window.handleUIPreferences;
     window.handleUIPreferences=function(payload){reply=payload;previous(payload);};
     window.PhotoNativeBridge.post({action:'syncUIPreferences',initial:true});
@@ -29,9 +29,9 @@
     await until(()=>document.querySelector('dialog[open]'),'移轉紀錄未顯示');
     if(!document.querySelector('dialog').textContent.includes('新版已保存的值優先'))throw new Error('移轉報告內容不完整');
     const close=document.querySelector('dialog [data-role=primary]'),cancel=document.querySelector('dialog [data-role=secondary]');
-    if(!close||!cancel||Math.abs(close.getBoundingClientRect().top-cancel.getBoundingClientRect().top)>1||getComputedStyle(close).backgroundColor===getComputedStyle(cancel).backgroundColor)throw new Error('移轉報告按鈕未同列或未分色');
+    if(!close||cancel||document.querySelectorAll('dialog button').length!==1)throw new Error('移轉報告出現重複取消');
     close.click();
-    completed.push('移轉報告的關閉／取消按鈕同列並分色');
+    completed.push('移轉報告只有一個關閉按鈕');
     reply=null;
     window.PhotoNativeBridge.post({action:'syncUIPreferences',key:'photoStyle.thumbnailSize',value:'large'});
     window.PhotoNativeBridge.post({action:'getState'});

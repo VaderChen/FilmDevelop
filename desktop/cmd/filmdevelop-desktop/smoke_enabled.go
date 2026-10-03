@@ -133,6 +133,10 @@ func configureSmoke(settings *options.App, app *application.App) {
 		if os.Getenv("FILMDEVELOP_SMOKE_UPDATE_NOTES") == "1" {
 			script = `window.runUpdateNoticeSmoke().then(completed => window.runtime.EventsEmit('filmdevelop:smoke-result', {passed:true, completed})).catch(error => window.runtime.EventsEmit('filmdevelop:smoke-result', {passed:false, error:String(error)}));`
 		}
+		// 一般操作需和使用者一樣等啟動完成；專門驗證移轉進度的 Smoke 才在期間觀察。
+		if os.Getenv("FILMDEVELOP_SMOKE_STARTUP") != "1" {
+			script = `(async function(){while(document.getElementById('hostStartupDialog'))await new Promise(resolve=>setTimeout(resolve,20));` + script + `})();`
+		}
 		wruntime.WindowExecJS(ctx, updateNoticeSmokeScript+"\n"+script)
 		go func() {
 			timer := time.NewTimer(210 * time.Second)

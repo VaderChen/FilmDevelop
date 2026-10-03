@@ -47,6 +47,9 @@ type App struct {
 	legacySettings                                        object
 	migrationIssues                                       []migrationIssue
 	migrationMu                                           sync.Mutex
+	startupMu                                             sync.Mutex
+	startupProgress                                       startupProgress
+	startupLastSent                                       time.Time
 	decorations                                           map[string]object
 	subjectMask                                           *storage.SubjectMask
 	sourceIdentity                                        *storage.PhotoSource
@@ -178,6 +181,7 @@ func New(binary string) (*App, error) {
 			return nil, err
 		}
 	}
+	app.startupProgress = startupProgress{Active: true, Stage: "載入底片與分類", Language: app.preferences.Language}
 	return app, err
 }
 
@@ -220,9 +224,16 @@ func (a *App) Startup(ctx context.Context) {
 		case <-ctx.Done():
 		}
 	})
+	// 雙向握手：無論 Go 或 WebView 先就緒，都能取得目前進度，不依賴單次啟動事件。
+	wruntime.EventsOn(ctx, "filmdevelop:frontend-ready", func(...interface{}) {
+		wruntime.EventsEmit(ctx, "filmdevelop:host-connected")
+		a.replayStartup()
+	})
+	wruntime.EventsEmit(ctx, "filmdevelop:host-ready")
 	a.workers.Add(1)
 	go func() {
 		defer a.workers.Done()
+		a.reportStartup("載入底片與分類", false, 0, 0, "")
 		var nativeError error
 		err := a.loadCatalog()
 		if err == nil {
@@ -230,13 +241,19 @@ func (a *App) Startup(ctx context.Context) {
 				a.migrationProblem("底片庫", e, "")
 			}
 			a.loadOrganizationSafely()
+			a.reportStartup("偵測影像處理能力", false, 0, 0, "")
 			nativeError = a.loadCapabilities()
+			a.reportStartup("移轉舊版設定", true, 0, 0, "")
 			if e := a.migrateLegacySettings(); e != nil {
 				a.migrationProblem("舊版設定", e, "")
 			}
+			a.startupMu.Lock()
+			a.startupProgress.Language = a.preferences.Language
+			a.startupMu.Unlock()
 			if e := a.archiveLegacyPhotos(); e != nil {
 				a.migrationProblem("舊照片資產", e, "")
 			}
+			a.reportStartup("載入模型與更新設定", false, 0, 0, "")
 			if e := a.loadDecorations(); e != nil {
 				a.recoverState("decorations.json", e)
 			}
@@ -271,12 +288,14 @@ func (a *App) Startup(ctx context.Context) {
 		close(a.ready)
 		a.state()
 		if err == nil {
-			a.startUpdateCheck()
-		}
-		if err == nil {
+			a.reportStartup("還原上次照片", false, 0, 0, "")
 			if err := a.restoreBrowser(); err != nil {
 				a.toast(err)
 			}
+		}
+		a.finishStartup()
+		if err == nil {
+			a.startUpdateCheck()
 		}
 		for {
 			select {

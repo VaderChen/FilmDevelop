@@ -10,6 +10,7 @@
 
 相較版本：**1.26.1003 build 1026**。
 
+- **修正**：修正舊 FilmYourPhoto 首次移轉時長時間沒有提示：啟動即顯示等待對話框，列出設定、舊照片紀錄、目錄掃描與調整移轉階段；已知總量時顯示實際處理數與進度條，完成後自動解除等待。原始照片與舊版資料保留。
 - **修正**：修正更新下載同時出現「取消」與「取消下載」，以及資訊視窗同時出現「取消」與「關閉」；共用對話框已有取消或關閉操作時，不再追加重複按鈕。
 - **修正**：補齊共用對話框的四語標題、說明、按鈕與進度文字；「關閉視窗」與開關的 Off 分開處理，檔名、模型名稱及使用者輸入保留原文。
 - **修正**：名稱輸入為空白時停用確認，Enter 也不會送出；對話框的鍵盤事件不再傳到背景裁切、修復與原圖比較，關閉後可恢復原控制項的焦點。
@@ -49,6 +50,7 @@ These release notes include the changes from **1.26.1003 build 1026**, **1.26.10
 
 Compared with: **1.26.1003 build 1026**。
 
+- **Fixed**：Fixed the silent wait when migrating from FilmYourPhoto. A startup dialog shows settings, legacy records, folder scanning and photo-adjustment stages, with actual item counts and a progress bar when totals are known. It closes automatically when ready, preserving original photos and legacy data.
 - **Fixed**：Fixed duplicate Cancel and Cancel download buttons in update downloads, and duplicate Cancel and Close actions in information dialogs. Shared dialogs no longer add a fallback Cancel when a dismiss action is already provided.
 - **Fixed**：Completed four-language titles, descriptions, buttons, and progress messages for shared dialogs. Closing a window is distinguished from the Off setting; filenames, model names, and user input remain unchanged.
 - **Fixed**：Blank names cannot be submitted by the confirmation button or Enter. Dialog key events no longer reach background crop, repair, and original-comparison controls, and focus returns to the original control when it remains available.
@@ -88,6 +90,7 @@ Compared with: **1.26.1003 build 0018**。
 
 比較元：**1.26.1003 build 1026**。
 
+- **修正**：FilmYourPhoto からの初回移行中に案内が出ない問題を修正。起動時のダイアログに設定、旧写真記録、フォルダ確認、写真調整の移行段階を表示し、総数が分かる処理では実際の件数と進捗バーを表示します。完了後に自動で閉じ、元の写真と旧データを保持します。
 - **修正**：更新ダウンロードで「キャンセル」と「ダウンロードをキャンセル」、情報画面で「キャンセル」と「閉じる」が重複する問題を修正。キャンセルまたは閉じる操作が既にある場合、共通ダイアログは追加ボタンを表示しません。
 - **修正**：共通ダイアログのタイトル、説明、ボタン、進捗メッセージを4言語に対応。「閉じる」と設定の「オフ」を区別し、ファイル名、モデル名、入力内容は原文を保持します。
 - **修正**：名前が空白の場合は確認ボタンと Enter による送信を無効化。ダイアログのキー操作が背後のトリミング、修復、元画像比較に伝わらず、閉じた後は元の操作対象が残っていればフォーカスを戻します。
@@ -127,6 +130,7 @@ Compared with: **1.26.1003 build 0018**。
 
 비교 버전: **1.26.1003 build 1026**。
 
+- **수정**：FilmYourPhoto에서 처음 이전할 때 안내 없이 기다려야 하는 문제를 수정했습니다. 시작 대화상자에 설정, 이전 사진 기록, 폴더 검색 및 사진 조정 이전 단계를 표시하고, 전체 수를 알면 실제 처리 수와 진행 표시줄을 표시합니다. 완료되면 자동으로 닫히며 원본 사진과 이전 데이터는 보존됩니다.
 - **수정**：업데이트 다운로드의 취소 버튼과 정보 대화상자의 취소·닫기 버튼이 중복되는 문제를 수정했습니다. 취소 또는 닫기 동작이 이미 있으면 공통 대화상자에 취소 버튼을 추가하지 않습니다.
 - **수정**：공통 대화상자의 제목, 설명, 버튼 및 진행 메시지에 네 가지 언어를 적용했습니다. 창 닫기와 설정의 꺼짐을 구분하며 파일명, 모델명 및 사용자 입력은 원문을 유지합니다.
 - **수정**：이름이 비어 있으면 확인 버튼과 Enter로 제출할 수 없습니다. 대화상자 키 입력이 배경의 자르기, 복구 및 원본 비교에 전달되지 않으며, 기존 컨트롤이 남아 있으면 닫은 뒤 포커스를 복원합니다.

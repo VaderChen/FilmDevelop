@@ -1,11 +1,14 @@
 (function () {
   "use strict";
-  var allowed = new Set(["handleUIPreferences", "handleNativeState", "handleNativeToast", "handleDesktopCommand", "handleNativeFileOpen", "handlePhotoDirectoryState", "handleFilmHoverPreview", "handleHostDialog", "handleHostMenu", "handleRepairPreparation", "handleNativeMenu", "handlePreviewMenu", "handlePhotoEXIF", "handleBatchExportProgress", "handleRepairResult", "handleUpdateComplete", "handleMCPFlush", "handleMCPPage", "handleHostProgress", "handleHostClose"]);
+  var allowed = new Set(["handleUIPreferences", "handleNativeState", "handleNativeToast", "handleDesktopCommand", "handleNativeFileOpen", "handlePhotoDirectoryState", "handleFilmHoverPreview", "handleHostDialog", "handleHostMenu", "handleRepairPreparation", "handleNativeMenu", "handlePreviewMenu", "handlePhotoEXIF", "handleBatchExportProgress", "handleRepairResult", "handleUpdateComplete", "handleMCPFlush", "handleMCPPage", "handleHostProgress", "handleHostClose", "handleHostStartup"]);
   // Wails 的事件回呼可並行；等宿主確認入列後才送下一筆，保持手勢與換圖順序。
-  var pending = [], sequence = 0;
+  var pending = [], sequence = 0, hostConnected = false;
   function sendNext() {
-    if (pending.length) window.runtime.EventsEmit("filmdevelop:ordered-command", pending[0]);
+    if (hostConnected && pending.length) window.runtime.EventsEmit("filmdevelop:ordered-command", pending[0]);
   }
+  window.runtime.EventsOn("filmdevelop:host-connected", function () {
+    if (!hostConnected) { hostConnected=true;sendNext(); }
+  });
   window.runtime.EventsOn("filmdevelop:command-accepted", function (id) {
     if (!pending.length || pending[0].id !== id) return;
     pending.shift();
@@ -35,6 +38,47 @@
       window[reply.function](reply.payload);
     }
   });
+})();
+
+// 啟動與首次移轉使用獨立模態視窗，不能排在尚未開始接收的一般指令佇列後面。
+(function () {
+  "use strict";
+  var dialog, timer, started=performance.now(), revision=-1;
+  function text(value) { return window.PhotoL10n.text(value); }
+  window.handleHostStartup = function (payload) {
+    if (payload.revision < revision) return;
+    revision=payload.revision;
+    if (!payload.active) {
+      clearInterval(timer);
+      if (dialog) { dialog.close();dialog.remove();dialog=null; }
+      return;
+    }
+    if (payload.language) window.PhotoL10n.setLanguage(payload.language);
+    if (!dialog) {
+      dialog=document.createElement("dialog");dialog.id="hostStartupDialog";dialog.className="host-dialog host-startup-dialog";
+      dialog.innerHTML='<h2 id="hostStartupTitle"></h2><p data-startup-description></p><p class="host-startup-status"><span class="preview-spinner" aria-hidden="true"></span><strong data-startup-stage></strong></p><p data-startup-item></p><progress class="host-dialog-progress" max="1"></progress><p data-startup-count role="status" aria-live="polite"></p><p data-startup-time></p>';
+      dialog.setAttribute("aria-labelledby","hostStartupTitle");
+      dialog.addEventListener("cancel",function(e){e.preventDefault()});
+      ["keydown","keyup"].forEach(function(name){dialog.addEventListener(name,function(e){e.stopPropagation()})});
+      document.body.appendChild(dialog);dialog.showModal();
+      function elapsed(){if(dialog)dialog.querySelector("[data-startup-time]").textContent=text("已經過 {0} 秒".replace("{0}",String(Math.floor((performance.now()-started)/1000))))}
+      elapsed();timer=setInterval(elapsed,1000);
+    }
+    dialog.querySelector("h2").textContent=text(payload.migration ? "正在移轉舊版資料" : "正在準備 FilmDevelop");
+    dialog.querySelector("[data-startup-description]").textContent=text(payload.migration ? "正在匯入 FilmYourPhoto 的設定與照片紀錄。原始照片與舊版資料會保留，完成後即可操作。" : "正在載入設定與照片，完成後即可操作。");
+    dialog.querySelector("[data-startup-stage]").textContent=text(payload.stage);
+    dialog.querySelector("[data-startup-item]").textContent=payload.item || "";
+    var progress=dialog.querySelector("progress"),count=dialog.querySelector("[data-startup-count]");
+    if (payload.total>0) {
+      progress.value=Math.min(1,Math.max(0,payload.completed/payload.total));
+      count.textContent=text("此階段已處理 {0} / {1} 項".replace("{0}",String(payload.completed)).replace("{1}",String(payload.total)));
+      progress.hidden=false;
+    } else { progress.removeAttribute("value");progress.hidden=true;count.textContent=""; }
+  };
+  // 先畫等待畫面；握手取得最新快照，即使移轉先開始或已完成也不遺失狀態。
+  window.handleHostStartup({active:true,stage:"載入底片與分類",revision:-1});
+  function connect(){window.runtime.EventsEmit("filmdevelop:frontend-ready")}
+  window.runtime.EventsOn("filmdevelop:host-ready",connect);connect();
 })();
 
 // 對話框由 Go 提供資料與一次性識別，使用 textContent 避免檔名／提示詞成為 HTML。

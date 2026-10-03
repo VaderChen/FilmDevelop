@@ -58,6 +58,16 @@
         {
           "kind": "fixed",
           "text": {
+            "traditionalChinese": "修正舊 FilmYourPhoto 首次移轉時長時間沒有提示：啟動即顯示等待對話框，列出設定、舊照片紀錄、目錄掃描與調整移轉階段；已知總量時顯示實際處理數與進度條，完成後自動解除等待。原始照片與舊版資料保留。",
+            "english": "Fixed the silent wait when migrating from FilmYourPhoto. A startup dialog shows settings, legacy records, folder scanning and photo-adjustment stages, with actual item counts and a progress bar when totals are known. It closes automatically when ready, preserving original photos and legacy data.",
+            "japanese": "FilmYourPhoto からの初回移行中に案内が出ない問題を修正。起動時のダイアログに設定、旧写真記録、フォルダ確認、写真調整の移行段階を表示し、総数が分かる処理では実際の件数と進捗バーを表示します。完了後に自動で閉じ、元の写真と旧データを保持します。",
+            "korean": "FilmYourPhoto에서 처음 이전할 때 안내 없이 기다려야 하는 문제를 수정했습니다. 시작 대화상자에 설정, 이전 사진 기록, 폴더 검색 및 사진 조정 이전 단계를 표시하고, 전체 수를 알면 실제 처리 수와 진행 표시줄을 표시합니다. 완료되면 자동으로 닫히며 원본 사진과 이전 데이터는 보존됩니다."
+          },
+          "inApp": true
+        },
+        {
+          "kind": "fixed",
+          "text": {
             "traditionalChinese": "修正更新下載同時出現「取消」與「取消下載」，以及資訊視窗同時出現「取消」與「關閉」；共用對話框已有取消或關閉操作時，不再追加重複按鈕。",
             "english": "Fixed duplicate Cancel and Cancel download buttons in update downloads, and duplicate Cancel and Close actions in information dialogs. Shared dialogs no longer add a fallback Cancel when a dismiss action is already provided.",
             "japanese": "更新ダウンロードで「キャンセル」と「ダウンロードをキャンセル」、情報画面で「キャンセル」と「閉じる」が重複する問題を修正。キャンセルまたは閉じる操作が既にある場合、共通ダイアログは追加ボタンを表示しません。",
