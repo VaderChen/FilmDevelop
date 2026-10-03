@@ -2,7 +2,7 @@
 
 更新日期：2026-10-03。驗收依據為舊 macOS 桌面的實際操作、原始碼及保存資料。預設入口為 `run.command`，Go／Wails 管理 UI、主程序及共用業務；Swift／C++ 負責原生影像、推論與硬體計算。逐版的使用者可見差異另見 [CHANGELOG](../CHANGELOG.md)，本文件保留各輪驗證範圍與限制。
 
-目前版本為 **1.26.1003 build 1026**。各節保留當輪的測試狀態；早期「未發布／未公證」及 RAW 缺口不是目前版本的結論。最新補充解碼見下節，正式成品驗證見文末 build 0924 紀錄。
+目前版本為 **1.26.1003 build 1026**。各節保留當輪的測試狀態；早期「未發布／未公證」及 RAW 缺口不是目前版本的結論。最新補充解碼見下節，正式成品驗證見文末 build 1026 紀錄。
 
 ## 1.26.1003 build 1026 介面修正與封裝前驗證
 
@@ -753,3 +753,28 @@ Windows 交付改為完整解壓後即可執行的 ZIP，內附原廠 VC++ x64 R
 建置來源提交為 `f1c0697e2b1f8fcca09123f7ccb35cfb41df6f97`，來源目錄在封裝時沒有未提交變更；之後僅補桌面文件與正式驗證紀錄，App／引擎來源未更動。Release 附上 `SHA256SUMS.txt` 與不含私人路徑的 `release-validation.json`。完整本機證據位於 `build/release-raw-20261003-0924`。
 
 補充解碼需要使用者另行安裝 Adobe DNG Converter。Windows 實機仍為 Windows 10，未把 Windows 11、乾淨系統或其他 GPU 列為已測；Windows 執行檔未簽 Authenticode，ZIP 不保證消除來源提示。JPEG XL／Enhanced DNG、完整場景線性 HDR、Apple／WIC 原生色彩與裁切、部分模型與字形仍有差異。原有 Swift XCTest 的 10 個案例／20 個失敗斷言基線未於本輪修正，不宣稱所有功能或跨平台像素已完全一致。
+
+## 1.26.1003 build 1026：確認對話框、下載進度與正式成品驗證（2026-10-03）
+
+相較 **1.26.1003 build 0924**，本版將缺少 Adobe DNG Converter 的安裝入口改為自動確認，確認後使用系統預設瀏覽器開啟官方下載頁；取消後保留畫面、同張照片不反覆提示，並補上更新下載的可見進度條。Release 的四語說明合併 build 0924 的 RAW 解碼更新，逐版紀錄仍保留比較基準。正式發布驗證通過後，以本版 Release 取代 build 0924；Git 標籤保留供差異與歷史文件查閱。
+
+| 本次驗證 | 結果 |
+| --- | --- |
+| 程式與文件 | application、releasenotes、updater、transfer 的 Go race／vet、JavaScript 語法與差異檢查通過；4 項發布流程 Smoke、四語 README／CHANGELOG／Release 同步檢查通過。 |
+| 本次修正的實機操作 | Mac WKWebView／Windows 10 WebView2 各 6 項下載進度及 3 項真實 NEF 缺少 Converter 確認，共 18 項通過；確認後確實開啟預設瀏覽器，取消不開網頁。另驗證新版四語 App 更新摘要及延後顯示。 |
+| Mac 正式 DMG | 標準及 Swift 相容包均通過 Developer ID 簽章、Apple 公證、票證、Gatekeeper；從標準 DMG 啟動成功，原片／Portra 匯出與參考像素相同。 |
+| Mac 正式 RAW 引擎 | NEF／GPR 的首次預覽、暖快取及匯出 6 項通過，檢查來源雜湊及完整感光尺寸。 |
+| 舊 Swift 升級 | 真正 Swift 選包、過渡啟動器及安裝 helper 完成一次性識別移轉，標準 App 重開成功；16 份既有測試資料保持原樣。 |
+| Windows 正式 ZIP | 在 Windows 10 x64／GTX 1060 全新目錄完整解壓後，6 組 Smoke 通過：產品識別、逐檔清單、12 個 Microsoft Runtime 簽章及本地載入、更新還原、正式 GUI、WebView2。 |
+| Windows 更新與影像 | 更新測試 9 組、含子案例 23 項通過且未略過；一般 JPEG 操作 14 項、HE* NEF 操作 14 項通過。NEF／GPR 於 system／software 各測 6 項，共 12 項，另通過 GPR 列表縮圖，實際 GPU 後端為 Vulkan。 |
+| 封裝與私密資料 | 封裝前清空 `dist`，新 Windows ZIP 包含 170 個產品檔案；以正式附件完整 SHA-256 對照實機測試。封裝及本次異動檔案的隱私檢查通過，`pack.command`、私人路徑、權杖、測試原圖及 Adobe 程式未加入成品或提交。 |
+
+| 正式附件 | 大小 | SHA-256 |
+| --- | ---: | --- |
+| `FilmDevelop-1.26.1003-build1026-macos-arm64.dmg` | 87,420,354 bytes | `9458d5c383be4c83187dcb90e79bd65b21353a168441e6572d84af97f65fef37` |
+| `FilmYourPhoto-1.26.1003-build-1026-arm64.dmg` | 92,246,689 bytes | `86380b68fd74bff2eedd4dc6439943377cdca53da0e0e1ebb05b09e2d813b2de` |
+| `FilmDevelop-1.26.1003-build1026-windows-x64-portable.zip` | 315,259,859 bytes | `e02565cd1ece80acc6ab89bb823b9a65ef49d4de7daf1e76133ab2337c5f157f` |
+
+建置來源為 `8c7fb227b90bd196dd07641590f7300d5a83e99d`，封裝時工作目錄乾淨；之後僅補桌面文件及實機驗證紀錄。Release 附上 `SHA256SUMS.txt` 與 `release-validation.json`，本機完整證據位於 `build/release-ui-20261003-1026`。本版未更改 RAW 轉換及像素演算；build 0924 的全樣本 RAW 數據是既有證據，不計為本輪重跑。
+
+Windows 11、乾淨系統與其他 GPU 本輪未另測；Windows 執行檔仍未簽 Authenticode。其餘 RAW、HDR、模型及像素差異限制沿用上節與補充解碼紀錄。

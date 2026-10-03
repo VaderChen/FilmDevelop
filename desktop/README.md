@@ -1,6 +1,6 @@
 # Go 桌面宿主與跨平台進度
 
-更新日期：2026-10-03，版本 **1.26.1003 build 0924**。`run.command` 建置並開啟 **Go／Wails 主程序＋Swift／C++ 影像引擎**。Go 共用 UI、照片、配方、設定、資料移轉、模型、MCP、更新與匯出流程；macOS 使用 Swift／Apple 框架及 C++，Windows 使用 C++／WIC／Vulkan。
+更新日期：2026-10-03，版本 **1.26.1003 build 1026**。`run.command` 建置並開啟 **Go／Wails 主程序＋Swift／C++ 影像引擎**。Go 共用 UI、照片、配方、設定、資料移轉、模型、MCP、更新與匯出流程；macOS 使用 Swift／Apple 框架及 C++，Windows 使用 C++／WIC／Vulkan。
 
 macOS 支援 Apple Silicon、macOS 14 以上；Windows 支援 10／11 x64，版本文字附 **Beta**。兩平台均已接通底片、編輯、RAW 備援、AI 分析與修復、匯出及資料移轉；平台差異與實測界線列於文末。
 ## 分工
@@ -26,11 +26,11 @@ Go 管理業務規則、資料、排程與程序生命週期；Swift／C++ 負�
 | 照片與底片管理 | 自訂底片匯入／匯出／改名／複製／刪除，四語提示詞，星級、分類、EXIF、複製照片、批次套用／重設／匯出、移到垃圾桶。 |
 | 模型與 AI | GGUF／MLX 探索、配對、驗證、匯入、Hugging Face 搜尋／下載／取消；完整 AI 配方在 Go 驗證並映射。 |
 | 修復與主體 | Go 管理模型下載、筆刷工作、取消與紀錄；macOS 使用 Core ML／系統主體遮罩，Windows 使用 ONNX／DirectML，均保留高精度修復貼片。 |
-| 補充 RAW 解碼 | Nikon HE／HE*、GPR 等已辨識但缺少解碼器的來源，透過使用者安裝的 Adobe DNG Converter 建立無損 RAW 快取，再交給同一 LibRaw 處理；缺少工具時在照片下方提供官方下載及重新偵測。詳見 [部署與限制](../engine/verification/raw/supplemental-decoder.md)。 |
+| 補充 RAW 解碼 | Nikon HE／HE*、GPR 等已辨識但缺少解碼器的來源，透過使用者安裝的 Adobe DNG Converter 建立無損 RAW 快取，再交給同一 LibRaw 處理；缺少工具時先自動確認，再用預設瀏覽器開啟 Adobe 官方下載頁；取消後仍保留照片下方入口與重新偵測。詳見 [部署與限制](../engine/verification/raw/supplemental-decoder.md)。 |
 | 預覽顯影 | 先顯示列表同一張縮圖，再將已套用參數的影像由 0→100% 不透明度漸進顯露；等待文字、轉圈與主體偵測取消按鈕固定在照片下方。 |
 | 匯出 | JPEG、PNG、WebP、TIFF，8／16 bit 與色彩空間、尺寸、品質設定；從原圖重新計算，拍攝 EXIF 預設回填，可關閉。 |
 | MCP | 本機 HTTP 服務與 12 項工具，Bearer 權杖、來源檢查、取消、編輯序列化及 UI 完成確認。 |
-| 更新 | Go 查詢版本、驗證下載與平台套件；macOS 共用原有可回復安裝助手，Windows 優先使用免安裝 ZIP，驗證後替換原目錄，新版啟動失敗時還原。 |
+| 更新 | Go 查詢版本、以進度條顯示下載、驗證下載與平台套件；macOS 共用原有可回復安裝助手，Windows 優先使用免安裝 ZIP，驗證後替換原目錄，新版啟動失敗時還原。 |
 
 ## 契約與資料
 
@@ -149,3 +149,5 @@ python3 scripts/package-release.py --identity 'Developer ID Application: 姓名 
 完整發布入口會鎖定這輪工作，先驗證版本紀錄與公證設定，再清空專案 `dist` 一次，依序重新建置 Mac 標準 DMG、Swift 過渡 DMG 與 Windows 免安裝 ZIP。只列出目前版本的三個成品，產生 SHA-256 與四語 Release 說明；實機 Smoke、驗證摘要與 GitHub 發布另行完成。`dist` 不應存放需要保留的資料。單平台封裝工具仍可用於開發，但完整 Release 必須走此入口，避免殘留舊版產物。
 
 更新收據另外保留升級前版本，跨版更新會逐版列出適用於目前平台的變更；讀取前被其他對話框擋住時會延後顯示，確認後才清除。沒有舊版收據時明確顯示比較基準，使用最近一次公開版的差異。
+
+本次 build 1026 正式 DMG／Windows ZIP 已重新驗證啟動、升級、Runtime、RAW 與 GPU；新增的確認對話框與進度條在兩平台完成 18 項針對性 Smoke。四語更新摘要與合併 build 0924 的 Release 說明使用同一份版本資料；詳見 [正式成品驗證紀錄](RESTORATION.md)。
