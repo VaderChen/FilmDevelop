@@ -856,8 +856,26 @@ Windows 模型下載與選取直接隱藏 MLX，後端同步拒絕不支援格�
 | 原始碼與修正驗證 | 結果 |
 | --- | --- |
 | Go／語法／契約 | 全部 `internal` 套件 race、vet、JavaScript 語法及契約同步檢查通過。HTTP 模擬下載測試包含檔案摘要、掃描及自動選取；RAW 失敗注入驗證設定回復，不宣稱已測所有相機。 |
-| macOS 介面 | 真實 Wails 一般操作 47 項、第一輪匯出／移植 21 項、第二輪 11 項，共 79 項通過。 |
-| Windows 移植介面 | Windows 10 x64／GTX 1060 真實 WebView2，第一輪 21 項、第二輪含兩個實際 GGUF 配對 12 項，共 33 項通過；Go 移植與模型測試亦通過。 |
+| macOS 介面 | 真實 Wails 一般操作 47 項、第一輪匯出／移植 21 項、第二輪 12 項，共 80 項通過。 |
+| Windows 移植介面 | Windows 10 x64／GTX 1060 真實 WebView2，第一輪 21 項、第二輪含舊 MLX 選取與兩個實際 GGUF 配對 13 項，共 34 項通過；Go 移植與模型測試亦通過。 |
 | 既有驗證 | 第一輪外接 APFS JPEG／EXIF 與不支援改名的錯誤注入結果仍保留；本輪未重跑完整 RAW 金樣本矩陣，也沒有實體 ExFAT／FAT 隨身碟重現。 |
 
-正式成品驗證與附件摘要於封裝後補列；測試用執行檔與輸入不屬公開附件。先前的微基準為每次操作配置量，不能解讀為整體常駐記憶體下降幅度。
+| 正式成品驗證 | 結果 |
+| --- | --- |
+| macOS 發行包 | 標準與 Swift 升級相容 DMG 均通過 Developer ID 簽章、Apple 公證與票證。標準 DMG 的 Gatekeeper、隔離啟動、原片／Portra 匯出通過，兩張輸出與既有參考逐像素相同。 |
+| Windows 正式 ZIP | 全新測試目錄完整解壓，六組 Smoke 全部通過。170 個產品檔案及完整 SHA-256 核對一致，12 個 Microsoft Runtime 的簽章、摘要與 app-local 載入通過。 |
+| Windows 介面及 AI | 一般 WebView2 操作 14 項、移植兩輪 21＋13 項，共 48 項通過，包含四語更新摘要與 Windows 隱藏 MLX。Qwen3-VL 2B／SmolVLM 500M 均使用正式引擎完成 Vulkan 照片推論及 JSON 契約，來源照片雜湊不變。 |
+| Windows Go 與更新 | 移植／下載 26 組、含子案例 33 項，模型 4 組，更新 9 組、含子案例 23 項全部通過，沒有略過案例。另以正式 App 完成 build 1109 → 1300 升級與啟動確認失敗還原，保留使用者測試檔案，兩個案例均正常重開。 |
+| 封裝與清理 | 發布流程 Smoke 4 項、Windows 封裝 Smoke 11 項通過。Mac 標準／相容包及 Windows 共 110／116／170 個封裝檔案通過私密資料稽核；實機測試程序均已結束，測試工具與傳輸包不列為公開附件。 |
+
+最後新增「先前選到 MLX，更新後隱藏此項」的回歸檢查，確認既有選單同步會保持未選取，沒有把第一個 GGUF 誤顯示為已啟用。這是既有行為的補驗，不列為新的移植缺漏。一般 Mac Smoke、第一輪匯出及正式包內容沒有因新增此測試而更動。
+
+| 正式附件 | 大小 | SHA-256 |
+| --- | ---: | --- |
+| `FilmDevelop-1.26.1003-build1300-macos-arm64.dmg` | 87,342,594 bytes | `01d9a30e179b9217981d13bed20bc9cfcced03233acea389bc15765b1e4b1856` |
+| `FilmYourPhoto-1.26.1003-build-1300-arm64.dmg` | 92,533,812 bytes | `6c92d4c84a0d2d25bd3cc5ac3b86c62e56ccac003dab7e6c0e0895d86e9bd24a` |
+| `FilmDevelop-1.26.1003-build1300-windows-x64-portable.zip` | 315,355,896 bytes | `e2364d765dd8a3657ba4536bd0d2bcddc2fb4fd882589b8f40a316c328b1f2f9` |
+
+封裝來源為 `58aff690887e32eabec37d83f5ab2b9689ffe008`，當時工作目錄乾淨。封裝後僅補文件與 `enginesmoke` 專用的舊 MLX 選取測試；正式程式不包含該測試腳本，產品來源維持相同。Release 隨附 `SHA256SUMS.txt` 與 `release-validation.json`；完整本機證據位於 `build/parity-second-20261003`，公開摘要不含私人路徑。
+
+Windows 本輪為 Windows 10 x64／GTX 1060，未另測 Windows 11、乾淨系統與其他 GPU。HTTP 模型下載回歸使用可驗證的檔頭資料；實際推論另用完整模型。修復取消等待 UI 以可控測試工作觀察，正式程式沒有測試入口。完整 RAW、ExFAT／FAT、舊 Swift 一次性身分移轉與效能微基準沒有於本輪重跑；先前配置量結果不能解讀為整體常駐記憶體下降幅度。Windows 執行檔仍未簽 Authenticode，其他 RAW／HDR／平台像素差異沿用既有紀錄。

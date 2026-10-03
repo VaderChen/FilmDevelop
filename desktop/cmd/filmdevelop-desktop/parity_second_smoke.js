@@ -24,6 +24,15 @@
     await until(()=>document.getElementById('repositoryFormat'),'AI 下載頁');
     const format=document.getElementById('repositoryFormat');
     require(latest.ai.mlxAvailable!==false || (format.value==='gguf'&&!format.querySelector('[value="mlx"]')),'Windows 下載頁使用 GGUF 並隱藏 MLX 選項');
+    const savedAI=latest.ai;
+    nativeState({ai:Object.assign({},savedAI,{mlxAvailable:false,ready:false,selectedModelID:'old-mlx',modelChoices:[
+      {id:'old-mlx',title:'舊 MLX 模型',format:'mlx',ready:false,message:'平台不支援'},
+      {id:'available-gguf',title:'可用 GGUF 模型',format:'gguf',ready:true,message:''}
+    ]})});
+    await until(()=>document.querySelector('#localModelPicker [value="available-gguf"]'),'舊模型選取狀態');
+    const picker=document.getElementById('localModelPicker');
+    require(picker.value===''&&!picker.querySelector('[value="old-mlx"]'),'隱藏舊 MLX 選取後保持未選取，不誤顯示 GGUF 已啟用');
+    nativeState({ai:savedAI});
     document.querySelector('[data-page="home"]').click();
     window.runtime.EventsEmit('filmdevelop:smoke-reopen');await idle(()=>latest.hasImage&&latest.outputImage);
     command('setStyle',{style:'filmPortra400'});await idle(()=>latest.selectedStyle==='filmPortra400');
