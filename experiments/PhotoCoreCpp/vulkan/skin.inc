@@ -24,21 +24,35 @@ Surface Pipeline::refine_mask(Surface image,Surface raw,double radius,double eps
 Surface Pipeline::skin_mask(Surface image,Surface person) {
     auto raw=unary(56,image,{},"skin-mask-raw");
     if(person.buffer){auto out=context.create(image.width,image.height);context.dispatch(70,raw,person,person,out,out,{},table,0,"skin-subject-mask");raw=out;}
-    return refine_mask(image,raw,std::max(2.,4*std::max(std::min(image.width,image.height)/1600.,.5)),.0004);
+    auto refined=refine_mask(image,raw,std::max(2.,4*std::max(std::min(image.width,image.height)/1600.,.5)),.0004);
+    auto out=context.create(image.width,image.height);context.dispatch(86,refined,raw,raw,out,out,{},table,0,"skin-mask-protection");return out;
 }
 Surface Pipeline::smooth_channels(Surface image,double radius,double epsilon) {
-    int r=int(std::clamp(std::round(radius),1.,64.));auto prepared=unary(66,image,{},"skin-straight");
-    auto mean=box_mean(prepared,r),square=box_mean(unary(27,prepared,{},"skin-square"),r);prepared={};
+    int r=int(std::clamp(std::round(radius),1.,64.));auto prepared=unary(66,image,{},"skin-weighted-input");
+    auto mean=box_mean(prepared,r),square=box_mean(unary(83,prepared,{},"skin-square"),r);prepared={};
     auto a=context.create(image.width,image.height),b=context.create(image.width,image.height);
-    context.dispatch(28,mean,square,mean,a,b,{float(epsilon)},table,0,"skin-smoothing-coefficients");mean={};square={};
+    context.dispatch(84,mean,square,mean,a,b,{float(epsilon)},table,0,"skin-smoothing-coefficients");mean={};square={};
     a=box_mean(a,r);b=box_mean(b,r);auto out=context.create(image.width,image.height);
     context.dispatch(67,image,a,b,out,out,{},table,0,"skin-smooth");return out;
 }
 Surface Pipeline::skin_enhance(Surface image,Surface mask,const Json &a,double strength) {
     double white=number(a,"skinWhitening",0,0,100)/100*strength,smoothing=number(a,"skinSmoothing",0,0,100)/100*strength,warm=number(a,"skinWarmth",0,-100,100)/100*strength;
     auto blend=[&](Surface foreground,double amount){auto out=context.create(image.width,image.height);context.dispatch(68,image,foreground,mask,out,out,{float(amount)},table,0,"skin-blend");image=out;};
-    if(smoothing>.005)blend(smooth_channels(image,std::max(1.,(.9+smoothing*5.4)*std::max(std::min(image.width,image.height)/1600.,.5)),.002+smoothing*.018),std::min(.58,smoothing*.65));
-    if(white>.005)blend(unary(69,image,{float(white)},"skin-whitening"),.68);
+    if(smoothing>.005) {
+        double radius=std::max(1.,(.9+smoothing*5.4)*std::max(std::min(image.width,image.height)/1600.,.5));
+        auto statistics=context.create(image.width,image.height);
+        context.dispatch(87,image,mask,mask,statistics,statistics,{},table,0,"skin-log-statistics");
+        auto fine=box_mean(statistics,int(std::clamp(std::round(radius*.35),1.,64.)));
+        auto coarse=box_mean(statistics,int(std::clamp(std::round(radius*3),2.,64.)));statistics={};
+        auto packed=context.create(image.width,image.height);
+        context.dispatch(88,fine,mask,mask,packed,packed,{},table,0,"skin-pack-statistics");fine={};
+        auto out=context.create(image.width,image.height);
+        context.dispatch(89,image,packed,coarse,out,out,{float(smoothing*.78),float(.002+smoothing*.018)},table,0,"skin-natural-smoothing");image=out;
+    }
+    if(white>.005) {
+        auto out=context.create(image.width,image.height);
+        context.dispatch(69,image,mask,mask,out,out,{float(white)},table,0,"skin-natural-whitening");image=out;
+    }
     if(std::abs(warm)>.001)blend(white_balance(image,{{"whiteBalanceWarmth",warm*100}},1),1);
     return image;
 }

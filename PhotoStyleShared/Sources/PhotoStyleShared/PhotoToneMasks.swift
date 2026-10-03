@@ -53,6 +53,9 @@ public struct PhotoToneMasks: Sendable {
     }
     """)
 
+    let profile: PhotoToneMaskProfile
+    let middleGray: Double
+
     public let shadows: CIImage
     public let midtones: CIImage
     public let highlights: CIImage
@@ -62,6 +65,8 @@ public struct PhotoToneMasks: Sendable {
         profile: PhotoToneMaskProfile,
         middleGray: Double = 0.18
     ) {
+        self.profile = profile
+        self.middleGray = middleGray
         let packed = Self.packedMasks(
             from: input,
             profile: profile,
@@ -151,7 +156,7 @@ public struct PhotoToneMasks: Sendable {
         ).cropped(to: mask.extent)
     }
 
-    private static func parameters(
+    static func parameters(
         for profile: PhotoToneMaskProfile
     ) -> (
         shadowStart: Float,

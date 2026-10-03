@@ -33,7 +33,7 @@ inline TonePoint tone_segment(double x, double y0, double y1, double m0, double 
         std::max(4*((6*t2-6*t)*y0+(3*t2-4*t+1)*m0+(-6*t2+6*t)*y1+(3*t2-2*t)*m1),0.)};
 }
 inline TonePoint hdr_point(double logValue, const std::array<double,5> &p) {
-    double v=std::exp2(logValue);TonePoint result{};
+    double v=std::max(std::exp2(logValue)-1e-5,0.);TonePoint result{};
     double d0=p[1]-p[0],d1=p[2]-p[1],d2=p[3]-p[2],d3=p[4]-p[3];
     double m1=tone_slope(d0,d1),m2=tone_slope(d1,d2),m3=tone_slope(d2,d3);
     if(v<=.25) result=tone_segment(v*4,p[0],p[1],d0,m1);
@@ -41,8 +41,8 @@ inline TonePoint hdr_point(double logValue, const std::array<double,5> &p) {
     else if(v<=.75) result=tone_segment((v-.5)*4,p[2],p[3],m2,m3);
     else if(v<=1) result=tone_segment((v-.75)*4,p[3],p[4],m3,d3);
     else result={p[4]+v-1,1};
-    double slope=result.x>1e-5?v*result.y/result.x:0;
-    return {std::log2(std::max(result.x,1e-5)), slope>=0 && slope<1e20?slope:0};
+    double slope=(v+1e-5)*result.y/(std::max(result.x,0.)+1e-5);
+    return {std::log2(std::max(result.x,0.)+1e-5), slope>=0 && slope<1e20?slope:0};
 }
 inline double detail_segment(double t, TonePoint a, TonePoint b, double width) {
     double delta=std::max(b.x-a.x,0.),secant=delta/width;

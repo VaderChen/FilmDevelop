@@ -534,9 +534,8 @@ void main() {
             v = vec3(dot(v, W));
         result = vec4(v * px.a, px.a);
     } else if (work.op == 19) {
-        // 與 CIColorMatrix alpha + CISourceOverCompositing 相同的預乘混合。
-        vec4 foreground = b[i] * p[0];
-        result = foreground + px * (1 - foreground.a);
+        // 效果狀態插值，不重複累加來源的 alpha 覆蓋率。
+        result = b[i] * p[0] + px * (1 - p[0]);
     } else if (work.op == 20) {
         // CIColorControls saturation=0 的線性工作空間係數。
         result = vec4(vec3(dot(px.rgb, vec3(.2125, .7154, .0721))), px.a);

@@ -8,7 +8,11 @@ public enum PhotoSkinMaskProfile: Sendable {
 public enum PhotoSkinMaskGenerator {
     private static let kernel = CIColorKernel(source: """
         kernel vec4 skinMask(__sample s) {
-            vec3 rgb = s.rgb / max(s.a, 0.00001);
+            if(s.a<=0.0) return vec4(0.0,0.0,0.0,1.0);
+            vec3 rgb = s.rgb / s.a;
+            float sourceLuma = dot(rgb, vec3(0.2126, 0.7152, 0.0722));
+            // 只正規化辨識訊號：欠曝膚色沿用色相／彩度判定，不改動照片曝光。
+            rgb *= max(1.0, 0.18 / max(sourceLuma, 0.00001));
             float r = rgb.r;
             float g = rgb.g;
             float b = rgb.b;
@@ -32,7 +36,7 @@ public enum PhotoSkinMaskGenerator {
                 hue *= 60.0;
             }
 
-            float lumaMask = smoothstep(0.06, 0.18, l) * (1.0 - smoothstep(0.96, 1.0, l));
+            float lumaMask = smoothstep(0.0005, 0.01, sourceLuma) * (1.0 - smoothstep(0.96, 1.0, sourceLuma));
             float saturationMask = smoothstep(0.015, 0.080, saturation) * (1.0 - smoothstep(0.76, 0.96, saturation));
 
             float rgbNormal = smoothstep(0.24, 0.38, r)
@@ -68,9 +72,23 @@ public enum PhotoSkinMaskGenerator {
                 * (1.0 - smoothstep(0.04, 0.24, g - r));
 
             float skinFamily = max(max(rgbNormal, rgbBright), max(ycbcrFamily, max(hsvFamily, warmFamily)));
-            float m = clamp(lumaMask * saturationMask * skinFamily, 0.0, 1.0);
+            // 亮度正規化不應把非膚色色相擴充進遮罩。
+            float redProtection = 1.0-smoothstep(0.35,0.55,(r-g)/max(r+g+b,0.00001));
+            float m = s.a>0.0 ? clamp(lumaMask * saturationMask * skinFamily * max(hueLow, hueHigh) * redProtection, 0.0, 1.0) : 0.0;
             return vec4(m, m, m, 1.0);
         }
+        """)
+
+    private static let protection = PhotoGPUColorKernel.make("skinMaskProtection",
+        parameters: "__sample refined, __sample raw", body: """
+        float m=clamp(refined.r,0.0,1.0)*smoothstep(0.0,0.15,clamp(raw.r,0.0,1.0));
+        return vec4(m,m,m,1.0);
+        """)
+
+    private static let subjectGate = PhotoGPUColorKernel.make("skinSubjectGate",
+        parameters: "__sample skin, __sample person", body: """
+        float m=skin.r*clamp(person.r,0.0,1.0);
+        return vec4(m,m,m,1.0);
         """)
 
     public static func make(from image: CIImage, personMask: CIImage?, profile: PhotoSkinMaskProfile) -> CIImage {
@@ -84,23 +102,20 @@ public enum PhotoSkinMaskGenerator {
             rawMask = CIImage(color: CIColor(red: 0, green: 0, blue: 0, alpha: 1)).cropped(to: extent)
         }
 
-        let masked = personMask.map { mask in
-            let softSubject = mask.applyingFilter("CIColorMatrix", parameters: [
-                "inputRVector": CIVector(x: 0.95, y: 0, z: 0, w: 0),
-                "inputGVector": CIVector(x: 0, y: 0.95, z: 0, w: 0),
-                "inputBVector": CIVector(x: 0, y: 0, z: 0.95, w: 0),
-                "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 1),
-                "inputBiasVector": CIVector(x: 0.05, y: 0.05, z: 0.05, w: 0)
-            ])
-            return rawMask.applyingFilter("CIMultiplyCompositing", parameters: [
-                kCIInputBackgroundImageKey: softSubject
-            ])
-        } ?? rawMask
+        let masked: CIImage
+        if let personMask {
+            masked = subjectGate?.apply(extent: extent, arguments: [rawMask, personMask])
+                ?? CIImage(color: .black).cropped(to: extent)
+        } else {
+            masked = rawMask
+        }
 
         let radiusScale = radiusScale(for: extent, profile: profile)
-        return PhotoGuidedMaskRefiner.refine(
+        let refined = PhotoGuidedMaskRefiner.refine(
             masked, guidedBy: image, radius: max(2, 4 * radiusScale), epsilon: 0.0004
         )
+        // 平滑遮罩後再次保護原本不可信的像素，避免滲入唇色、眼眉及人物外。
+        return protection?.apply(extent: extent, arguments: [refined, masked]) ?? masked
     }
 
     private static func radiusScale(for extent: CGRect, profile: PhotoSkinMaskProfile) -> Double {

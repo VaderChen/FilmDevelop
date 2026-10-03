@@ -10,11 +10,10 @@ public enum PhotoNoiseProcessor {
         let amount = clamped(amount)
         guard amount > 0.005 else { return image }
 
-        return image.applyingFilter("CINoiseReduction", parameters: [
-            "inputNoiseLevel": min(0.08, amount * 0.08),
-            // 去雜訊不附加銳化，避免低強度反而放大感光雜訊。
-            "inputSharpness": 0
-        ])
+        // 使用與 C++／Vulkan 相同的視窗與噪聲變異量，避免系統濾鏡的
+        // 未公開強度曲線造成跨平台手感不同；不加銳化、不裁切 HDR。
+        let noise = amount * 0.08
+        return PhotoGuidedChannelFilter.apply(image, radius: 2, epsilon: noise * noise)
     }
 
     public static func addGrain(

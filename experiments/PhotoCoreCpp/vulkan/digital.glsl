@@ -34,12 +34,12 @@
     vec2 hdrLogTonePoint(
         float logValue, float black, float shadows, float midtones, float highlights, float white
     ) {
-        float value = exp2(logValue);
+        float value = max(exp2(logValue) - 0.00001, 0.0);
         vec2 mapped = mapLocalHDRTone(value, black, shadows, midtones, highlights, white);
-        float slope = mapped.x > 0.00001 ? value * mapped.y / mapped.x : 0.0;
+        float slope = (value + 0.00001) * mapped.y / (max(mapped.x, 0.0) + 0.00001);
         // A non-finite derivative must not contaminate the spatial interpolant.
         if (!(slope >= 0.0 && slope < 1.0e20)) slope = 0.0;
-        return vec2(log2(max(mapped.x, 0.00001)), max(slope, 0.0));
+        return vec2(log2(max(mapped.x, 0.0) + 0.00001), max(slope, 0.0));
     }
 
     // Rational quadratic Hermite interpolation. Positive endpoint slopes and
@@ -59,6 +59,9 @@
 
 vec4 reconstructHDR(vec4 source,vec4 logLuminance,vec4 baseLogLuminance) {
 float black=p[0],shadows=p[1],midtones=p[2],highlights=p[3],white=p[4],detailGain=p[5],amount=p[6];
+if(source.a<=0)return vec4(0);
+vec3 sourceColor=straight(source);float sourceLuminance=dot(sourceColor,W);
+if(sourceLuminance<=0 && black<=0)return source;
 float base = baseLogLuminance.r;
         float detail = logLuminance.r - base;
         float radius = 0.35;
@@ -82,9 +85,7 @@ float base = baseLogLuminance.r;
             }
         }
         float outputLogLuminance = mix(logLuminance.r, processedLogLuminance, amount);
-        float sourceLuminance = max(exp2(logLuminance.r), 0.0);
-        float outputLuminance = max(exp2(outputLogLuminance), 0.0);
-        vec3 sourceColor = source.rgb / max(source.a, 0.00001);
+        float outputLuminance = max(exp2(outputLogLuminance) - 0.00001, 0.0);
         vec3 chroma = sourceColor - vec3(sourceLuminance);
         float channelCeiling = max(max(max(sourceColor.r, sourceColor.g), sourceColor.b), 1.0);
 
@@ -179,7 +180,7 @@ vec2 localTonePoint(float stops,float contrast,float highlights,float shadows) {
         max(0,gain+shadows*.75*(shadow*(shadows<0?localToneSlope(-5.5,-2.8,stops):0)-protection*localToneSlope(-2.3,.9,stops))-highlights*.55*localToneSlope(.4,2.5,stops)));
 }
 bool digital(uint i) {
-    if((work.op<36 || work.op>44) && (work.op<46 || work.op>55) && work.op!=80 && work.op!=81)return false;
+    if((work.op<36 || work.op>44) && (work.op<46 || work.op>55) && work.op!=80 && work.op!=81 && work.op!=82 && work.op!=85)return false;
     vec4 px=a[i],result=px;
     if(work.op==80) {
         vec3 color=straight(px),mapped;
@@ -187,10 +188,17 @@ bool digital(uint i) {
         result=vec4(outputCurve(mapped)*px.a,px.a);
     }
     else if(work.op==81) result=vec4(cameraLook(straight(px))*px.a,px.a);
+    else if(work.op==82 && px.a>0) {
+        float position=clamp(dot(straight(px),W),0,1)*p[0];
+        int index=min(int(position),int(p[0])-1);
+        float lift=mix(lut[index],lut[index+1],position-index);
+        result=vec4(px.rgb*(vec3(1)-lift*vec3(.25,.20,.18))+vec3(lift*px.a),px.a);
+    }
     else if(work.op==36) result=vec4(colorLookup(straight(px))*px.a,px.a);
     else if(work.op==37) result=vec4(px.rgb+(pv(0)*b[i].r+pv(3)*b[i].g+pv(6)*b[i].b)*px.a,px.a);
     else if(work.op==38) result=vec4(px.rgb+max(b[i].rgb-px.rgb,vec3(0))*p[0],px.a);
     else if(work.op==39) result=vec4(px.rgb+(px.rgb-b[i].rgb)*p[0],px.a);
+    else if(work.op==85) result=vec4(vec3(log2(max(dot(straight(px),W),0)+.00001)),1);
     else if(work.op==40) result=vec4(vec3(log2(max(dot(straight(px),W),p[0]))),1);
     else if(work.op==41) result=reconstructHDR(px,b[i],c[i]);
     else if(work.op==42 && px.a>0) {
@@ -217,7 +225,7 @@ bool digital(uint i) {
     }
     else if(work.op==53) {vec3 mask=c[i].rgb;float total=mask.r+mask.g+mask.b;result=vec4(total>.0001?(b[i].rgb-px.rgb)*mask[int(p[0])]/total:vec3(0),0);}
     else if(work.op==54) result=vec4(px.rgb+b[i].rgb,px.a);
-    else if(work.op==55) result=px*(1-b[i].a*p[0])+b[i]*p[0];
+    else if(work.op==55) result=px*(1-p[0])+b[i]*p[0];
     else if(work.op==46) result=labColorAdjustment(px);
     else if(work.op==47) {
         vec2 size=vec2(work.width,work.height),position=vec2(i%work.width,i/work.width)+.5-size*.5;
@@ -237,7 +245,7 @@ bool digital(uint i) {
             if(p[23]>0)for(int j=0;j<3;++j) {
                 float v=(mapped[j]+1)/5*16384;int k=int(clamp(v,0,16383));mapped[j]=mix(lut[k],lut[k+1],v-k);
             }
-            branch=branch*(1-px.a*amount)+mapped*amount;
+            branch=branch*(1-amount)+mapped*amount;
         }
         float total=b[i].r+b[i].g+b[i].b;
         result=vec4(c[i].rgb+(total>.0001?(branch*px.a-px.rgb)*(b[i][int(p[0])]/total):vec3(0)),px.a);

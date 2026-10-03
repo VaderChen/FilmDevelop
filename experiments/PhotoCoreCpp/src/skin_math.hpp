@@ -1,5 +1,6 @@
 #pragma once
 #include "film_internal.hpp"
+#include "digital_math.hpp"
 namespace photocore::film_cpu {
 // 離散方框平均：滑動視窗維持 O(像素數)，邊界延伸與 Swift 的 CIBoxBlur 一致。
 inline Image box_mean(const Image &source,int radius) {
@@ -51,34 +52,99 @@ inline Image guided_mask(const Image &mask,const Image &image,double radius,doub
     return transform(image,[&](Pixel p,size_t x,size_t y){size_t i=y*image.width+x;double q=p.a<=.00001?0:std::clamp(dot(rgb(slope.pixels[i]),rgb(guide.pixels[i]))+intercept.pixels[i].r,0.,1.);return pixel(V(q),1);});
 }
 inline double skin_coverage(V v) {
+    const double sourceLuma=dot(v,w);
+    // 僅正規化膚色辨識訊號，照片像素與曝光控制保持原樣。
+    v*=std::max(1.,.18/std::max(sourceLuma,.00001));
     const double r=v.x,g=v.y,b=v.z,l=dot(v,w),maxc=std::max({r,g,b}),minc=std::min({r,g,b}),chroma=maxc-minc,saturation=chroma/std::max(maxc,.001),cb=(b-l)*.565,cr=(r-l)*.713;
     double hue=0;if(chroma>.0001){if(maxc==r){hue=(g-b)/chroma;if(hue<0)hue+=6;}else if(maxc==g)hue=(b-r)/chroma+2;else hue=(r-g)/chroma+4;hue*=60;}
-    const double luma=smooth(.06,.18,l)*(1-smooth(.96,1,l)),sat=smooth(.015,.080,saturation)*(1-smooth(.76,.96,saturation));
+    const double luma=smooth(.0005,.01,sourceLuma)*(1-smooth(.96,1,sourceLuma)),sat=smooth(.015,.080,saturation)*(1-smooth(.76,.96,saturation));
     const double normal=smooth(.24,.38,r)*smooth(.10,.18,g)*smooth(.04,.10,b)*smooth(.035,.10,chroma)*smooth(-.03,.07,r-g)*smooth(-.04,.08,r-b)*(1-smooth(.32,.58,std::abs(r-g)))*(1-smooth(.02,.20,g-r));
     const double bright=smooth(.72,.86,r)*smooth(.66,.82,g)*smooth(.54,.72,b)*(1-smooth(.06,.18,std::abs(r-g)))*smooth(-.02,.07,r-b)*smooth(-.02,.07,g-b);
     const double ycbcr=smooth(-.245,-.185,cb)*(1-smooth(.010,.070,cb))*smooth(.015,.070,cr)*(1-smooth(.205,.280,cr));
-    const double hsv=std::max(1-smooth(48,76,hue),smooth(332,348,hue))*smooth(.05,.18,saturation)*(1-smooth(.72,.92,saturation))*smooth(.12,.24,maxc);
+    const double hueWeight=std::max(1-smooth(48,76,hue),smooth(332,348,hue));
+    const double hsv=hueWeight*smooth(.05,.18,saturation)*(1-smooth(.72,.92,saturation))*smooth(.12,.24,maxc);
     const double warm=smooth(-.16,.035,r-b)*(1-smooth(.30,.58,std::abs(r-g)))*(1-smooth(.04,.24,g-r));
-    return std::clamp(luma*sat*std::max({normal,bright,ycbcr,hsv,warm}),0.,1.);
+    // 過度偏紅通常包含唇色；只作保守色彩保護，不宣稱具備語意辨識。
+    const double redProtection=1-smooth(.35,.55,(r-g)/std::max(r+g+b,.00001));
+    return std::clamp(luma*sat*std::max({normal,bright,ycbcr,hsv,warm})*hueWeight*redProtection,0.,1.);
 }
 inline Image skin_mask(const Image &image,const Image *subject=nullptr) {
-    auto raw=transform(image,[&](Pixel p,size_t x,size_t y){double v=skin_coverage(straight(p));if(subject)v*=.95*subject->pixels[y*image.width+x].r+.05;return pixel(V(v),1);});
-    return guided_mask(raw,image,std::max(2.,4*std::max(std::min(image.width,image.height)/1600.,.5)));
+    auto raw=transform(image,[&](Pixel p,size_t x,size_t y){double v=p.a>0?skin_coverage(straight(p)):0;if(subject)v*=std::clamp(double(subject->pixels[y*image.width+x].r),0.,1.);return pixel(V(v),1);});
+    auto refined=guided_mask(raw,image,std::max(2.,4*std::max(std::min(image.width,image.height)/1600.,.5)));
+    return transform_owned(std::move(refined),[&](Pixel p,size_t x,size_t y){return pixel(V(std::clamp(double(p.r),0.,1.)*smooth(0,.15,raw.pixels[y*image.width+x].r)),1);});
 }
 inline Image smooth_channels(const Image &image,double radius,double epsilon) {
     int r=int(std::clamp(std::round(radius),1.,64.));
-    auto prepared=transform(image,[](Pixel p,size_t,size_t){return pixel(straight(p),1);});
-    auto mean=box_mean(prepared,r),square=box_mean(transform(prepared,[](Pixel p,size_t,size_t){return pixel(rgb(p)*rgb(p),1);}),r);
+    // alpha 加權的局部統計；透明像素不充當黑色樣本。
+    auto prepared=transform(image,[](Pixel p,size_t,size_t){return p.a>0?p:Pixel{0,0,0,0};});
+    auto mean=box_mean(prepared,r),square=box_mean(transform(prepared,[](Pixel p,size_t,size_t){return pixel(straight(p)*rgb(p),p.a);}),r);
     Image a(image.width,image.height),b(image.width,image.height);
-    for(size_t i=0;i<a.pixels.size();++i){V m=rgb(mean.pixels[i]),variance=max(rgb(square.pixels[i])-m*m,V(0)),slope=variance/(variance+epsilon);a.pixels[i]=pixel(slope,1);b.pixels[i]=pixel(m*(V(1)-slope),1);}
+    for(size_t i=0;i<a.pixels.size();++i) {
+        const auto average=mean.pixels[i];const double weight=std::max(double(average.a),1e-20);
+        V m=rgb(average)/weight,variance=max(rgb(square.pixels[i])/weight-m*m,V(0)),slope=variance/(variance+epsilon);
+        a.pixels[i]=pixel(slope*average.a,average.a);b.pixels[i]=pixel(m*(V(1)-slope)*average.a,average.a);
+    }
     a=box_mean(a,r);b=box_mean(b,r);
-    return transform(image,[&](Pixel p,size_t x,size_t y){size_t i=y*image.width+x;return pixel(rgb(p)*rgb(a.pixels[i])+rgb(b.pixels[i])*p.a,p.a);});
+    return transform(image,[&](Pixel p,size_t x,size_t y){size_t i=y*image.width+x;return p.a>0?pixel(rgb(p)*straight(a.pixels[i])+straight(b.pixels[i])*p.a,p.a):Pixel{0,0,0,0};});
+}
+// 調整 L，保留來源 Lab a/b；只有超出來源色域時才沿同一色相縮減彩度。
+inline V skin_luminance(V color,double targetY) {
+    auto lab=rgb_to_lab({color.x,color.y,color.z});
+    const double fy=targetY>216./24389?std::cbrt(targetY):(24389./27*targetY+16)/116;
+    auto result=lab_color_rgb(fy,lab[1],lab[2]);
+    const double lower=std::min({0.,color.x,color.y,color.z}),upper=std::max({1.,color.x,color.y,color.z});
+    auto fits=[&](V value){return std::min({value.x,value.y,value.z})>=lower && std::max({value.x,value.y,value.z})<=upper;};
+    if(!fits(result)) {
+        double lo=0,hi=1;
+        for(int i=0;i<16;++i){double mid=(lo+hi)*.5;if(fits(lab_color_rgb(fy,lab[1]*mid,lab[2]*mid)))lo=mid;else hi=mid;}
+        result=lab_color_rgb(fy,lab[1]*lo,lab[2]*lo);
+    }
+    return result;
+}
+inline Pixel skin_whiten(Pixel source,double mask,double amount) {
+    const double weight=std::clamp(mask,0.,1.)*.68*amount;
+    if(source.a<=0 || weight<=0)return source;
+    const V color=straight(source);const double y=dot(color,exact_w);
+    if(y<=0 || y>=1)return source;
+    const double l=rgb_to_lab({color.x,color.y,color.z})[0]/100;
+    // 提亮幅度增加 25%；最大 k=1.02，仍保留單調曲線與黑白端點。
+    const double target=l+1.5*weight*l*(1-l)*(1-l),f=(100*target+16)/116;
+    const double targetY=f>6./29?f*f*f:(116*f-16)*27/24389;
+    return pixel(skin_luminance(color,targetY)*source.a,source.a);
+}
+inline Pixel skin_log_statistics(Pixel source,double mask) {
+    if(source.a<=0)return {0,0,0,0};
+    const double y=std::max(0.,dot(straight(source),exact_w)),value=std::log2(y+.00001),weight=source.a*std::clamp(mask,0.,1.);
+    return pixel(V(value*weight,value*value*weight,0),weight);
+}
+inline Pixel skin_smoothing_pixel(Pixel source,Pixel fine,Pixel coarse,double mask,double amount,double epsilon) {
+    const double weight=std::clamp(mask,0.,1.)*amount;
+    if(source.a<=0 || weight<=0 || fine.a<=1e-8 || coarse.a<=1e-8)return source;
+    const V color=straight(source);const double y=dot(color,exact_w);if(y<=0)return source;
+    const double value=std::log2(y+.00001),mf=double(fine.r)/fine.a,mc=double(coarse.r)/coarse.a;
+    const double vf=std::max(0.,double(fine.g)/fine.a-mf*mf),vc=std::max(0.,double(coarse.g)/coarse.a-mc*mc);
+    const double fineDelta=(mf-value)*epsilon/(vf+epsilon),coarseDelta=(mc-value)*epsilon/(vc+epsilon);
+    const double attenuation=.12+.23*smooth(.35,.85,vf/std::max(vc,.000001));
+    double delta=coarseDelta-(1-attenuation)*fineDelta;
+    delta=std::clamp(delta,std::min(0.,mc-value),std::max(0.,mc-value))*weight*(1-smooth(.025,.12,vc));
+    if(std::abs(delta)<1e-7)return source;
+    const double targetY=std::max(0.,std::exp2(value+delta)-.00001);
+    return pixel(skin_luminance(color,targetY)*source.a,source.a);
+}
+inline Image skin_smooth(const Image &image,const Image &mask,double radius,double amount) {
+    auto scales=[&]{
+        auto statistics=transform(image,[&](Pixel p,size_t x,size_t y){return skin_log_statistics(p,mask.pixels[y*image.width+x].r);});
+        return std::pair{box_mean(statistics,int(std::clamp(std::round(radius*.35),1.,64.))),
+                         box_mean(statistics,int(std::clamp(std::round(radius*3),2.,64.)))};
+    }();
+    // 混合強度連續增加到 100%，不提前封頂；保留既有細紋與結構保護。
+    return transform(image,[&](Pixel p,size_t x,size_t y){size_t i=y*image.width+x;return skin_smoothing_pixel(p,scales.first.pixels[i],scales.second.pixels[i],mask.pixels[i].r,amount*.78,.002+amount*.018);});
 }
 inline Image skin_enhance(Image image,const Image &mask,const Json &adjustment,double strength,const Database &database) {
     double white=number(adjustment,"skinWhitening",0,0,100)/100*strength,smoothing=number(adjustment,"skinSmoothing",0,0,100)/100*strength,warm=number(adjustment,"skinWarmth",0,-100,100)/100*strength;
     auto blend=[&](const Image &foreground,double amount){for(size_t i=0;i<image.pixels.size();++i){auto &p=image.pixels[i];auto q=foreground.pixels[i];double m=std::clamp(double(mask.pixels[i].r)*amount,0.,1.);p=pixel(mix(rgb(p),rgb(q),m),p.a);}};
-    if(smoothing>.005)blend(smooth_channels(image,std::max(1.,(.9+smoothing*5.4)*std::max(std::min(image.width,image.height)/1600.,.5)),.002+smoothing*.018),std::min(.58,smoothing*.65));
-    if(white>.005)blend(transform(image,[&](Pixel p,size_t,size_t){V c=straight(p);c=mix(V(dot(c,{.2125,.7154,.0721})),c,1-white*.16);return pixel(((c-.5)*(1-white*.07)+.5+white*.13)*p.a,p.a);}),.68);
+    if(smoothing>.005)image=skin_smooth(image,mask,std::max(1.,(.9+smoothing*5.4)*std::max(std::min(image.width,image.height)/1600.,.5)),smoothing);
+    if(white>.005)image=transform_owned(std::move(image),[&](Pixel p,size_t x,size_t y){return skin_whiten(p,mask.pixels[y*mask.width+x].r,white);});
     if(std::abs(warm)>.001)blend(white_balance(image,{{"whiteBalanceWarmth",warm*100}},1,database),1);
     return image;
 }
@@ -94,11 +160,11 @@ inline Image skin_white_balance(Image source,const Image &mask,double strength) 
     V gain{std::clamp(1+(1.18/std::max(average.x/green,.001)-1)*correction,.88,1.12),1,std::clamp(1+(.82/std::max(average.z/green,.001)-1)*correction,.88,1.12)};
     gain=clamp(gain*std::clamp(std::max(.001,dot(average,w))/std::max(.001,dot(average*gain,w)),.92,1.08),V(.86),V(1.14));
     if(std::max({std::abs(gain.x-1),std::abs(gain.y-1),std::abs(gain.z-1)})<=.012)return source;
-    return transform_owned(std::move(source),[&](Pixel p,size_t x,size_t y){V color=rgb(p),corrected=color*gain;double m=mask.pixels[y*mask.width+x].r*.58*confidence;V result=mix(mix(color,corrected,.16*confidence),corrected,m);return pixel(color*(1-p.a*strength)+result*strength,p.a*(1-p.a*strength)+p.a*strength);});
+    return transform_owned(std::move(source),[&](Pixel p,size_t x,size_t y){V color=rgb(p),corrected=color*gain;double m=mask.pixels[y*mask.width+x].r*.58*confidence;V result=mix(mix(color,corrected,.16*confidence),corrected,m);return pixel(color*(1-strength)+result*strength,p.a);});
 }
 inline Image denoise(Image source,double amount) {
     if(amount<=.005)return source;
-    // Core Image 的降噪不公開實作；可攜後端以同樣的噪聲強度進行保邊平滑、不附加銳化。
+    // Swift／C++／Vulkan 共用逐通道自引導降噪，不附加銳化。
     return smooth_channels(source,2,std::pow(amount*.08,2));
 }
 inline std::vector<float> bokeh_samples(double radius) {

@@ -3,7 +3,7 @@ import CoreImage
 /// D65 Lab color edits in one pointwise GPU pass; neutral settings bypass it.
 public enum PhotoLabAdjustmentProcessor {
     private static let space = CGColorSpace(name: CGColorSpace.extendedLinearSRGB)!
-    private static let helpers = PhotoExposureColor.kernel + """
+    static let helpers = PhotoExposureColor.kernel + """
     vec3 labColorRGB(float fy, vec2 ab) {
         vec3 xyz=vec3(0.9504559270516716*exposureLabInverse(fy+ab.x/500.0),
             exposureLabInverse(fy),1.0890577507598784*exposureLabInverse(fy-ab.y/200.0));

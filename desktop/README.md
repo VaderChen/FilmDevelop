@@ -1,12 +1,14 @@
 # Go 桌面宿主與跨平台進度
 
-更新日期：2026-10-03，版本 **1.26.1003 build 1503**。`run.command` 建置並開啟 **Go／Wails 主程序＋Swift／C++ 影像引擎**。Go 共用 UI、照片、配方、設定、資料移轉、模型、MCP、更新與匯出流程；macOS 使用 Swift／Apple 框架及 C++，Windows 使用 C++／WIC／Vulkan。
+更新日期：2026-10-04，版本 **1.26.1004 build 0036**。`run.command` 建置並開啟 **Go／Wails 主程序＋Swift／C++ 影像引擎**。Go 共用 UI、照片、配方、設定、資料移轉、模型、MCP、更新與匯出流程；macOS 使用 Swift／Apple 框架及 C++，Windows 使用 C++／WIC／Vulkan。
 
 macOS 支援 Apple Silicon、macOS 14 以上；Windows 支援 10／11 x64，版本文字附 **Beta**。兩平台均已接通底片、編輯、RAW 備援、AI 分析與修復、匯出及資料移轉；平台差異與實測界線列於文末。
 
-前一版 build 1300 納入 [第一輪 13 項移植修正](SWIFT_PARITY_AUDIT.md)，再修正 [第二輪 12 項功能與 UI 缺漏](SWIFT_PARITY_SECOND_AUDIT.md)，並處理 Windows AI 模型格式與具名 mmproj 配對。Windows 直接隱藏 MLX 選項，使用 GGUF；macOS 保留 MLX。外接磁碟 JPEG、單張顯影與複選匯出一併納入回歸，正式成品驗證見 [還原紀錄](RESTORATION.md)。
+build 1300 納入 [第一輪 13 項移植修正](SWIFT_PARITY_AUDIT.md)，再修正 [第二輪 12 項功能與 UI 缺漏](SWIFT_PARITY_SECOND_AUDIT.md)，並處理 Windows AI 模型格式與具名 mmproj 配對。Windows 直接隱藏 MLX 選項，使用 GGUF；macOS 保留 MLX。外接磁碟 JPEG、單張顯影與複選匯出一併納入回歸，正式成品驗證見 [還原紀錄](RESTORATION.md)。
 
-本版的最佳化詳見 [函式層級效率與記憶體報告](FUNCTION_EFFICIENCY.md)：涵蓋配方編輯、遮罩、模型配對、照片排序、自訂底片預設及 CPU Gaussian，列出 22 種 Go 輸入與兩平台原生量測，以及逐位元、匯出和 UI 回歸證據。完整數值見 [量測資料](function-efficiency-report.json)。
+build 1503 的最佳化詳見 [函式層級效率與記憶體報告](FUNCTION_EFFICIENCY.md)：涵蓋配方編輯、遮罩、模型配對、照片排序、自訂底片預設及 CPU Gaussian，列出 22 種 Go 輸入與兩平台原生量測，以及逐位元、匯出和 UI 回歸證據。完整數值見 [量測資料](function-efficiency-report.json)。
+
+本版更新數位修圖核心：自然柔膚、美白與滑桿強度、欠曝膚色、透明度與降噪、HDR 極暗階調、分區淡化及導向濾波一致性。控制項範圍、預設值及操作流程保持相容；含相關調整的既有配方重新渲染時會採用修正後的算法。詳見 [本輪修正與驗證](RESTORATION.md)。
 
 ## 分工
 

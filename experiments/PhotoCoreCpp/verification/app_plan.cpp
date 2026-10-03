@@ -36,10 +36,16 @@ int main(int argc,char **argv){try{
  // 保留根影像供最後混合，驗證非線性序列之外的分支擁有權與 alpha。
  plan["nodes"].push_back({{"source",0},{"secondary",4},{"operation",{{"schema",1},{"stage","blend"},{"strength",.6}}}});
  require(run(plan,input,output)==0,error);
- for(size_t i=0;i<output.size();++i){const size_t a=(i/4)*4+3;float expected=.6f*sequential[i]+input[i]*(1-.6f*sequential[a]);require(std::abs(output[i]-expected)<2e-6,"GPU 分支混合或 alpha 不符");}
+ for(size_t i=0;i<output.size();++i){float expected=.6f*sequential[i]+input[i]*(1-.6f);require(std::abs(output[i]-expected)<2e-6,"GPU 分支混合或 alpha 不符");}
  for(int i=0;i<20;++i){auto invalid=plan;invalid["nodes"][0]["source"]=99;require(run(invalid,input,scratch)!=0,"未拒絕向後相依");}
  require(run(plan,input,scratch)==0,error);
  require(output==scratch,"錯誤復原後結果不一致");
+ // 相同處理狀態的強度插值必須完全保留影像，包含半透明。
+ for(float amount:{0.f,.25f,.5f,.75f,1.f}) {
+  Json same={{"schema",2},{"nodes",Json::array({{{"source",0},{"secondary",0},{"operation",{{"schema",1},{"stage","blend"},{"strength",amount}}}}})}};
+  require(run(same,input,scratch)==0,error);
+  for(size_t i=0;i<input.size();++i)require(std::abs(scratch[i]-input[i])<1e-6,"GPU 相同狀態混合改變色彩或 alpha");
+ }
  std::cout<<"{\"passed\":true,\"plan_uploads\":1,\"plan_downloads\":1,\"sequential_uploads\":4,\"sequential_downloads\":4,\"max_float_error\":"<<maxError<<",\"invalid_graphs\":20}\n";
  return 0;
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}}

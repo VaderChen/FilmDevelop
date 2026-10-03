@@ -31,14 +31,13 @@ public enum PhotoImageEffectsProcessor {
     }
 
     public static func blend(_ filtered: CIImage, with original: CIImage, opacity: Double) -> CIImage {
-        let opacity = min(max(opacity, 0), 1)
+        let opacity = opacity.isFinite ? min(max(opacity, 0), 1) : 0
         if opacity <= 0 { return original }
         if opacity >= 1 { return filtered }
-        let foreground = filtered.applyingFilter("CIColorMatrix", parameters: [
-            "inputAVector": CIVector(x: 0, y: 0, z: 0, w: opacity)
-        ])
-        return foreground.applyingFilter("CISourceOverCompositing", parameters: [
-            kCIInputBackgroundImageKey: original
+        // 效果強度是兩個處理狀態的插值；圖層疊加會重複計入原片覆蓋率。
+        return original.applyingFilter("CIDissolveTransition", parameters: [
+            kCIInputTargetImageKey: filtered,
+            kCIInputTimeKey: opacity
         ])
     }
 

@@ -1,5 +1,6 @@
 #include "digital_math.hpp"
 #include "camera_math.hpp"
+#include "plan_fade.hpp"
 namespace photocore::film_cpu {
 namespace {
 V table_pixel(const DigitalLook &look, int x, int y, int z) {
@@ -167,7 +168,7 @@ Image tone_zones(Image source,const Json &adjustment,double strength,bool monoch
                     double v=(mapped[c]+1)/5*16384;int k=int(std::clamp(v,0.,16383.));
                     mapped[c]=mapping.curve[k]+(mapping.curve[k+1]-mapping.curve[k])*(v-k);
                 }
-                branch=branch*(1-p.a*amount)+mapped*amount;
+                branch=branch*(1-amount)+mapped*amount;
             }
             V mask=rgb(masks.pixels[i]);double total=mask.x+mask.y+mask.z;
             if(total>.0001)result.pixels[i]=pixel(rgb(result.pixels[i])+(branch*p.a-rgb(p))*(mask[region]/total),p.a);
@@ -234,12 +235,11 @@ Image plan_tone(Image source,const Json &adjustment,double strength,bool monochr
             for(auto &p:branch.pixels)p=pixel(multiply(matrix,rgb(p)),p.a);
         }
         branch=local_tone_curve(std::move(branch),number(zone,"contrast",0,-100,100)/100*strength,number(zone,"highlights",0,-100,100)/100*strength,number(zone,"shadows",0,-100,100)/100*strength);
-        double fade=number(zone,"fade",0,0,100)/100*strength,softness=number(zone,"softness",0,0,100)/100*strength;
-        if(fade>.005) {double lift=fade*.18;for(auto &p:branch.pixels)p=pixel(rgb(p)*V(1-lift*.25,1-lift*.20,1-lift*.18)+V(lift)*p.a,p.a);}
+        double softness=number(zone,"softness",0,0,100)/100*strength;
         if(softness>.005) {
             double scale=std::clamp(double(std::max(source.width,source.height))/1024,.5,3.),amount=std::min(.66,softness*1.18);
             auto blur=gaussian(branch,(.75+softness*7)*scale);
-            for(size_t i=0;i<branch.pixels.size();++i){auto &p=branch.pixels[i];auto q=blur.pixels[i];p={float(p.r*(1-q.a*amount)+q.r*amount),float(p.g*(1-q.a*amount)+q.g*amount),float(p.b*(1-q.a*amount)+q.b*amount),float(p.a*(1-q.a*amount)+q.a*amount)};}
+            for(size_t i=0;i<branch.pixels.size();++i){auto &p=branch.pixels[i];auto q=blur.pixels[i];p={float(p.r*(1-amount)+q.r*amount),float(p.g*(1-amount)+q.g*amount),float(p.b*(1-amount)+q.b*amount),float(p.a*(1-amount)+q.a*amount)};}
         }
         for(size_t i=0;i<source.pixels.size();++i) {
             V mask=rgb(masks.pixels[i]);double total=mask.x+mask.y+mask.z;
@@ -247,6 +247,8 @@ Image plan_tone(Image source,const Json &adjustment,double strength,bool monochr
         }
         ++region;
     }
+    const auto fade=plan_fade_lifts(zones,strength);
+    if(!fade.empty())for(auto &p:result.pixels)p=plan_fade_pixel(p,fade);
     return result;
 }
 Image local_tone(Image source,const Json &adjustment,double strength,bool hdr) {
@@ -259,15 +261,18 @@ Image local_tone(Image source,const Json &adjustment,double strength,bool hdr) {
     }
     ToneSettings settings(adjustment);
     if(!hdr || settings.amount<=.0001)return source;
-    auto log=logs(source,1e-5),base=guided_smooth(log,.0015);Image adjusted=source;
+    auto log=transform(source,[](Pixel p,size_t,size_t){return pixel(V(std::log2(std::max(dot(straight(p),w),0.)+1e-5)),1);});
+    auto base=guided_smooth(log,.0015);Image adjusted=source;
     for(size_t i=0;i<source.pixels.size();++i) {
-        auto &p=adjusted.pixels[i];double l=log.pixels[i].r,b=base.pixels[i].r,d=l-b;
+        auto &p=adjusted.pixels[i];const V color=straight(p);const double sourceY=dot(color,w);
+        if(p.a<=0 || (sourceY<=0 && settings.points[0]<=0))continue;
+        double l=log.pixels[i].r,b=base.pixels[i].r,d=l-b;
         double result=hdr_point(l,settings.points).x;
         if(std::abs(d)<.35) {
             TonePoint middle=hdr_point(b,settings.points);middle.y=settings.detail;
             result=d<0?detail_segment((d+.35)/.35,hdr_point(b-.35,settings.points),middle,.35):detail_segment(d/.35,middle,hdr_point(b+.35,settings.points),.35);
         }
-        double sourceY=std::exp2(l),targetY=std::exp2(l+(result-l)*settings.amount);V color=straight(p),chroma=color-sourceY;
+        double targetY=std::max(std::exp2(l+(result-l)*settings.amount)-1e-5,0.);V chroma=color-sourceY;
         double ceiling=std::max({1.,color.x,color.y,color.z}),fit=1;
         for(int c=0;c<3;++c) {
             if(chroma[c]>1e-6)fit=std::min(fit,(ceiling-targetY)/chroma[c]);

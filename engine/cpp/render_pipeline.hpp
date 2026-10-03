@@ -23,7 +23,7 @@ inline photocore::Image render_style(const photocore::Image &input, const photoc
       if (amount >= 1) return foreground;
       for (size_t i = 0; i < base.pixels.size(); ++i) {
         auto &p = base.pixels[i]; const auto q = foreground.pixels[i];
-        const double remaining = 1 - q.a * amount;
+        const double remaining = 1 - amount;
         p = {float(p.r * remaining + q.r * amount), float(p.g * remaining + q.g * amount),
              float(p.b * remaining + q.b * amount), float(p.a * remaining + q.a * amount)};
       }

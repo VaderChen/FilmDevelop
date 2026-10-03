@@ -9,9 +9,10 @@ public enum PhotoHDRProcessor {
     // Fuse scalar luminance extraction and log encoding. Preserve the original
     // working-space convention and HDR curve; no conversion to Lab is involved.
     private static let logLuminanceKernel = PhotoGPUColorKernel.make("hdrLogLuminance", parameters: "__sample source", body: """
-        vec3 color = source.rgb / max(source.a, 0.00001);
+        vec3 color = source.a > 0.0 ? source.rgb / source.a : vec3(0.0);
         float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
-        float value = log2(max(luminance, 0.00001));
+        // 加偏移後取對數，保留 0 到 epsilon 之間的階調，解碼時扣回。
+        float value = log2(max(luminance, 0.0) + 0.00001);
         return vec4(value, value, value, 1.0);
         """)
 
@@ -52,12 +53,12 @@ public enum PhotoHDRProcessor {
     vec2 hdrLogTonePoint(
         float logValue, float black, float shadows, float midtones, float highlights, float white
     ) {
-        float value = exp2(logValue);
+        float value = max(exp2(logValue) - 0.00001, 0.0);
         vec2 mapped = mapLocalHDRTone(value, black, shadows, midtones, highlights, white);
-        float slope = mapped.x > 0.00001 ? value * mapped.y / mapped.x : 0.0;
+        float slope = (value + 0.00001) * mapped.y / (max(mapped.x, 0.0) + 0.00001);
         // A non-finite derivative must not contaminate the spatial interpolant.
         if (!(slope >= 0.0 && slope < 1.0e20)) slope = 0.0;
-        return vec2(log2(max(mapped.x, 0.00001)), max(slope, 0.0));
+        return vec2(log2(max(mapped.x, 0.0) + 0.00001), max(slope, 0.0));
     }
 
     // Rational quadratic Hermite interpolation. Positive endpoint slopes and
@@ -86,6 +87,11 @@ public enum PhotoHDRProcessor {
         float detailGain,
         float amount
     ) {
+        if (source.a <= 0.0) return vec4(0.0);
+        vec3 sourceColor = source.rgb / source.a;
+        float sourceLuminance = dot(sourceColor, vec3(0.2126, 0.7152, 0.0722));
+        // 黑位控制點為零時保留真正的零；非正亮度也沒有可擴展的對數階調。
+        if (sourceLuminance <= 0.0 && black <= 0.0) return source;
         float base = baseLogLuminance.r;
         float detail = logLuminance.r - base;
         float radius = 0.35;
@@ -109,9 +115,7 @@ public enum PhotoHDRProcessor {
             }
         }
         float outputLogLuminance = mix(logLuminance.r, processedLogLuminance, amount);
-        float sourceLuminance = max(exp2(logLuminance.r), 0.0);
-        float outputLuminance = max(exp2(outputLogLuminance), 0.0);
-        vec3 sourceColor = source.rgb / max(source.a, 0.00001);
+        float outputLuminance = max(exp2(outputLogLuminance) - 0.00001, 0.0);
         vec3 chroma = sourceColor - vec3(sourceLuminance);
         float channelCeiling = max(max(max(sourceColor.r, sourceColor.g), sourceColor.b), 1.0);
 

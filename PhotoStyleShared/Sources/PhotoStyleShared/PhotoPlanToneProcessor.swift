@@ -84,8 +84,17 @@ public enum PhotoPlanToneProcessor {
                 midtonesEV: mappedEV(toneZones.midtones, mapping: mappingAmounts.midtones),
                 shadowsEV: mappedEV(toneZones.shadows, mapping: mappingAmounts.shadows))
         }
-        let components = components.subtracting(.exposure)
-        guard !components.subtracting(.mapping).isEmpty else { return image }
+        func fade(_ adjustment: PhotoStylePlan.ToneAdjustment, mapping: Double) -> Double {
+            let amount = components.contains(.fade) ? normalized(adjustment.fade) * strength : 0
+            return amount > 0.005 ? amount * mapping : 0
+        }
+        let fadeAmounts = SIMD3(fade(toneZones.shadows, mapping: mappingAmounts.shadows),
+                                fade(toneZones.midtones, mapping: mappingAmounts.midtones),
+                                fade(toneZones.highlights, mapping: mappingAmounts.highlights))
+        let components = components.subtracting([.exposure, .fade])
+        guard !components.subtracting(.mapping).isEmpty else {
+            return PhotoPlanFadeProcessor.apply(to: image, amounts: fadeAmounts, masks: masks)
+        }
         let shadowAdjusted = applyZone(
             to: image,
             adjustment: toneZones.shadows,
@@ -105,7 +114,7 @@ public enum PhotoPlanToneProcessor {
             strength: strength,
             components: components
         )
-        return PhotoToneZoneProcessor.composite(
+        let result = PhotoToneZoneProcessor.composite(
             base: image,
             shadows: shadowAdjusted,
             midtones: midtoneAdjusted,
@@ -113,6 +122,7 @@ public enum PhotoPlanToneProcessor {
             masks: masks,
             mappingAmounts: mappingAmounts
         )
+        return PhotoPlanFadeProcessor.apply(to: result, amounts: fadeAmounts, masks: masks)
     }
 
     private static func applyZone(
@@ -162,12 +172,6 @@ public enum PhotoPlanToneProcessor {
             highlights: highlights,
             shadows: shadows
         )
-        if components.contains(.fade) {
-            adjusted = PhotoImageEffectsProcessor.fade(
-                adjusted,
-                amount: normalized(adjustment.fade) * strength
-            )
-        }
         if components.contains(.softness) {
             adjusted = PhotoImageEffectsProcessor.soften(
                 adjusted,

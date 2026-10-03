@@ -1,5 +1,6 @@
 #include "pipeline.hpp"
 #include "digital_math.hpp"
+#include "plan_fade.hpp"
 namespace photocore::vk {
 using namespace film_cpu;
 Surface Pipeline::digital_print(Surface source,const Effects &e) {
@@ -130,8 +131,7 @@ Surface Pipeline::plan_tone(Surface source,const Json &adjustment,double strengt
             branch=unary(48,branch,params,"plan-tint");
         }
         branch=local_tone_curve(branch,number(zone,"contrast",0,-100,100)/100*strength,number(zone,"highlights",0,-100,100)/100*strength,number(zone,"shadows",0,-100,100)/100*strength);
-        double fade=number(zone,"fade",0,0,100)/100*strength,softness=number(zone,"softness",0,0,100)/100*strength;
-        if(fade>.005)branch=unary(52,branch,{1,float(fade*.18)},"plan-fade");
+        double softness=number(zone,"softness",0,0,100)/100*strength;
         if(softness>.005) {
             double scale=std::clamp(double(std::max(source.width,source.height))/1024,.5,3.),amount=std::min(.66,softness*1.18);
             auto blur=gaussian(branch,(.75+softness*7)*scale,"plan-softness"),out=context.create(source.width,source.height);
@@ -140,6 +140,12 @@ Surface Pipeline::plan_tone(Surface source,const Json &adjustment,double strengt
         auto delta=context.create(source.width,source.height),out=context.create(source.width,source.height);
         context.dispatch(53,source,branch,masks,delta,delta,{float(region)},table,0,"plan-zone-delta");
         context.dispatch(54,result,delta,result,out,out,{},table,0,"plan-zone-composite");result=out;++region;
+    }
+    const auto fade=plan_fade_lifts(zones,strength);
+    if(!fade.empty()) {
+        auto curve=context.upload_floats(fade),out=context.create(source.width,source.height);
+        context.dispatch(82,result,result,result,out,out,{float(fade.size()-1)},curve,0,"plan-fade");
+        result=std::move(out);
     }
     return result;
 }
@@ -155,7 +161,7 @@ Surface Pipeline::local_tone(Surface source,const Json &adjustment,double streng
     }
     ToneSettings settings(adjustment);
     if(!hdr || settings.amount<=.0001)return source;
-    auto log=unary(40,source,{1e-5f},"hdr-log"),base=guided(log,.0015);
+    auto log=unary(85,source,{},"hdr-log"),base=guided(log,.0015);
     auto adjusted=context.create(source.width,source.height);
     std::vector<float> params(settings.points.begin(),settings.points.end());
     params.push_back(float(settings.detail));params.push_back(float(settings.amount));
