@@ -28,9 +28,19 @@
     observe(reply);
     if (reply.function === 'handleNativeToast') {
       if(expectedToast && reply.payload.message===expectedToast) { expectedToast=null;observe({});return; }
+      if(stage===-6 && reply.payload.message.startsWith('已匯出：')) return; // 定影結束後重播的提示。
       if (stage === 5 && reply.payload.message.startsWith('已匯出：')) {
         completed.push('原尺寸匯出');
-        stage=6; window.runtime.EventsEmit('filmdevelop:smoke-reopen');
+        // 舊版顯影動畫在寫入完成後仍須定影；等畫面解鎖才模擬下一步操作。
+        stage=-6;
+        const revealDeadline=Date.now()+15000;
+        const waitForReveal=()=>{
+          if(document.getElementById('exportDevelopment').hidden&&!document.getElementById('app').inert){
+            stage=6;window.runtime.EventsEmit('filmdevelop:smoke-reopen');
+          }else if(Date.now()>revealDeadline){fail('匯出顯影對話框未完成收尾');}
+          else {setTimeout(waitForReveal,25);}
+        };
+        waitForReveal();
       } else { fail(reply.payload.message); }
       return;
     }
@@ -487,6 +497,8 @@
       if(verifyHostDialogButtons('destructive')===confirmColor)throw new Error('刪除與確定未區分顏色');
       await choose('取消');
       completed.push('儲存底片自動勾選且保存；確定、取消、刪除同列並區分顏色');
+      await idle(s=>s.selectedCustomFilmID===custom.id);
+      command('undoEdit');await idle(s=>!s.selectedCustomFilmID);
       command('setStyle',{style:custom.id});await idle(s=>s.selectedCustomFilmID===custom.id);
       if(latest.adjustments.filmPortra400.exposure!==12)throw new Error('自訂底片未保留調整');
       command('undoEdit');await idle(s=>!s.selectedCustomFilmID);completed.push('自訂底片命名、套用與復原');
@@ -503,6 +515,11 @@
       repairPrepared=null;command('prepareRepairBrush',{photoGeneration:latest.photoGeneration});await until(()=>repairPrepared,'修復模型準備',120000);timings.repairPreparationMs=performance.now()-repairStarted;if(!repairPrepared.success)throw new Error('修復模型準備失敗');
       const oldRepair=latest.repairRevision||'';repairStarted=performance.now();repairResult=null;command('applyRepairBrush',{photoGeneration:latest.photoGeneration,repairRevision:oldRepair,strokes:[{radius:0.06,points:[{x:0.5,y:0.5}]}]});await until(()=>repairResult,'原生模型修復',120000);timings.repairInferenceMs=performance.now()-repairStarted;if(!repairResult.success)throw new Error('修復失敗');await idle(s=>(s.repairRevision||'')!==oldRepair);command('undoEdit');await idle(s=>(s.repairRevision||'')===oldRepair);completed.push('修復筆刷準備、原生模型推論與復原');
       window.runtime.EventsEmit('filmdevelop:smoke-mcp');await until(()=>mcpDone,'真實 MCP HTTP 與介面同步');completed.push('MCP 初始化、12 工具、切換底片、調整、預覽與匯出');
+      const deadline=Date.now()+15000;
+      while(!document.getElementById('exportDevelopment').hidden||document.getElementById('app').inert){
+        if(Date.now()>deadline)throw new Error('MCP 匯出顯影對話框未完成收尾');
+        await new Promise(resolve=>setTimeout(resolve,25));
+      }
       stage=10;window.runtime.EventsEmit('filmdevelop:smoke-empty');
     } catch(error){fail(String(error)+"\n"+(error.stack||""))}
   }

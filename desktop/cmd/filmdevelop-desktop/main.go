@@ -19,6 +19,7 @@ func main() {
 		panic(err)
 	}
 	settings := &options.App{Title: "FilmDevelop", Width: 1380, Height: 900, MinWidth: 1050, MinHeight: 700,
+		DragAndDrop: &options.DragAndDrop{EnableFileDrop: true, DisableWebViewDrop: true},
 		AssetServer: &assetserver.Options{Assets: assets}, OnStartup: app.Startup, OnShutdown: app.Shutdown, OnBeforeClose: app.BeforeClose}
 	configurePlatform(settings)
 	settings.Menu = app.Menu()

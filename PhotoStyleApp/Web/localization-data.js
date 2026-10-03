@@ -1,4 +1,5 @@
 window.PhotoLocalizationData = {
+  "MLX 需要 Apple Silicon；此平台請下載 GGUF 主模型與對應的 mmproj。": ["MLX requires Apple Silicon. On this platform, download a GGUF model and its matching mmproj.", "MLX には Apple Silicon が必要です。このプラットフォームでは GGUF モデルと対応する mmproj をダウンロードしてください。", "MLX에는 Apple Silicon이 필요합니다. 이 플랫폼에서는 GGUF 모델과 호환되는 mmproj를 다운로드하세요."],
   "檔案": ["File", "ファイル", "파일"],
   "結束": ["Quit", "終了", "종료"],
   "顯示": ["View", "表示", "보기"],

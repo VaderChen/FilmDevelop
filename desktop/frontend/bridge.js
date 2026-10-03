@@ -1,6 +1,6 @@
 (function () {
   "use strict";
-  var allowed = new Set(["handleUIPreferences", "handleNativeState", "handleNativeToast", "handleDesktopCommand", "handleNativeFileOpen", "handlePhotoDirectoryState", "handleFilmHoverPreview", "handleHostDialog", "handleHostMenu", "handleRepairPreparation", "handleNativeMenu", "handlePreviewMenu", "handlePhotoEXIF", "handleBatchExportProgress", "handleRepairResult", "handleUpdateComplete", "handleMCPFlush", "handleMCPPage", "handleHostProgress", "handleHostClose", "handleHostStartup"]);
+  var allowed = new Set(["handleUIPreferences", "handleNativeState", "handleNativeToast", "handleDesktopCommand", "handleNativeFileOpen", "handlePhotoDirectoryState", "handleFilmHoverPreview", "handleHostDialog", "handleHostMenu", "handleRepairPreparation", "handleNativeMenu", "handlePreviewMenu", "handlePhotoEXIF", "handleBatchExportProgress", "handleRepairResult", "handleUpdateComplete", "handleMCPFlush", "handleMCPPage", "handleHostProgress", "handleHostClose", "handleHostStartup", "handleExportDevelopment", "handleFocusDirectoryPhoto"]);
   // Wails 的事件回呼可並行；等宿主確認入列後才送下一筆，保持手勢與換圖順序。
   var pending = [], sequence = 0, hostConnected = false;
   function sendNext() {
@@ -23,6 +23,13 @@
       if (pending.length === 1) sendNext();
     }
   };
+  // Windows 由 WebView2 解析拖入路徑，macOS 由原生事件交給同一 Go 入口。
+  window.runtime.OnFileDrop(function () { document.body.classList.remove("file-drag-over"); }, false);
+  window.addEventListener("dragover", function (event) {
+    if (event.dataTransfer && Array.from(event.dataTransfer.types).includes("Files") && !document.getElementById("app").inert) document.body.classList.add("file-drag-over");
+  });
+  ["drop", "dragend"].forEach(function (name) { window.addEventListener(name, function () { document.body.classList.remove("file-drag-over"); }); });
+  window.addEventListener("dragleave", function (event) { if (!event.relatedTarget) document.body.classList.remove("file-drag-over"); });
   var writingUI = false, uiConnected = false;
   var nativeSet = Storage.prototype.setItem, nativeRemove = Storage.prototype.removeItem;
   var portableKeys = new Set("photoStyle.activeAdjustmentPanel photoStyle.adjustmentMode photoStyle.sidebarGroup.custom photoStyle.sidebarGroup.builtin photoStyle.sidebarCollapsed photoStyle.showHelp photoStyle.appearance photoStyle.thumbnailSize photoStyle.photoDisplayMode photoStyle.styleOrder photoStyle.enabledFilms.v2 photoStyle.enabledStyles photoStyle.enabledExpandedFilms.v1 photoStyle.thumbnailViewport.v1".split(" "));

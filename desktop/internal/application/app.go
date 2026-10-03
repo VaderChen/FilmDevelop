@@ -41,7 +41,9 @@ type App struct {
 	mcpFlush                                              chan struct{}
 	previewError                                          error
 	rawDecoderPromptGeneration                            string
+	rawSwitch                                             *rawConfigurationSnapshot
 	repairing                                             bool
+	cancellingRepair                                      bool
 	repairStep                                            string
 	repairProgress                                        object
 	legacySettings                                        object
@@ -56,6 +58,10 @@ type App struct {
 	legacyPhotoDirectory                                  string
 	computing                                             bool
 	computationStep                                       string
+	cancellingComputation                                 bool
+	computationCompleted                                  int
+	expandAdjustments                                     bool
+	forceSubject                                          bool
 	modelSettings                                         modelSettings
 	modelEntries                                          []models.Entry
 	managedModels, modelMessage, modelOperation           string
@@ -196,6 +202,12 @@ func clone[T any](v T) T {
 func (a *App) Startup(ctx context.Context) {
 	ctx, a.stop = context.WithCancel(ctx)
 	a.ctx = ctx
+	wruntime.OnFileDrop(ctx, func(_, _ int, paths []string) {
+		select {
+		case a.commands <- object{"action": "dropPhotos", "paths": paths}:
+		case <-ctx.Done():
+		}
+	})
 	wruntime.EventsOn(ctx, "filmdevelop:command", func(args ...interface{}) {
 		if len(args) == 1 {
 			if message, ok := args[0].(map[string]interface{}); ok {
@@ -471,18 +483,24 @@ func (a *App) sendState(full bool) {
 		"cropSourceImageSize":           object{"width": a.sourceWidth, "height": a.sourceHeight},
 		"canSave":                       a.outputPreview != "" && !previewBusy && !a.saving,
 		"isMCPMutating":                 a.mcpMutating || a.updating,
+		"isLoadingImage":                a.rawSwitch != nil,
 		"isComputing":                   a.computing, "computationStep": a.computationStep,
+		"isCancellingComputation": a.cancellingComputation,
+		"canCancelComputation":    a.computing && !a.cancellingComputation && a.computationCompleted < len(aiComputationItems),
+		"computationItems":        a.computationItems(), "computationCompletedItems": a.computationCompleted,
+		"expandAdjustments":  a.expandAdjustments,
 		"isRenderingPreview": previewBusy, "isSavingImage": a.saving, "batchExport": a.batch,
 		"canUndo": len(a.undo) > 0, "canRedo": len(a.redo) > 0,
 		"frameStyles": a.catalog["frameStyles"], "dateStyles": a.catalog["dateStyles"],
 		"filmIlluminants": a.catalog["filmIlluminants"], "printRecipes": a.catalog["printRecipes"],
-		"isRepairingImage": a.repairing, "repairStep": a.repairStep, "repairModelProgress": a.repairProgress, "repairRevision": a.repairRevision(),
+		"isRepairingImage": a.repairing, "isCancellingRepair": a.cancellingRepair, "repairStep": a.repairStep, "repairModelProgress": a.repairProgress, "repairRevision": a.repairRevision(),
 		"mcp": a.mcpPayload(),
 		// 一般預覽的遮罩運算透過 previewPhase 在照片下方回報，不鎖住 UI。
 		"subjectMask": object{"available": a.capabilities["available"] == true, "detecting": false},
 		"ai":          a.aiPayload(),
 	}
 	a.preferencePayload(payload)
+	a.expandAdjustments = false
 	if a.sentPreviewImages == nil {
 		a.sentPreviewImages = make(map[string]string)
 	}
@@ -494,7 +512,7 @@ func (a *App) sendState(full bool) {
 		}
 		a.sentPreviewImages[key] = value
 	}
-	payload = clone(payload)
+	payload = snapshotJSON(payload).(object)
 	a.mu.Unlock()
 	a.reply("handleNativeState", payload)
 	a.requestNativeFile()
@@ -559,8 +577,12 @@ func (a *App) handle(message object) error {
 	if action == "previewFilmHover" {
 		return a.filmHover(message)
 	}
+	if action == "prepareRepairBrush" {
+		// 前端在等待準備確認；忙碌時也必須明確回覆，避免工具列卡住。
+		return a.repairBrush(action, message)
+	}
 	a.mu.Lock()
-	saving := a.saving || a.computing || a.repairing || a.mcpMutating || a.updating || a.switchingComputeBackend()
+	saving := a.saving || a.computing || a.repairing || a.mcpMutating || a.updating || a.switchingComputeBackend() || a.rawSwitch != nil
 	initError := a.initError
 	a.mu.Unlock()
 	if initError != nil && action != "setLanguage" {
@@ -608,11 +630,17 @@ func (a *App) handle(message object) error {
 		a.mu.Unlock()
 		return a.OpenImage(path)
 	case "browseFiles":
-		path, err := wruntime.OpenFileDialog(a.ctx, wruntime.OpenDialogOptions{Title: "選取照片", Filters: []wruntime.FileFilter{{DisplayName: "影像", Pattern: "*.jpg;*.jpeg;*.png;*.tif;*.tiff;*.webp;*.heic;*.dng;*.nef;*.cr2;*.cr3;*.arw;*.raf"}}})
+		a.mu.Lock()
+		directory := a.directory.Path
+		a.mu.Unlock()
+		path, err := wruntime.OpenFileDialog(a.ctx, wruntime.OpenDialogOptions{Title: "選取照片", DefaultDirectory: directory, Filters: []wruntime.FileFilter{{DisplayName: "影像", Pattern: photos.FileDialogPattern()}}})
 		if err != nil || path == "" {
 			return err
 		}
 		return a.OpenImage(path)
+	case "dropPhotos":
+		paths, _ := message["paths"].([]string)
+		return a.openDroppedPhotos(paths)
 	case "browsePhotoDirectory":
 		a.mu.Lock()
 		current := a.directory.Path
@@ -679,6 +707,7 @@ func (a *App) handle(message object) error {
 		if len(*from) > 0 {
 			*to = append(*to, a.snapshot())
 			recipe := (*from)[len(*from)-1]
+			(*from)[len(*from)-1] = editSnapshot{}
 			*from = (*from)[:len(*from)-1]
 			if err := a.restore(recipe); err != nil {
 				a.mu.Unlock()
@@ -690,13 +719,28 @@ func (a *App) handle(message object) error {
 		return nil
 	case "resetAdjustments":
 		a.mu.Lock()
-		a.pushHistory()
+		valid := a.source != "" && !a.previewBusy() && message["style"] == a.selected
+		a.mu.Unlock()
+		if !valid {
+			return nil
+		}
+		paths, err := a.selectionPaths(message)
+		if err != nil {
+			return err
+		}
+		if len(paths) > 1 {
+			return a.batchPhotos(paths, "reset", "")
+		}
+		a.mu.Lock()
+		a.clearHistory()
 		a.manual = storage.ManualAdjustments{PrintControls: []string{}, HasCompleteHistory: true}
 		a.recipes = clone(a.defaults)
 		a.selected = "original"
 		a.selectedCustom = ""
 		a.customBase = nil
-		err := a.refreshUI()
+		a.subjectMask = nil
+		a.forceSubject = false
+		err = a.refreshUI()
 		a.mu.Unlock()
 		if err != nil {
 			return err
@@ -740,11 +784,7 @@ func (a *App) handle(message object) error {
 	case "applyStyle":
 		return a.applyAI()
 	case "cancelComputation":
-		a.mu.Lock()
-		if a.cancel != nil {
-			a.cancel()
-		}
-		a.mu.Unlock()
+		a.cancelAI()
 		return nil
 	case "cancelSubjectMaskDetection":
 		a.mu.Lock()
@@ -832,12 +872,17 @@ func (a *App) openImage(path string) error {
 		a.mu.Unlock()
 		return errors.New("請等待匯出完成")
 	}
+	if a.rawSwitch != nil {
+		a.restoreRAWConfiguration(a.rawSwitch)
+		a.rawSwitch = nil
+	}
 	a.source = path
 	a.imageKey = key
 	a.generation = identifier()
 	a.sourcePreview = ""
 	a.cropPreview = ""
 	a.skipSubject = false
+	a.forceSubject = false
 	a.interaction = ""
 	a.outputPreview = ""
 	a.loadingPreview = a.thumbnails[photos.Identity(path)]
@@ -870,6 +915,7 @@ func (a *App) openImage(path string) error {
 			a.selected = saved.Selected
 		}
 	}
+	a.detachUnavailableFilm()
 	if err := a.refreshUI(); err != nil {
 		a.mu.Unlock()
 		return err
@@ -986,9 +1032,6 @@ func (a *App) update(message object) error {
 	}
 	a.historyGroup = group
 	a.manual = manual
-	if len(a.undo) > 100 {
-		a.undo = a.undo[len(a.undo)-100:]
-	}
 	a.redo = nil
 	if group == "" {
 		a.invalidatePreview()
@@ -1011,20 +1054,14 @@ func (a *App) refreshUI() error {
 }
 
 func (a *App) job(path string, recipe contract.Recipe, preview bool) contract.RenderJob {
-	fields := recipeFields(recipe)
-	recipe.DetectSubject = false
-	for _, key := range []string{"backgroundBlur", "skinWhitening", "skinSmoothing"} {
-		v, _ := fields[key].(float64)
-		if v > 0 {
-			recipe.DetectSubject = !a.skipSubject
-		}
-	}
+	recipe.DetectSubject = !a.skipSubject && (requiresSubject(recipe) || a.forceSubject || a.subjectMask != nil)
 
 	job := contract.RenderJob{Input: contract.ImageInput{Path: a.source, RawDecoder: a.rawDecoder, LensCorrection: a.preferences.LensCorrection},
 		Output: contract.ImageOutput{Path: path, Format: "png", BitDepth: 16, ColorSpace: "sRGB", Quality: .95, TiffCompression: 1, MaxPixel: 2048},
 		Policy: a.renderPolicy(), Recipe: recipe, ComputeBackend: a.computeBackend, Preview: preview, PreviewMaxPixel: 2048}
-	if a.subjectMask != nil && a.sourceIdentity != nil && a.subjectMask.SourceFingerprint == a.sourceIdentity.Fingerprint && a.subjectMask.RepairDigest == repairDigest(recipe.RepairPatches) {
+	if a.validSubjectMask(a.subjectMask, a.sourceIdentity, recipe) {
 		job.SubjectMask = &contract.SubjectMaskInput{Path: a.store.MaskPath(a.subjectMask), Sha256: a.subjectMask.SHA256}
+		job.Recipe.DetectSubject = true
 	}
 	if preview {
 		// 沿用 Swift 桌面的顯示編碼；原生運算精度與匯出設定不受影響。
@@ -1070,7 +1107,7 @@ func (a *App) startPreviewMode(computeSwitch, live bool, epoch uint64) {
 	} else {
 		a.cancelAdjustmentPreview()
 	}
-	if a.source == "" || a.saving || a.computing || a.repairing {
+	if a.source == "" || a.saving || (a.computing && a.computationCompleted < len(aiComputationItems)) || a.repairing {
 		a.mu.Unlock()
 		a.state()
 		return
@@ -1203,7 +1240,13 @@ func (a *App) previewDone(revision uint64, output string, result json.RawMessage
 	a.rendering = false
 	a.previewPhase = ""
 	a.previewError = err
+	configuration := a.rawSwitch
+	a.rawSwitch = nil
+	if configuration != nil && err != nil {
+		a.restoreRAWConfiguration(configuration)
+	}
 	if err == nil {
+		a.forceSubject = false
 		a.outputPreview = output
 		_ = json.Unmarshal(result, &a.renderInfo)
 		if source, ok := a.renderInfo["sourceImage"].(string); ok {
@@ -1223,12 +1266,26 @@ func (a *App) previewDone(revision uint64, output string, result json.RawMessage
 	continueLive := a.adjustmentPreview.activeRevision == revision &&
 		(a.adjustmentPreview.pending || (a.adjustmentPreview.settling && a.adjustmentPreview.settleReady))
 	a.mu.Unlock()
+	if configuration != nil && err == nil {
+		if saveErr := a.savePreferences(); saveErr != nil {
+			a.mu.Lock()
+			a.restoreRAWConfiguration(configuration)
+			a.mu.Unlock()
+			a.toast(saveErr)
+			a.preview()
+			return
+		}
+	}
 	a.state()
 	if continueLive {
 		a.enqueueAdjustmentContinuation(epoch, false)
 	}
 	if err != nil && !errors.Is(err, context.Canceled) {
 		a.toast(err)
+	}
+	if configuration != nil && err != nil {
+		a.preview()
+		return
 	}
 	a.offerRAWDecoder()
 }
@@ -1248,7 +1305,7 @@ func (a *App) export() error {
 	return a.ExportImage(path)
 }
 
-// ExportImage 與桌面存檔共用，不允許覆蓋任何已存在的檔案。
+// ExportImage 接收儲存對話框已確認的路徑；允許取代成品，但永不覆寫來源照片。
 func (a *App) ExportImage(path string) error {
 	a.mu.Lock()
 	if a.source == "" || a.saving || a.computing || a.repairing {
@@ -1271,7 +1328,7 @@ func (a *App) ExportImage(path string) error {
 	go func() {
 		defer a.workers.Done()
 		defer cancel()
-		_, err := a.services.Render(ctx, job, nil)
+		_, err := a.renderExport(ctx, job, true)
 		a.mu.Lock()
 		a.saving = false
 		a.mu.Unlock()

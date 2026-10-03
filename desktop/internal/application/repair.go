@@ -17,11 +17,14 @@ import (
 const repairModelRevision = "5ed76e3799ab4cad31381750d29880c267477e18"
 
 func (a *App) repairRevision() string {
-	var patches []object
+	// 狀態同步只需要識別碼，避免將補片影像及遮罩的 Base64 再配置成字串。
+	var patches []struct {
+		ID string `json:"id"`
+	}
 	_ = json.Unmarshal(a.recipes[a.selected].RepairPatches, &patches)
-	ids := []string{}
-	for _, p := range patches {
-		ids = append(ids, stringValue(p, "id"))
+	ids := make([]string, len(patches))
+	for i, p := range patches {
+		ids[i] = p.ID
 	}
 	return strings.Join(ids, ":")
 }
@@ -37,11 +40,7 @@ func (a *App) prepareRepairModel(ctx context.Context) (string, error) {
 			SHA256: "1faef5301d78db7dda502fe59966957ec4b79dd64e16f03ed96913c7a4eb68d6",
 			URL:    "https://huggingface.co/Carve/LaMa-ONNX/resolve/" + revision + "/lama_fp32.onnx"}}
 		err = transfer.EnsureManagedDirectory(ctx, directory, files, func(p transfer.Progress) {
-			a.mu.Lock()
-			a.repairProgress = object{"received": p.Received, "total": p.Total, "preparing": false}
-			a.repairStep = "首次使用：正在下載修復模型"
-			a.mu.Unlock()
-			a.state()
+			a.repairDownloadProgress(ctx, p)
 		})
 		return directory, err
 	}
@@ -69,11 +68,7 @@ func (a *App) prepareRepairModel(ctx context.Context) (string, error) {
 			files[i].URL = "https://huggingface.co/mlboydaisuke/LaMa-CoreML/resolve/" + repairModelRevision + "/LaMa.mlpackage/" + files[i].Path
 		}
 		err = transfer.InstallDirectory(ctx, packagePath, files, nil, func(p transfer.Progress) {
-			a.mu.Lock()
-			a.repairProgress = object{"received": p.Received, "total": p.Total, "preparing": false}
-			a.repairStep = "首次使用：正在下載修復模型"
-			a.mu.Unlock()
-			a.state()
+			a.repairDownloadProgress(ctx, p)
 		})
 		if err != nil {
 			return "", err
@@ -83,13 +78,29 @@ func (a *App) prepareRepairModel(ctx context.Context) (string, error) {
 	}
 	return directory, nil
 }
+
+func (a *App) repairDownloadProgress(ctx context.Context, p transfer.Progress) {
+	a.mu.Lock()
+	if ctx.Err() != nil || a.cancellingRepair || !a.repairing {
+		a.mu.Unlock()
+		return
+	}
+	a.repairProgress = object{"received": p.Received, "total": p.Total, "preparing": false}
+	a.repairStep = "首次使用：正在下載修復模型"
+	a.mu.Unlock()
+	a.state()
+}
+
 func (a *App) repairBrush(action string, message object) error {
 	a.mu.Lock()
 	if action == "cancelRepairBrush" {
 		if a.repairing && a.cancel != nil {
+			a.cancellingRepair = true
+			a.repairStep = "正在取消修復…"
 			a.cancel()
 		}
 		a.mu.Unlock()
+		a.state()
 		return nil
 	}
 	callback := "handleRepairPreparation"
@@ -98,7 +109,7 @@ func (a *App) repairBrush(action string, message object) error {
 		callback = "handleRepairResult"
 	}
 	generation := a.generation
-	if a.source == "" || a.previewBusy() || a.saving || a.computing || a.repairing || message["photoGeneration"] != generation || (apply && message["repairRevision"] != a.repairRevision()) {
+	if a.initError != nil || a.source == "" || a.previewBusy() || a.saving || a.computing || a.repairing || a.mcpMutating || a.updating || a.switchingComputeBackend() || message["photoGeneration"] != generation || (apply && message["repairRevision"] != a.repairRevision()) {
 		a.mu.Unlock()
 		a.reply(callback, object{"success": false, "photoGeneration": message["photoGeneration"]})
 		return nil
@@ -114,6 +125,7 @@ func (a *App) repairBrush(action string, message object) error {
 	ctx, cancel := context.WithCancel(a.ctx)
 	a.cancel = cancel
 	a.repairing = true
+	a.cancellingRepair = false
 	a.repairStep = "正在準備本機修復工具"
 	a.repairProgress = object{"preparing": true, "received": 0, "total": 0}
 	a.mu.Unlock()
@@ -124,11 +136,13 @@ func (a *App) repairBrush(action string, message object) error {
 		defer cancel()
 		directory, err := a.prepareRepairModel(ctx)
 		var result json.RawMessage
-		if err == nil {
+		if err == nil && ctx.Err() == nil {
 			if apply {
 				a.mu.Lock()
-				a.repairStep = "正在修復塗抹區域"
-				a.repairProgress = nil
+				if !a.cancellingRepair {
+					a.repairStep = "正在修復塗抹區域"
+					a.repairProgress = nil
+				}
 				a.mu.Unlock()
 				a.state()
 				result, err = a.services.Native(ctx, "repair", contract.RepairRequest{Input: input, Recipe: recipe, ModelDirectory: directory, Strokes: strokes}, nil)
@@ -163,6 +177,7 @@ func (a *App) repairBrush(action string, message object) error {
 			}
 		}
 		a.repairing = false
+		a.cancellingRepair = false
 		a.repairStep = ""
 		a.repairProgress = nil
 		a.mu.Unlock()

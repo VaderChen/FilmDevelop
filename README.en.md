@@ -8,7 +8,7 @@ Give your photos a film look you love. Pick a film, adjust exposure, color and g
 
 ## Get the app
 
-[Download for Mac and Windows](https://github.com/VaderChen/FilmDevelop/releases/latest). Version **1.26.1003 build 1109**; Windows is labeled **Beta**.
+[Download for Mac and Windows](https://github.com/VaderChen/FilmDevelop/releases/latest). Version **1.26.1003 build 1300**; Windows is labeled **Beta**.
 
 Mac requires Apple Silicon and macOS 14+. Open the DMG and drag FilmDevelop into Applications. This release’s DMG and included app are Developer ID signed, Apple notarized and stapled. Windows requires Windows 10/11 x64 and WebView2. Fully extract the x64 portable ZIP and run FilmDevelop.exe. The VC++ x64 Runtime is included; the app is not Authenticode signed.
 
@@ -19,13 +19,13 @@ The old Swift Mac app can upgrade through Check for Updates. The FilmYourPhoto b
 <!-- release-summary:start -->
 ## What changed
 
-Compared with: **1.26.1003 build 1026**。
+Compared with: **1.26.1003 build 1109**。
 
-- **Fixed**：Fixed the silent wait when migrating from FilmYourPhoto. A startup dialog shows settings, legacy records, folder scanning and photo-adjustment stages, with actual item counts and a progress bar when totals are known. It closes automatically when ready, preserving original photos and legacy data.
-- **Fixed**：Fixed duplicate Cancel and Cancel download buttons in update downloads, and duplicate Cancel and Close actions in information dialogs. Shared dialogs no longer add a fallback Cancel when a dismiss action is already provided.
-- **Fixed**：Completed four-language titles, descriptions, buttons, and progress messages for shared dialogs. Closing a window is distinguished from the Off setting; filenames, model names, and user input remain unchanged.
-- **Fixed**：Blank names cannot be submitted by the confirmation button or Enter. Dialog key events no longer reach background crop, repair, and original-comparison controls, and focus returns to the original control when it remains available.
-- **Improved**：Prompt editing now uses a native modal dialog to keep focus out of the background. UI state refreshes preserve the draft, and cancelling returns focus to the original edit control.
+- **Fixed**：Fix external-volume JPEG export failures and restore single-image and MCP development dialogs, batch counts and stage progress while protecting source photos.
+- **Fixed**：Fix 12 additional Swift migration gaps in preset reselection, reset history, preview retry, repair cancellation, portrait crop labels, prompt language, the 8-bit PNG default, custom-film save/copy/delete/export, and RAW-switch rollback.
+- **Fixed**：Retain the previous 13 fixes, including seven-stage AI progress and cancellation, mask validity, MCP export settings, multi-photo reset, duplicate selection and native drag-and-drop.
+- **Fixed · Windows**：Hide MLX from Windows download and local-model selectors and default to GGUF. Reject unsupported MLX downloads; retain existing files with a compatibility explanation. Match named mmproj files in shared directories and reject ambiguous pairs.
+- **Improved**：Reduce allocations in state snapshots and edit history by sharing immutable image and repair data and releasing evicted references, preserving image processing and interface layout.
 
 [Full changelog](CHANGELOG.en.md)
 <!-- release-summary:end -->

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"golang.org/x/text/unicode/norm"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
@@ -449,11 +450,15 @@ func (a *App) batchPhotos(paths []string, operation, directory string) error {
 	}
 	a.invalidatePreview()
 	ctx, cancel := context.WithCancel(a.ctx)
-	a.cancel = cancel
+	// 批次生命週期獨立於預覽；套用目前照片的配方不能取消後續照片。
+	a.cancel = nil
 	a.saving = true
 	settings := a.exportSettings
 	template := a.job("", a.defaults["original"], false)
-	a.batch = object{"id": identifier(), "title": "照片批次處理", "total": len(paths), "index": 0, "fraction": 0, "succeeded": 0, "failed": 0}
+	a.batch = object{"id": identifier(), "title": "照片批次處理", "total": len(paths), "current": 1, "progress": 0, "succeeded": 0, "failed": 0}
+	if operation == "export" {
+		a.batch["title"], a.batch["stage"] = "正在批次輸出照片", "準備輸出"
+	}
 	a.mu.Unlock()
 	a.state()
 	a.workers.Add(1)
@@ -464,11 +469,16 @@ func (a *App) batchPhotos(paths []string, operation, directory string) error {
 		success := 0
 		currentChanged := false
 		rescan := false
+		duplicateTarget := ""
 		for i, path := range paths {
 			if ctx.Err() != nil {
 				break
 			}
-			a.batchProgress(i, filepath.Base(path), "正在處理", 0, success, len(failures))
+			stage := "正在處理"
+			if operation == "export" {
+				stage = "正在讀取圖片"
+			}
+			a.batchProgress(i, filepath.Base(path), stage, 0, success, len(failures))
 			key, doc, err := a.photoDocument(ctx, path)
 			if err == nil {
 				switch operation {
@@ -513,16 +523,22 @@ func (a *App) batchPhotos(paths []string, operation, directory string) error {
 					if err == nil {
 						a.mu.Lock()
 						if path == a.source {
-							a.pushHistory()
+							if operation == "reset" {
+								a.clearHistory()
+							} else {
+								a.pushHistory()
+							}
 							a.recipes = clone(a.defaults)
 							for id, r := range next.Recipes {
 								a.recipes[id] = r
 							}
 							a.subjectMask = clone(next.SubjectMask)
+							a.forceSubject, a.skipSubject = false, false
 							a.sourceIdentity = clone(next.Source)
 							a.selected = next.Selected
 							a.selectedCustom = next.CustomID
 							a.customBase = clone(next.CustomBase)
+							a.detachUnavailableFilm()
 							a.manual = storage.ManualAdjustments{}
 							if next.Manual != nil {
 								a.manual = clone(*next.Manual)
@@ -548,6 +564,7 @@ func (a *App) batchPhotos(paths []string, operation, directory string) error {
 							_ = os.Remove(target)
 						} else {
 							rescan = true
+							duplicateTarget = target
 						}
 					}
 				case "export":
@@ -561,22 +578,32 @@ func (a *App) batchPhotos(paths []string, operation, directory string) error {
 						job.Input.Path = path
 						job.Recipe = recipe
 						job.SubjectMask = nil
-						if doc.SubjectMask != nil && doc.Source != nil && doc.SubjectMask.SourceFingerprint == doc.Source.Fingerprint && doc.SubjectMask.RepairDigest == repairDigest(recipe.RepairPatches) {
+						if a.validSubjectMask(doc.SubjectMask, doc.Source, recipe) {
 							job.SubjectMask = &contract.SubjectMaskInput{Path: a.store.MaskPath(doc.SubjectMask), Sha256: doc.SubjectMask.SHA256}
 						}
-						fields := recipeFields(recipe)
-						for _, field := range []string{"backgroundBlur", "skinWhitening", "skinSmoothing"} {
-							if v, _ := fields[field].(float64); v > 0 {
-								job.Recipe.DetectSubject = true
-							}
-						}
+						job.Recipe.DetectSubject = requiresSubject(recipe) || doc.SubjectMask != nil
 						logical := path
 						if doc.Source != nil && doc.Source.OriginalPath != "" {
 							logical = doc.Source.OriginalPath
 						}
 						target := uniquePath(directory, exportName(logical), "."+settings.fileExtension())
 						job.Output = settings.output(target)
-						_, err = a.services.Render(ctx, job, func(v float64) { a.batchProgress(i, filepath.Base(path), "正在匯出", v, success, len(failures)) })
+						_, err = a.services.RenderWithStages(ctx, job, func(stage string, value float64) {
+							label, fraction := "正在處理照片", .15+.65*value
+							switch stage {
+							case "encode":
+								label, fraction = "正在編碼照片", .8+.15*value
+							case "write":
+								// 完成發布及統計前，保留最後 5% 給寫入。
+								label, fraction = "正在儲存照片", .95
+							}
+							a.batchProgress(i, filepath.Base(path), label, fraction, success, len(failures))
+						})
+						if err == nil {
+							a.mu.Lock()
+							a.lastExportedPath = target
+							a.mu.Unlock()
+						}
 					}
 				}
 			}
@@ -605,7 +632,18 @@ func (a *App) batchPhotos(paths []string, operation, directory string) error {
 		}
 		a.state()
 		a.directoryState()
-		if currentChanged && source != "" {
+		if duplicateTarget != "" && ctx.Err() == nil {
+			if err := a.OpenImage(duplicateTarget); err != nil {
+				failures = append(failures, err.Error())
+			} else if err := a.waitPreview(a.ctx); err == nil {
+				a.mu.Lock()
+				selected := a.source == duplicateTarget
+				a.mu.Unlock()
+				if selected {
+					a.reply("handleFocusDirectoryPhoto", object{"path": filepath.Dir(duplicateTarget), "name": filepath.Base(duplicateTarget)})
+				}
+			}
+		} else if currentChanged && source != "" {
 			a.preview()
 		}
 		a.toast(fmt.Errorf("已完成 %d／%d 張照片。%s", success, len(paths), strings.Join(failures, "\n")))
@@ -613,15 +651,28 @@ func (a *App) batchPhotos(paths []string, operation, directory string) error {
 	return nil
 }
 func (a *App) batchProgress(index int, name, stage string, fraction float64, success, failed int) {
+	if math.IsNaN(fraction) || math.IsInf(fraction, 0) {
+		return
+	}
 	a.mu.Lock()
 	if a.batch == nil {
 		a.mu.Unlock()
 		return
 	}
-	a.batch["index"] = index
+	total, _ := a.batch["total"].(int)
+	current, _ := a.batch["current"].(int)
+	previous, _ := a.batch["progress"].(float64)
+	progress := min(1.0, max(0.0, (float64(index)+min(1.0, max(0.0, fraction)))/float64(max(1, total))))
+	// 沿用 Swift 的單張 1% 合併門檻；階段或統計改變仍立即回報。
+	if index < current-1 || index >= total || progress < previous ||
+		(index+1 == current && stage == a.batch["stage"] && success == a.batch["succeeded"] && failed == a.batch["failed"] && (progress-previous)*float64(total) < .01) {
+		a.mu.Unlock()
+		return
+	}
+	a.batch["current"] = index + 1
 	a.batch["filename"] = name
 	a.batch["stage"] = stage
-	a.batch["fraction"] = fraction
+	a.batch["progress"] = progress
 	a.batch["succeeded"] = success
 	a.batch["failed"] = failed
 	p := clone(a.batch)

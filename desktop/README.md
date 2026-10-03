@@ -1,8 +1,11 @@
 # Go 桌面宿主與跨平台進度
 
-更新日期：2026-10-03，版本 **1.26.1003 build 1109**。`run.command` 建置並開啟 **Go／Wails 主程序＋Swift／C++ 影像引擎**。Go 共用 UI、照片、配方、設定、資料移轉、模型、MCP、更新與匯出流程；macOS 使用 Swift／Apple 框架及 C++，Windows 使用 C++／WIC／Vulkan。
+更新日期：2026-10-03，版本 **1.26.1003 build 1300**。`run.command` 建置並開啟 **Go／Wails 主程序＋Swift／C++ 影像引擎**。Go 共用 UI、照片、配方、設定、資料移轉、模型、MCP、更新與匯出流程；macOS 使用 Swift／Apple 框架及 C++，Windows 使用 C++／WIC／Vulkan。
 
 macOS 支援 Apple Silicon、macOS 14 以上；Windows 支援 10／11 x64，版本文字附 **Beta**。兩平台均已接通底片、編輯、RAW 備援、AI 分析與修復、匯出及資料移轉；平台差異與實測界線列於文末。
+
+本版納入 [第一輪 13 項移植修正](SWIFT_PARITY_AUDIT.md)，再修正 [第二輪 12 項功能與 UI 缺漏](SWIFT_PARITY_SECOND_AUDIT.md)，並處理 Windows AI 模型格式與具名 mmproj 配對。Windows 直接隱藏 MLX 選項，使用 GGUF；macOS 保留 MLX。外接磁碟 JPEG、單張顯影與複選匯出一併納入回歸，正式成品驗證見 [還原紀錄](RESTORATION.md)。
+
 ## 分工
 
 ```mermaid
@@ -45,7 +48,7 @@ Go 管理業務規則、資料、排程與程序生命週期；Swift／C++ 負�
 - 拖曳持續更新影像，Go 只保留一份執行中的工作與最新待處理參數；最後縮圖完成後再補清晰圖。手勢結束才保存照片紀錄，單次參數更新只重新投影該底片。桌面橋接確認指令已入列後才送下一筆，確保最後參數、放開與換圖的順序。
 - Swift 同時保留目前照片最近兩種尺寸的處理圖與原圖比較，避免反覆切換 1024／2048 px 時重新縮放。RAW 與計算加速均預設 `system`；明確選取的後端保存於 Go 設定，重啟後恢復，寫入失敗則保留原有選項。
 - 加速選單由原生能力資料產生，啟動時核對持久化選項；不再提供未安裝的解析器或未通過探測的 GPU。Windows 的 `system` 先驗證 Vulkan 1.1 以上、GPU 計算能力與實際運算，再自動使用 GPU；無可用 GPU 或運算失敗時，從原圖重新執行 CPU 管線，UI 顯示實際選擇；macOS 繼續使用系統原生運算。
-- PNG16／TIFF16 由原生端直接寫入，不經 Go 降成 8 bit。成品先寫入暫存，成功後以不可覆寫移動發布；MCP 明確要求覆寫時另檢查原目標是否被更動。
+- PNG16／TIFF16 由原生端直接寫入，不經 Go 降成 8 bit。成品先寫入暫存，成功後以不可覆寫移動發布；macOS 檔案系統不支援特殊改名旗標時，改用排他建立及有界串流複製。儲存對話框已確認取代，或 MCP 明確要求覆寫時，共用原目標變更檢查，並禁止覆寫來源照片。
 - 照片紀錄以**標準化路徑＋內容 SHA-256** 識別，同內容副本保持獨立。Go 使用裸雜湊，讀取原 Swift PhotoEdits 時使用含 `sha256:` 前綴的識別碼；亦相容先前 Go 的純內容紀錄，不改寫舊 Swift 資料。先前漏讀產生的「原片、無參數、歷史不完整」紀錄可自動恢復；Go 已有調整或明確重設的紀錄優先。
 - 設定、自訂底片、模型選擇、提示詞、最近目錄、星級及分類分開保存。修復貼片在每張照片文件只存一份，避免在 37 款配方中重複儲存。切換照片與關閉視窗會提交前端暫存編輯；關閉要求與最後一批參數使用同一筆指令，避免事件先後順序造成漏存。
 - Windows 使用 `%APPDATA%\FilmDevelop`；macOS 為保留既有資料仍使用 `~/Library/Application Support/FilmDevelop-GoDevelopment`。這是資料相容路徑，不是產品標示。`FILMDEVELOP_DATA_DIR` 可指定隔離目錄。
@@ -76,6 +79,8 @@ node --check desktop/frontend/bridge.js
 
 python3 engine/verification/smoke.py > build/engine-smoke-latest.json
 python3 engine/verification/desktop-smoke.py
+python3 engine/verification/parity-smoke.py
+python3 engine/verification/parity-smoke.py --unsupported-rename
 python3 engine/verification/preview-cache-smoke.py
 ```
 

@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 
 	"github.com/VaderChen/FilmDevelop/internal/contract"
 	"github.com/VaderChen/FilmDevelop/internal/storage"
@@ -34,7 +35,12 @@ func (a *App) restore(s editSnapshot) error {
 	a.recipes = copyRecipes(s.Recipes)
 	a.selectedCustom = s.CustomID
 	a.customBase = clone(s.CustomBase)
+	a.detachUnavailableFilm()
 	return a.refreshUI()
+}
+
+func (a *App) clearHistory() {
+	a.undo, a.redo, a.historyGroup = nil, nil, ""
 }
 
 // 配方 JSON 只以完整新值取代，歷史記錄可共用不可變的補片位元組。
@@ -48,7 +54,8 @@ func copyRecipes(source map[string]contract.Recipe) map[string]contract.Recipe {
 func (a *App) pushHistory() {
 	a.undo = append(a.undo, a.snapshot())
 	if len(a.undo) > 100 {
-		a.undo = a.undo[len(a.undo)-100:]
+		// Delete 清空淘汰項目的底層槽位，讓配方與大型修復資料可被回收。
+		a.undo = slices.Delete(a.undo, 0, len(a.undo)-100)
 	}
 	a.redo = nil
 }

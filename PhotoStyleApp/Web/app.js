@@ -1832,6 +1832,7 @@
   }
 
   function renderRepositoryDownload() {
+    if (state.ai.mlxAvailable === false && state.repositoryFormat === "mlx") state.repositoryFormat = "gguf";
     var format = state.repositoryFormat || "mlx";
     var repository = state.ai.repository || {};
     var matches = repository.format === format;
@@ -1857,7 +1858,7 @@
       '<div class="card repository-card">',
       '<form id="modelRepositoryForm" class="repository-search">',
       L.html('<label class="repository-field"><span>格式</span><select id="repositoryFormat"') + (busy ? ' disabled' : '') + '>',
-      option('mlx', 'MLX · Apple Silicon', format), option('gguf', 'GGUF · llama.cpp', format), '</select></label>',
+      state.ai.mlxAvailable === false ? '' : option('mlx', 'MLX · Apple Silicon', format), option('gguf', 'GGUF · llama.cpp', format), '</select></label>',
       L.html('<label class="repository-field"><span>模型名稱或 Repository</span><input id="modelRepositoryQuery" type="search" placeholder="例如 Qwen3.5 或 mlx-community/Qwen3.5-4B-4bit" value="') + escapeHtml(state.repositoryQuery || '') + '"' + (busy ? ' disabled' : '') + '></label>',
       '<button class="button" type="submit"' + disabled + L.html('>查詢模型</button></form>'),
       '<div class="repository-suggestions">',
@@ -1938,11 +1939,12 @@
 
   function renderCustomModel() {
     var choices = state.ai.modelChoices || [];
+    var selectable = choices.filter(function (choice) { return choice.format !== "mlx" || state.ai.mlxAvailable !== false; });
     var selected = choices.find(function (choice) { return choice.id === state.ai.selectedModelID; });
     var unavailable = choices.filter(function (choice) { return !choice.ready; });
     var disabled = modelOperationIsBusy() ? " disabled" : "";
     var scanning = !!state.ai.modelDirectoryScanning;
-    var options = choices.map(function (choice) {
+    var options = selectable.map(function (choice) {
       return '<option value="' + escapeHtml(choice.id) + '"' + (choice.id === state.ai.selectedModelID ? " selected" : "") +
         (choice.ready ? "" : " disabled") + '>' + escapeHtml((choice.format === "mlx" ? "MLX · " : "GGUF · ") + choice.title + (choice.ready ? "" : L.text("（無法使用）"))) + '</option>';
     });
@@ -1958,7 +1960,7 @@
       scanning ? L.html('<div class="model-actions"><button class="button" type="button" data-action="cancelModelDirectoryScan">取消掃描</button></div>') : '',
       '<div class="model-picker-field">',
       L.html('<label for="localModelPicker">使用的模型</label>'),
-      '<select id="localModelPicker" data-model-picker aria-describedby="modelSelectionStatus"' + (disabled || (!choices.length ? " disabled" : "")) + '>' + options.join("") + '</select>',
+      '<select id="localModelPicker" data-model-picker aria-describedby="modelSelectionStatus"' + (disabled || (!selectable.length ? " disabled" : "")) + '>' + options.join("") + '</select>',
       '</div>',
       selected ? '<p class="model-selected-title">' + escapeHtml(selected.title) + '</p>' : '',
       '<p class="status-line" id="modelSelectionStatus" data-model-selection-status role="status">' + escapeHtml(L.text(state.ai.message) || (state.ai.ready ? L.text("模型已就緒。") : L.text("請選擇可用的 GGUF 或 MLX 視覺模型。"))) + '</p>',

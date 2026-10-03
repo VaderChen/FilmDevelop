@@ -1,0 +1,187 @@
+{
+  "date": "2026-10-03",
+  "scope": "Go 宿主的狀態快照、修復識別查詢與歷史引用釋放；功能、UI、操作流程、影像品質及既有快取容量不變。",
+  "baselineCommit": "4cb05aca6a0b853208fa9a2240492c2c7a2f6222",
+  "environment": {
+    "cpu": "Apple M4 Pro",
+    "go": "go version go1.27.0 darwin/arm64",
+    "goExperiment": ""
+  },
+  "method": {
+    "command": "go -C desktop test ./internal/application -run '^$' -bench 'Benchmark(StatePublication|RepairRevision)$' -benchmem -count=3 -benchtime=700ms",
+    "profiling": "前後均另以 -cpuprofile、-memprofile 記錄 CPU 與配置，採三次中位數；量測期間未並行執行測試或編譯。",
+    "stateFixture": "使用既有底片目錄、48 張各 4 KiB 縮圖字串，以及原圖／裁切圖／成品各 1 MiB 的字串。包含最終傳輸用 JSON 編碼。",
+    "repairFixture": "一筆修復，imageData 與 maskData 字串各 1 MiB。",
+    "limits": "此為宿主微基準；不包含 WebView 傳輸、繪製、原生解碼及顯影。B/op 是每次操作累計配置量，不是 App 常駐記憶體或峰值。"
+  },
+  "measurements": [
+    {
+      "scenario": "影像未變更時的狀態同步",
+      "benchmark": "BenchmarkStatePublication/影像未變更",
+      "beforeMedian": {
+        "nanoseconds": 3561052,
+        "allocatedBytes": 4727171,
+        "allocations": 28444
+      },
+      "afterMedian": {
+        "nanoseconds": 1129111,
+        "allocatedBytes": 2872223,
+        "allocations": 2656
+      },
+      "timeReductionPercent": 68.29,
+      "allocationBytesReductionPercent": 39.24,
+      "beforeSamples": [
+        {
+          "nanoseconds": 3542085,
+          "allocatedBytes": 4731611,
+          "allocations": 28444
+        },
+        {
+          "nanoseconds": 3591042,
+          "allocatedBytes": 4706346,
+          "allocations": 28443
+        },
+        {
+          "nanoseconds": 3561052,
+          "allocatedBytes": 4727171,
+          "allocations": 28444
+        }
+      ],
+      "afterSamples": [
+        {
+          "nanoseconds": 1188781,
+          "allocatedBytes": 2872223,
+          "allocations": 2656
+        },
+        {
+          "nanoseconds": 1122240,
+          "allocatedBytes": 2872280,
+          "allocations": 2656
+        },
+        {
+          "nanoseconds": 1129111,
+          "allocatedBytes": 2872147,
+          "allocations": 2656
+        }
+      ]
+    },
+    {
+      "scenario": "包含完整影像的狀態同步",
+      "benchmark": "BenchmarkStatePublication/完整影像",
+      "beforeMedian": {
+        "nanoseconds": 10710438,
+        "allocatedBytes": 38767144,
+        "allocations": 28609
+      },
+      "afterMedian": {
+        "nanoseconds": 3504235,
+        "allocatedBytes": 20608740,
+        "allocations": 2691
+      },
+      "timeReductionPercent": 67.28,
+      "allocationBytesReductionPercent": 46.84,
+      "beforeSamples": [
+        {
+          "nanoseconds": 10710438,
+          "allocatedBytes": 38767144,
+          "allocations": 28613
+        },
+        {
+          "nanoseconds": 10790686,
+          "allocatedBytes": 38973192,
+          "allocations": 28609
+        },
+        {
+          "nanoseconds": 10559367,
+          "allocatedBytes": 36244589,
+          "allocations": 28595
+        }
+      ],
+      "afterSamples": [
+        {
+          "nanoseconds": 3504235,
+          "allocatedBytes": 20608720,
+          "allocations": 2691
+        },
+        {
+          "nanoseconds": 3500481,
+          "allocatedBytes": 20608740,
+          "allocations": 2691
+        },
+        {
+          "nanoseconds": 3556496,
+          "allocatedBytes": 20609140,
+          "allocations": 2692
+        }
+      ]
+    },
+    {
+      "scenario": "修復紀錄識別查詢",
+      "benchmark": "BenchmarkRepairRevision",
+      "beforeMedian": {
+        "nanoseconds": 1696897,
+        "allocatedBytes": 2098133,
+        "allocations": 14
+      },
+      "afterMedian": {
+        "nanoseconds": 1647836,
+        "allocatedBytes": 53,
+        "allocations": 2
+      },
+      "timeReductionPercent": 2.89,
+      "allocationBytesReductionPercent": 99.997,
+      "beforeSamples": [
+        {
+          "nanoseconds": 1658229,
+          "allocatedBytes": 2098121,
+          "allocations": 14
+        },
+        {
+          "nanoseconds": 1706589,
+          "allocatedBytes": 2098158,
+          "allocations": 14
+        },
+        {
+          "nanoseconds": 1696897,
+          "allocatedBytes": 2098133,
+          "allocations": 14
+        }
+      ],
+      "afterSamples": [
+        {
+          "nanoseconds": 1643780,
+          "allocatedBytes": 53,
+          "allocations": 2
+        },
+        {
+          "nanoseconds": 1649638,
+          "allocatedBytes": 59,
+          "allocations": 2
+        },
+        {
+          "nanoseconds": 1647836,
+          "allocatedBytes": 53,
+          "allocations": 2
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "static": "go vet ./... 與 git diff --check 通過。",
+    "race": "go test -race ./internal/... 通過。",
+    "compatibility": "狀態快照與原有 JSON 轉換結果一致，含 nil／空容器、型別化容器、RawMessage、數值及 struct 標籤；已發布狀態不受後續編輯影響。",
+    "history": "維持 100 筆上限及復原／重做順序；已淘汰或取出的快照不再留於底層槽位。",
+    "macOSDesktopSmoke": {
+      "passed": true,
+      "checks": 47,
+      "report": "build/desktop-smoke-k4vb8q50/report.json",
+      "coverage": "預覽、影像過渡、裁切、底片、修復、復原／重做、MCP、匯出、重開恢復與關閉保存。"
+    },
+    "windows": "Windows amd64 正式桌面編譯標籤交叉編譯通過；本輪未執行 Windows 實機 Smoke。"
+  },
+  "evidence": [
+    "build/efficiency-before.txt",
+    "build/efficiency-after.txt",
+    "build/efficiency-go-tests.txt"
+  ]
+}

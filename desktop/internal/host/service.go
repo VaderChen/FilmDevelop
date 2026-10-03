@@ -64,6 +64,25 @@ func (s *Service) Render(ctx context.Context, job contract.RenderJob, progress f
 	return s.backend.Render(ctx, job, progress)
 }
 
+func (s *Service) RenderWithStages(ctx context.Context, job contract.RenderJob, progress func(string, float64)) (json.RawMessage, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if err := s.library.Validate(job.Recipe); err != nil {
+		return nil, err
+	}
+	if backend, ok := s.backend.(interface {
+		RenderWithStages(context.Context, contract.RenderJob, func(string, float64)) (json.RawMessage, error)
+	}); ok {
+		return backend.RenderWithStages(ctx, job, progress)
+	}
+	return s.backend.Render(ctx, job, func(value float64) {
+		if progress != nil {
+			progress("render", value)
+		}
+	})
+}
+
 // Native 僅用於平台計算及硬體介面；檔案和應用狀態仍由 Go 管理。
 func (s *Service) Native(ctx context.Context, method string, value any, progress func(float64)) (json.RawMessage, error) {
 	return s.backend.Call(ctx, method, value, progress)

@@ -1,0 +1,249 @@
+{
+  "date": "2026-10-03",
+  "baselineCommit": "4cb05aca6a0b853208fa9a2240492c2c7a2f6222",
+  "status": "第一輪 13 項已修正並完成本機驗證；併入 build 1300，第二輪與 Windows 驗證另見 SWIFT_PARITY_SECOND_AUDIT.md。",
+  "scope": "保持既有前端版型、動畫及操作入口，恢復 Swift 功能語意；保留上一輪宿主效能最佳化。",
+  "fixes": [
+    {
+      "id": "F01",
+      "status": "已修正",
+      "behavior": "自訂底片切回內建配方",
+      "verification": "TestSwiftParityCustomFilmBase"
+    },
+    {
+      "id": "F02",
+      "status": "已修正",
+      "behavior": "AI 可用時曝光與 HDR 承接",
+      "verification": "TestSwiftParityStyleExposureHDR"
+    },
+    {
+      "id": "F03",
+      "status": "已修正",
+      "behavior": "完整複選清單重設與批次生命週期",
+      "verification": "TestSwiftParityMultiReset"
+    },
+    {
+      "id": "F04",
+      "status": "已修正",
+      "behavior": "AI 階段、取消及完成展開",
+      "verification": "TestSwiftParityAILifecycle／TestMLXLegacyProgress"
+    },
+    {
+      "id": "F05",
+      "status": "已修正",
+      "behavior": "複選匯出進度、階段及成功／失敗統計",
+      "verification": "TestSwiftParityBatchProgress／21 項視窗 Smoke"
+    },
+    {
+      "id": "F06",
+      "status": "已修正",
+      "behavior": "膚色暖度、既有遮罩及 AI 主體偵測",
+      "verification": "TestSwiftParitySkinWarmth／TestSwiftParityLensMask／TestSwiftParityAILifecycle"
+    },
+    {
+      "id": "F07",
+      "status": "已修正",
+      "behavior": "鏡頭校正切換與已保存遮罩有效性",
+      "verification": "TestSwiftParityLensMask"
+    },
+    {
+      "id": "F08",
+      "status": "已修正",
+      "behavior": "UI 確認取代與來源／目的檔保護",
+      "verification": "TestSwiftParityExportOverwrite／TestSwiftParityExportFailurePreservesDestination"
+    },
+    {
+      "id": "F09",
+      "status": "已修正",
+      "behavior": "MCP 共用已保存匯出設定並保留色深契約",
+      "verification": "TestSwiftParityMCPExportSettings"
+    },
+    {
+      "id": "F10",
+      "status": "已修正",
+      "behavior": "複製後開啟並定位副本",
+      "verification": "TestSwiftParityDuplicateSelection／21 項視窗 Smoke"
+    },
+    {
+      "id": "F11",
+      "status": "已修正",
+      "behavior": "原生拖放與編輯提交握手",
+      "verification": "TestSwiftParityDropUsesNativeOpenHandshake／21 項視窗 Smoke"
+    },
+    {
+      "id": "F12",
+      "status": "已修正",
+      "behavior": "選檔、拖放與列表共用格式",
+      "verification": "TestImportEntrypointsShareFormats"
+    },
+    {
+      "id": "F13",
+      "status": "已修正",
+      "behavior": "單張及 MCP 顯影對話框與完整收尾",
+      "verification": "21 項視窗 Smoke／47 項一般 Smoke／取代失敗測試"
+    }
+  ],
+  "externalFilesystem": {
+    "reportedByUser": "JPEG／Operation not supported／外接磁碟或隨身碟",
+    "change": "RENAME_EXCL 不受支援時以排他建立及有界串流複製發布；拒絕同名覆寫並清理本次建立的未完成成品。",
+    "injectedErrors": [
+      "ENOTSUP",
+      "ENOSYS",
+      "EINVAL"
+    ],
+    "realExternalDrive": {
+      "passed": true,
+      "filesystem": "apfs",
+      "internal": false,
+      "bytes": 5576,
+      "native": {
+        "bytes": 5576,
+        "computeBackend": "system",
+        "cropHeight": 65,
+        "cropWidth": 97,
+        "embeddedRAWPreview": false,
+        "height": 65,
+        "outputHeight": 65,
+        "outputWidth": 97,
+        "rawDecoder": "not-raw",
+        "softwareRAWFallback": false,
+        "sourceHeight": 65,
+        "sourceWidth": 97,
+        "systemRAWFallback": false,
+        "width": 97
+      },
+      "checks": [
+        "真實外接磁碟 JPEG／EXIF 匯出",
+        "成品 JPEG 標頭與結尾",
+        "預設拒絕同名覆寫且成品不變",
+        "來源雜湊不變",
+        "暫存工作已移除"
+      ]
+    },
+    "atomicity": "一般改名具原子可見性；串流備援在複製期間不具原子可見性。",
+    "limit": "實際磁碟測試為 APFS，未以使用者原隨身碟或實體 ExFAT／FAT 重現；不支援旗標分支以錯誤注入驗證。"
+  },
+  "validation": {
+    "goVet": "通過，./...",
+    "goRace": "全部 ./internal/... 通過；最後變更的 application／engine 及新增遮罩／批次測試另重跑通過。",
+    "syntax": "JavaScript、Python、契約產物及 git diff --check 通過。",
+    "smokes": [
+      {
+        "scenario": "一般桌面",
+        "passed": true,
+        "checks": 47,
+        "report": "build/desktop-smoke-dd73j25s/report.json",
+        "raceDetected": false,
+        "unsupportedRenameSimulated": false
+      },
+      {
+        "scenario": "移植與匯出",
+        "passed": true,
+        "checks": 21,
+        "report": "build/parity-smoke-sq9i9_97/report.json",
+        "raceDetected": false,
+        "unsupportedRenameSimulated": false
+      },
+      {
+        "scenario": "不支援改名操作模擬",
+        "passed": true,
+        "checks": 21,
+        "report": "build/parity-smoke-pvzfqilf/report.json",
+        "raceDetected": false,
+        "unsupportedRenameSimulated": true
+      }
+    ],
+    "macBuild": "通過，包含 codesign --verify --deep --strict；本機 ad-hoc 簽章，非新公開 Release。",
+    "builtEngineSmoke": {
+      "passed": true,
+      "result": {
+        "bytes": 5576,
+        "computeBackend": "system",
+        "cropHeight": 65,
+        "cropWidth": 97,
+        "embeddedRAWPreview": false,
+        "height": 65,
+        "outputHeight": 65,
+        "outputWidth": 97,
+        "rawDecoder": "not-raw",
+        "softwareRAWFallback": false,
+        "sourceHeight": 65,
+        "sourceWidth": 97,
+        "systemRAWFallback": false,
+        "width": 97
+      }
+    },
+    "windowsBuild": "CGO_ENABLED=0 GOOS=windows GOARCH=amd64，Go 桌面 production 建置通過；未執行 Windows 實機。",
+    "logs": [
+      "build/parity-fixes-20261003/go-tests.log",
+      "build/parity-fixes-20261003/final-regressions.log",
+      "build/parity-fixes-20261003/mask-batch-regressions.log",
+      "build/parity-fixes-20261003/vet-final.log",
+      "build/parity-fixes-20261003/syntax-contract.log",
+      "build/parity-fixes-20261003/macos-build.log",
+      "build/parity-fixes-20261003/windows-build.log"
+    ],
+    "testRepair": "一般 Smoke 改為等待原有顯影動畫完成，並處理延後顯示的匯出提示；原失敗紀錄保留且未計為通過。"
+  },
+  "artifacts": [
+    {
+      "name": "本機 macOS App",
+      "path": "build/desktop/FilmDevelopGo.app/Contents/MacOS/FilmDevelopGo",
+      "bytes": 16320496,
+      "sha256": "a69c30c9b78ede53594eca9f324fe9a0118a4084a7cd59fb22f3c16140bf86af"
+    },
+    {
+      "name": "內嵌 macOS 引擎",
+      "path": "build/desktop/FilmDevelopGo.app/Contents/Resources/Engine/FilmDevelopEngine.app/Contents/MacOS/filmdevelop-engine",
+      "bytes": 9092688,
+      "sha256": "8853ff2b834e14a4961c653806c0ca978101b254af23f346a455312fe5152c9f"
+    },
+    {
+      "name": "Windows x64 交叉編譯宿主",
+      "path": "build/parity-fixes-20261003/FilmDevelopGo.exe",
+      "bytes": 24970752,
+      "sha256": "411694968f51bc00d5549cc41f64877f52bd0c02fef0637a30aecd83b9919ac2"
+    }
+  ],
+  "limits": [
+    "AI 生命週期與 MLX 回報使用隔離後端／子程序，未執行真實大型模型分析。",
+    "未重新執行 Windows 實機 UI 或完整 RAW／像素金樣本矩陣。",
+    "原報告另外列出的無 AI 重選底片及單張重設可復原兩項產品差異維持現況。",
+    "先前效能微基準未重跑，不將其數字列為本輪量測。"
+  ],
+  "backupManifest": "build/parity-fixes-20261003/backups.json",
+  "sourceSHA256": {
+    "desktop/cmd/filmdevelop-desktop/main.go": "5356684512e36bdd7e4eb9987b34b0a904e5b29bb8d2ba8f85d6d842064ad65a",
+    "desktop/cmd/filmdevelop-desktop/smoke.js": "9fafa391fd8951066984183f48871a0af1ba8291db94e9cae30632e8824248f0",
+    "desktop/cmd/filmdevelop-desktop/smoke_enabled.go": "5623c0e9a6c7c824aa1274588662c4ef0dba3e197de31887246da56059abfd96",
+    "desktop/frontend/bridge.js": "50b052c64793060ecb729e1d85b7f47db5e7bdb1b0bd6e5406e579d1db19932d",
+    "desktop/internal/application/app.go": "c34f868555c6e4932b945ee0c6ce5f1feb4fc45293af7ea0508ffdca5dc99728",
+    "desktop/internal/application/editing.go": "d1c0c1ae57062d060204feb2335ef739c052a297706a087e53727be1adaa28d5",
+    "desktop/internal/application/inference.go": "0b401bae14f1294777064dcbb11e4fc72f2054f97530900b3d0541912e513e23",
+    "desktop/internal/application/legacy_assets.go": "0fad1bfcee08f1b27b4454f9835ff04e907c3dda2adbcc7c88a4fc8f6d04b3c4",
+    "desktop/internal/application/library.go": "1f4ef4cf09e6987ddf36303ef4fb0f0b489fa07d922e04d5c2d584eac2fa1ae9",
+    "desktop/internal/application/mcp.go": "b3390a215abd4c3cb12f38d8167cf4b00826c59fa432a0b9aeca75e5430cace1",
+    "desktop/internal/application/organization.go": "d0fbfcfe8e8dd2c9e3496322576b5aad50d16e73153136373db83ea25c03912e",
+    "desktop/internal/application/preferences.go": "9a384b9b83cf5aa58b416c8055f8cfb59476006a5af6d98969b2bc4aec759ce0",
+    "desktop/internal/application/repair.go": "557bbe50c0ee42ce1d3f31fc338a0acbc417b166c9958319e8d0bea344fc897d",
+    "desktop/internal/engine/client.go": "c94dfb717b5e555cc20f7fd57fa77b35a702944b58d1c2b0e54fa1aa5a51a150",
+    "desktop/internal/engine/publish_darwin.go": "f664fd3e66baa750adbce6a492d6dcc5000a43b2a4f9a03eaac32d79204b89e8",
+    "desktop/internal/host/service.go": "ce76e287a0099e07c88d04a7f64b0c76d72ce4b9e1044e585ea3b88ab3514a81",
+    "desktop/internal/photos/directory.go": "8b428ad0237462c44b96027fdfde5930b4d9ce259c1d3c92e3109738635a48db",
+    "desktop/internal/storage/assets.go": "3c1d73896dd596430e5a473fdb4703f9068dafd79637373374faa855fd20caf3",
+    "desktop/cmd/filmdevelop-desktop/parity_smoke.js": "4909cb64888192a4d78126f428412b5fda2ef5d8db524a4a6b0e8a7d1520911c",
+    "desktop/internal/application/efficiency_test.go": "1b1b017bda800a31615092567f0df3cbfda5960ada93f0552f037ddde9551f4e",
+    "desktop/internal/application/export_lifecycle.go": "ec31f62b098983c2dbecad0100eec3e001a1186c207d661336736051c45bff4b",
+    "desktop/internal/application/parity.go": "0d285f49bd94601902b7f7cdd4cba0bb9b987569837314882322c12f176a1b0d",
+    "desktop/internal/application/parity_lifecycle_test.go": "9e8cbef3e92d85e44333c50a925ae4d7db465dcde3a88cdafa9e4eeac5cd3284",
+    "desktop/internal/application/parity_smoke.go": "6ab55055bae8ee9a13586a4951995f085b26b9bd44d4f297a316fcdecbde965e",
+    "desktop/internal/application/parity_test.go": "8754eb68b8fe52adbd218077b291235d2c54765d7d04e5b68842037e1690a727",
+    "desktop/internal/application/state_snapshot.go": "ab787e61838e5d65ae257579e7051d14307405e6c1d9c83565ece8d7d0842ba5",
+    "desktop/internal/application/state_snapshot_test.go": "fbdea2e3c40aa184e9a011aeb111c6d32da4f8f1b4a21cb5a0217ecbf22e8fa9",
+    "desktop/internal/engine/mlx_progress_test.go": "2634a57a5b34c4a491f4ef3e0ab5c6b9a990ef1f8189a7fab36c9e12258c3da6",
+    "desktop/internal/engine/publish_copy.go": "24510206b5713b426d98bef0fa4fffd31e68327d5f1bce5237e461570b4ac9cf",
+    "desktop/internal/engine/publish_darwin_test.go": "6d8cd4e4bc31f138e2e932a4bddd249a453527163b191e9cdc1f8d9a3e69562e",
+    "desktop/internal/photos/import_test.go": "26d5459081f9afb41f420d40c9c2b73a9f3b3b47aef70f2cbda9dc8bc3111435",
+    "engine/verification/parity-smoke.py": "214b9fc6495a23177f1253c5fa61b2fea82dc36b377c7ea491958d0c7e8f7f5b"
+  }
+}

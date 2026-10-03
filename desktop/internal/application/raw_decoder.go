@@ -44,8 +44,15 @@ func (a *App) showRAWDecoderDialog(automatic bool) error {
 
 func (a *App) retryPreview() {
 	a.mu.Lock()
+	if a.cancel != nil {
+		a.cancel()
+	}
+	a.revision++
 	// 安裝解碼器或重新掛載來源後，可見列表也要重新偵測先前失敗的照片。
 	clear(a.thumbnailFailed)
+	// 使用者要求重試也可能是 WebView 解碼失敗，須重建成品並重送相同影像。
+	a.previewResults = previewResultCache{}
+	a.sentPreviewImages = nil
 	a.mu.Unlock()
 	a.directoryState()
 	a.preview()

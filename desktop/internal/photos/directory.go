@@ -54,6 +54,17 @@ var extensions = func() map[string]bool {
 	return values
 }()
 
+// 選檔、拖放與列表共用格式清單，避免不同入口漏掉相同檔案。
+func Supported(path string) bool { return extensions[strings.ToLower(filepath.Ext(path))] }
+func FileDialogPattern() string {
+	patterns := make([]string, 0, len(extensions))
+	for ext := range extensions {
+		patterns = append(patterns, "*"+ext)
+	}
+	sort.Strings(patterns)
+	return strings.Join(patterns, ";")
+}
+
 func Scan(ctx context.Context, path string) (Directory, error) {
 	path, err := Canonical(path)
 	if err != nil {

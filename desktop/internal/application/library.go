@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"unicode"
 
@@ -177,13 +179,13 @@ func (a *App) effectivePromptLanguage() string {
 	return promptLanguage(value)
 }
 func (a *App) stylePayloads() []any {
-	entries := clone(a.catalog["styles"].([]any))
+	entries := snapshotJSON(a.catalog["styles"]).([]any)
 	language := a.effectivePromptLanguage()
 	for _, raw := range entries {
 		s := raw.(object)
 		id := s["id"].(string)
 		defaults := defaultPrompts.Styles[id].Prompts
-		prompts := clone(defaults)
+		prompts := maps.Clone(defaults)
 		customized := []string{}
 		for lang, p := range a.prompts[id] {
 			if p != "" && p != defaults[lang] {
@@ -202,7 +204,7 @@ func (a *App) stylePayloads() []any {
 		for _, raw := range entries {
 			base := raw.(object)
 			if base["id"] == f.BaseStyle {
-				s := clone(base)
+				s := snapshotJSON(base).(object)
 				s["id"] = f.ID
 				s["title"] = f.Name
 				s["subtitle"] = "以「" + base["title"].(string) + "」為基礎儲存的自訂參數。"
@@ -244,7 +246,33 @@ func (a *App) recipeForLook(id string) (contract.Recipe, bool) {
 		return r, err == nil
 	}
 	r, ok := a.recipes[id]
-	return clone(r), ok
+	if !ok {
+		return contract.Recipe{}, false
+	}
+	if a.selectedCustom != "" && a.customBase != nil && id == a.customBase.Style {
+		r = *a.customBase
+	}
+	r = clone(r)
+	if _, ready := a.activeModel(); !ready || a.modelBusy || id == "original" {
+		next, previous := recipeFields(a.defaults[id]), recipeFields(r)
+		for _, key := range []string{"frameEnabled", "frameStyle", "dateEnabled", "dateStyle", "colorCalibration"} {
+			if value, exists := previous[key]; exists && (key != "colorCalibration" || id != "original") {
+				next[key] = value
+			}
+		}
+		r = withFields(a.defaults[id], next)
+	} else {
+		next, current := recipeFields(r), recipeFields(a.recipes[a.selected])
+		if next["sourceToneZones"] == nil {
+			next["exposure"] = current["exposure"]
+		}
+		next["hdrAmount"] = current["hdrAmount"]
+		if next["hdrToneCurve"] == nil && current["hdrToneCurve"] != nil {
+			next["hdrToneCurve"] = current["hdrToneCurve"]
+		}
+		r = withFields(r, next)
+	}
+	return r, true
 }
 func (a *App) selectStyle(id string) error {
 	a.mu.Lock()
@@ -253,8 +281,10 @@ func (a *App) selectStyle(id string) error {
 	if !ok {
 		return errors.New("找不到指定底片")
 	}
-	if id == a.selectedCustom || (a.selectedCustom == "" && id == a.selected) {
-		return nil
+	if a.selectedCustom == "" && id == a.selected && id != "original" {
+		if _, ready := a.activeModel(); ready && !a.modelBusy {
+			return nil
+		}
 	}
 	a.pushHistory()
 	current := clone(a.recipes[a.selected])
@@ -403,6 +433,7 @@ func (a *App) handleLibrary(action string, m object) error {
 		id = sourceID
 	}
 	film, exists := a.findFilm(id)
+	generation := a.generation
 	a.mu.Unlock()
 	switch action {
 	case "saveCustomFilm":
@@ -411,7 +442,24 @@ func (a *App) handleLibrary(action string, m object) error {
 			value = film.Name
 		}
 		return a.showDialog("儲存自訂底片", "保留沖洗參數；照片的裁切與修復不會存入底片。", value, nil, func(name string) error {
+			a.mu.Lock()
+			valid := a.generation == generation && a.selectedCustom == sourceID && reflect.DeepEqual(a.recipes[a.selected], recipe)
+			a.mu.Unlock()
+			if !valid {
+				return errors.New("照片調整已變更，請重新儲存底片")
+			}
 			if err := a.saveFilm(name, recipe, sourceID); err != nil {
+				return err
+			}
+			a.mu.Lock()
+			a.pushHistory()
+			if a.selectedCustom == "" {
+				base := clone(recipe)
+				a.customBase = &base
+			}
+			a.selectedCustom = a.filmIDByName(name)
+			a.mu.Unlock()
+			if err := a.persist(); err != nil {
 				return err
 			}
 			a.state()
@@ -502,7 +550,7 @@ func (a *App) handleLibrary(action string, m object) error {
 		if err != nil || path == "" {
 			return err
 		}
-		return writeExclusive(path, data)
+		return writeConfirmedFile(path, data)
 	case "deleteCustomFilm":
 		if !exists {
 			return errors.New("自訂底片不存在")
@@ -521,6 +569,13 @@ func (a *App) handleLibrary(action string, m object) error {
 				if a.selectedCustom == id {
 					a.selectedCustom = ""
 					a.customBase = nil
+				}
+				for _, history := range [][]editSnapshot{a.undo, a.redo} {
+					for i := range history {
+						if history[i].CustomID == id {
+							history[i].CustomID, history[i].CustomBase = "", nil
+						}
+					}
 				}
 			}
 			a.mu.Unlock()
@@ -544,13 +599,7 @@ func (a *App) handleLibrary(action string, m object) error {
 			case "export":
 				return a.handleLibrary("exportCustomFilm", object{"id": id})
 			case "duplicate":
-				return a.showDialog("複製底片", "", film.Name+" 副本", nil, func(name string) error {
-					if err := a.saveFilm(name, filmRecipe(film), ""); err != nil {
-						return err
-					}
-					a.state()
-					return nil
-				})
+				return a.duplicateFilm(film)
 			default:
 				return a.showDialog("重新命名底片", "", film.Name, nil, func(name string) error {
 					name, err := validName(name, 80)

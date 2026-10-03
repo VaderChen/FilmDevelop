@@ -16,6 +16,7 @@ type PhotoSource struct {
 	Fingerprint  string `json:"fingerprint"`
 }
 type SubjectMask struct {
+	LensCorrection    *bool  `json:"lensCorrection,omitempty"`
 	SHA256            string `json:"sha256"`
 	SourceFingerprint string `json:"sourceFingerprint"`
 	RepairDigest      string `json:"repairDigest"`
@@ -56,7 +57,7 @@ func (s *Store) ImportMask(data []byte, fingerprint, repairs string) (*SubjectMa
 		return nil, err
 	}
 	hash := sha256.Sum256(data)
-	mask := &SubjectMask{hex.EncodeToString(hash[:]), fingerprint, repairs, w, h}
+	mask := &SubjectMask{SHA256: hex.EncodeToString(hash[:]), SourceFingerprint: fingerprint, RepairDigest: repairs, Width: w, Height: h}
 	path := s.MaskPath(mask)
 	if old, err := os.ReadFile(path); err == nil && sha256.Sum256(old) == hash {
 		return mask, nil

@@ -36,6 +36,12 @@ var organizationSmokeScript string
 //go:embed update_notice_smoke.js
 var updateNoticeSmokeScript string
 
+//go:embed parity_smoke.js
+var paritySmokeScript string
+
+//go:embed parity_second_smoke.js
+var paritySecondSmokeScript string
+
 // 只存在於 Smoke 建置；正式桌面程式不包含測試指令與任意路徑開檔介面。
 func configureSmoke(settings *options.App, app *application.App) {
 	app.ConfigureDirectorySmoke(os.Getenv("FILMDEVELOP_SMOKE_DIRECTORY"))
@@ -89,6 +95,19 @@ func configureSmoke(settings *options.App, app *application.App) {
 		})
 		wruntime.EventsOn(ctx, "filmdevelop:smoke-native-open", func(...interface{}) { app.OpenFileFromOS(os.Getenv("FILMDEVELOP_SMOKE_INPUT")) })
 		wruntime.EventsOn(ctx, "filmdevelop:smoke-update-notice", func(...interface{}) { app.RunUpdateNoticeSmoke() })
+		wruntime.EventsOn(ctx, "filmdevelop:smoke-parity", func(args ...interface{}) {
+			if len(args) != 1 {
+				return
+			}
+			action, _ := args[0].(string)
+			if action == "drop" {
+				wruntime.EventsEmit(ctx, "wails:file-drop", 0, 0, []string{os.Getenv("FILMDEVELOP_SMOKE_INPUT")})
+				return
+			}
+			if err := app.RunParitySmoke(action, os.Getenv("FILMDEVELOP_SMOKE_OUTPUT")); err != nil {
+				finish(map[string]any{"passed": false, "error": err.Error()})
+			}
+		})
 		wruntime.EventsOn(ctx, "filmdevelop:smoke-empty", func(...interface{}) {
 			go func() {
 				if err := app.OpenDirectory(os.Getenv("FILMDEVELOP_SMOKE_EMPTY")); err != nil {
@@ -106,6 +125,12 @@ func configureSmoke(settings *options.App, app *application.App) {
 			}()
 		})
 		script := smokeScript
+		if os.Getenv("FILMDEVELOP_SMOKE_PARITY") == "1" {
+			script = paritySmokeScript
+		}
+		if os.Getenv("FILMDEVELOP_SMOKE_PARITY") == "2" {
+			script = paritySecondSmokeScript
+		}
 		if os.Getenv("FILMDEVELOP_SMOKE_MIGRATION") == "1" {
 			script = migrationSmokeScript
 		}

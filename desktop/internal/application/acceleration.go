@@ -89,22 +89,7 @@ func (a *App) setRAWDecoderBackend(backend string) error {
 		a.mu.Unlock()
 		return errors.New("系統未提供選取的 RAW 解析器")
 	}
-	previous := a.rawDecoder
-	a.rawDecoder = backend
+	lensCorrection := a.preferences.LensCorrection
 	a.mu.Unlock()
-	if err := a.savePreferences(); err != nil {
-		a.mu.Lock()
-		a.rawDecoder = previous
-		a.mu.Unlock()
-		return err
-	}
-	if previous != backend {
-		a.mu.Lock()
-		a.sourcePreview = ""
-		a.mu.Unlock()
-		a.preview()
-	} else {
-		a.state()
-	}
-	return nil
+	return a.setRAWConfiguration(backend, lensCorrection)
 }

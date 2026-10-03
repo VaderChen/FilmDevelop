@@ -110,11 +110,7 @@ func (a *App) handleMCP(ctx context.Context, name string, args object) (object, 
 		a.mu.Unlock()
 		return mcp.Text(object{"styles": styles}), nil
 	case "cancel_ai":
-		a.mu.Lock()
-		if a.computing && a.cancel != nil {
-			a.cancel()
-		}
-		a.mu.Unlock()
+		a.cancelAI()
 		return mcp.Text(a.mcpState()), nil
 	case "get_preview":
 		if err := a.waitPreview(ctx); err != nil {
@@ -149,7 +145,7 @@ func (a *App) handleMCP(ctx context.Context, name string, args object) (object, 
 }
 func (a *App) beginMCP(request *mcpRequest) {
 	a.mu.Lock()
-	busy := a.mcpMutating || a.saving || a.computing || a.repairing || a.dialog != nil || a.directoryScanning || a.updating || a.switchingComputeBackend()
+	busy := a.mcpMutating || a.saving || a.computing || a.repairing || a.dialog != nil || a.directoryScanning || a.updating || a.switchingComputeBackend() || a.rawSwitch != nil
 	if busy || request.ctx.Err() != nil {
 		a.mu.Unlock()
 		request.reply <- mcpReply{err: errors.New("目前有照片處理或對話框進行中")}
@@ -326,9 +322,13 @@ func (a *App) mcpExport(ctx context.Context, args object) (object, error) {
 			format = "tiff"
 		}
 	}
-	settings := defaultExportSettings()
+	a.mu.Lock()
+	settings := a.exportSettings
+	a.mu.Unlock()
 	settings.Format = format
+	// 未指定色深時維持 MCP 契約：PNG 8 bit、TIFF 16 bit。
 	settings.PNGDepth = 8
+	settings.TIFFDepth = 16
 	if depth, ok := args["bitDepth"].(float64); ok {
 		if (format == "jpeg" || format == "webp") && depth != 8 {
 			return nil, errors.New("此格式僅支援 8 bit")
@@ -347,57 +347,18 @@ func (a *App) mcpExport(ctx context.Context, args object) (object, error) {
 		a.mu.Unlock()
 		return nil, errors.New("請先選取照片")
 	}
-	source := a.source
-	settings.WriteExif = a.exportSettings.WriteExif
 	job := a.job(path, clone(a.recipes[a.selected]), false)
 	job.Output = settings.output(path)
 	a.saving = true
 	a.mu.Unlock()
 	a.state()
 	defer func() { a.mu.Lock(); a.saving = false; a.mu.Unlock() }()
-	canonical, _ := filepath.EvalSymlinks(path)
-	if canonical == source || filepath.Clean(path) == source {
-		return nil, errors.New("不得覆寫來源照片")
-	}
 	overwrite, _ := args["overwrite"].(bool)
-	var old os.FileInfo
-	if info, e := os.Stat(path); e == nil {
-		if !overwrite {
-			return nil, errors.New("輸出已存在")
-		}
-		if !info.Mode().IsRegular() {
-			return nil, errors.New("輸出不是一般檔案")
-		}
-		old = info
-	} else if !errors.Is(e, os.ErrNotExist) {
-		return nil, e
-	}
-	target := path
-	if old != nil {
-		dir, e := os.MkdirTemp(filepath.Dir(path), ".filmdevelop-export-")
-		if e != nil {
-			return nil, e
-		}
-		defer os.RemoveAll(dir)
-		target = filepath.Join(dir, filepath.Base(path))
-		job.Output.Path = target
-	}
-	data, err := a.services.Render(ctx, job, nil)
+	data, err := a.renderExport(ctx, job, overwrite)
 	if err != nil {
 		return nil, err
 	}
-	if err = ctx.Err(); err != nil {
-		return nil, err
-	}
-	if old != nil {
-		current, e := os.Stat(path)
-		if e != nil || !os.SameFile(old, current) || old.Size() != current.Size() || !old.ModTime().Equal(current.ModTime()) {
-			return nil, errors.New("目的檔案已被其他操作修改")
-		}
-		if err = os.Rename(target, path); err != nil {
-			return nil, err
-		}
-	}
+
 	var result object
 	_ = json.Unmarshal(data, &result)
 	result["path"] = path

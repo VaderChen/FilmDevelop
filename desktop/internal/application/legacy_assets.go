@@ -328,6 +328,7 @@ func (a *App) adoptRenderedMask(revision uint64, job contract.RenderJob) error {
 	if err != nil {
 		return err
 	}
+	mask.LensCorrection = &job.Input.LensCorrection
 	a.mu.Lock()
 	if revision != a.revision {
 		a.mu.Unlock()

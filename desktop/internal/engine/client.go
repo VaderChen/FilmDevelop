@@ -74,7 +74,15 @@ func (c *Client) callNativeLocked(ctx context.Context, method string, value any,
 	}
 	if method == "infer" {
 		if request, ok := value.(contract.InferenceRequest); ok && request.Format == "mlx" {
-			return c.inferMLX(ctx, request)
+			// MLX 舊版只回報開始生成與套用預覽兩個階段，沿用相同語意。
+			if progress != nil {
+				progress(1.0 / 7)
+			}
+			result, err := c.inferMLX(ctx, request)
+			if err == nil && progress != nil {
+				progress(6.0 / 7)
+			}
+			return result, err
 		}
 	}
 	var token [16]byte
@@ -178,6 +186,14 @@ func (c *Client) callNativeLocked(ctx context.Context, method string, value any,
 
 // Render 先建立來源快照。引擎只寫暫存檔；工作成功才以不可覆寫的方式發布。
 func (c *Client) Render(ctx context.Context, job contract.RenderJob, progress func(float64)) (json.RawMessage, error) {
+	return c.render(ctx, job, progress, nil)
+}
+
+func (c *Client) RenderWithStages(ctx context.Context, job contract.RenderJob, stages func(string, float64)) (json.RawMessage, error) {
+	return c.render(ctx, job, nil, stages)
+}
+
+func (c *Client) render(ctx context.Context, job contract.RenderJob, progress func(float64), stages func(string, float64)) (json.RawMessage, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -216,6 +232,22 @@ func (c *Client) Render(ctx context.Context, job contract.RenderJob, progress fu
 	writeExif := !job.Preview && job.Output.WriteExif != nil && *job.Output.WriteExif
 	// EXIF 屬於 Go 的檔案處理；原生程序只接收像素輸出設定，亦相容既有引擎。
 	job.Output.WriteExif = nil
+	report := func(stage string, value float64) {
+		if stages != nil {
+			stages(stage, value)
+		}
+	}
+	if stages != nil {
+		encoding := false
+		progress = func(value float64) {
+			report("render", value)
+			if value >= 1 && !encoding {
+				encoding = true
+				report("encode", 0)
+			}
+		}
+	}
+	report("render", 0)
 	var result json.RawMessage
 	if job.Preview {
 		result, err = c.renderPreview(ctx, job, hex.EncodeToString(digest.Sum(nil)), progress)
@@ -228,6 +260,8 @@ func (c *Client) Render(ctx context.Context, job contract.RenderJob, progress fu
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	report("encode", 1)
+	report("write", 0)
 	if writeExif {
 		metadata, err := exifmeta.Read(ctx, snapshot)
 		if err != nil {
@@ -260,7 +294,7 @@ func (c *Client) Render(ctx context.Context, job contract.RenderJob, progress fu
 		return nil, statErr
 	}
 	if syncErr != nil {
-		return nil, syncErr
+		return nil, fmt.Errorf("同步匯出檔案失敗：%w", syncErr)
 	}
 	if !info.Mode().IsRegular() || info.Size() == 0 {
 		return nil, errors.New("原生引擎成品為空或格式不符")
@@ -282,6 +316,7 @@ func (c *Client) Render(ctx context.Context, job contract.RenderJob, progress fu
 	if err := publish(job.Output.Path, target); err != nil {
 		return nil, fmt.Errorf("發布成品失敗：%w", err)
 	}
+	report("write", 1)
 	return result, nil
 }
 

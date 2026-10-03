@@ -42,6 +42,34 @@ func TestModelCatalogPairsAndRejectsMissingShards(t *testing.T) {
 		}
 	}
 }
+
+func TestNamedProjectorsInSharedDownloadedModelDirectory(t *testing.T) {
+	root := t.TempDir()
+	names := []string{"Qwen3VL-2B-Instruct-Q4_K_M.gguf", "mmproj-Qwen3VL-2B-Instruct-Q8_0.gguf", "SmolVLM-500M-Instruct-Q8_0.gguf", "mmproj-SmolVLM-500M-Instruct-Q8_0.gguf"}
+	for _, name := range names {
+		data := make([]byte, 32)
+		copy(data, "GGUF")
+		binary.LittleEndian.PutUint32(data[4:], 3)
+		if err := os.WriteFile(filepath.Join(root, name), data, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	entries, err := Scan(context.Background(), root)
+	if err != nil || len(entries) != 2 {
+		t.Fatal(entries, err)
+	}
+	for i, e := range entries {
+		if !e.Ready || filepath.Base(e.Projector) != names[i*2+1] {
+			t.Fatal("共用目錄中的具名視覺編碼器配對錯誤", e)
+		}
+	}
+	if _, err := Paired(names[0], []string{"mmproj-F16.gguf", "mmproj-Q8_0.gguf"}); err == nil {
+		t.Fatal("多個無型號編碼器不可猜測配對")
+	}
+	if _, err := Paired(names[0], []string{names[1], "Qwen3VL-2B-Instruct.mmproj-f16.gguf"}); err == nil {
+		t.Fatal("同分配對必須要求明確選擇")
+	}
+}
 func TestRepositorySearchAndImmutablePlan(t *testing.T) {
 	read := func(ctx context.Context, url string, target any) error {
 		var data string

@@ -34,6 +34,8 @@ type modelPreset struct {
 
 var modelPresets []modelPreset
 
+const unsupportedMLXMessage = "MLX 需要 Apple Silicon；此平台請下載 GGUF 主模型與對應的 mmproj。"
+
 func init() {
 	if err := json.Unmarshal(presetData, &modelPresets); err != nil {
 		panic(err)
@@ -159,10 +161,12 @@ func (a *App) aiPayload() object {
 	fileNames := []string{}
 	for _, e := range a.modelEntries {
 		enabled := e.Ready
+		message := e.Message
 		if e.Format == "mlx" && a.capabilities["mlx"] != true {
 			enabled = false
+			message = unsupportedMLXMessage
 		}
-		choices = append(choices, object{"id": e.ID, "title": e.Title, "format": e.Format, "ready": enabled, "message": e.Message, "source": "directory"})
+		choices = append(choices, object{"id": e.ID, "title": e.Title, "format": e.Format, "ready": enabled, "message": message, "source": "directory"})
 		fileNames = append(fileNames, filepath.Base(e.Path))
 	}
 	presets := []object{}
@@ -259,6 +263,16 @@ func (a *App) modelTransferProgress(p transfer.Progress) {
 	a.state()
 }
 func (a *App) rescanModels(ctx context.Context, selectPath string) error {
+	if selectPath != "" {
+		canonical, err := filepath.EvalSymlinks(selectPath)
+		if err != nil {
+			return err
+		}
+		selectPath, err = filepath.Abs(canonical)
+		if err != nil {
+			return err
+		}
+	}
 	a.mu.Lock()
 	directory := a.modelSettings.Directory
 	a.mu.Unlock()
@@ -274,7 +288,9 @@ func (a *App) rescanModels(ctx context.Context, selectPath string) error {
 	}
 	if selectPath != "" {
 		for _, e := range entries {
-			if e.Ready && (e.Path == selectPath || strings.HasPrefix(e.Path, selectPath+string(filepath.Separator))) {
+			relative, err := filepath.Rel(selectPath, e.Path)
+			within := err == nil && !filepath.IsAbs(relative) && relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator))
+			if e.Ready && (e.Format != "mlx" || a.capabilities["mlx"] == true) && within {
 				a.modelSettings.Selected = e.ID
 				a.modelSettings.Enabled = true
 				break
@@ -463,7 +479,11 @@ func (a *App) handleModels(action string, m object) error {
 		format := a.repository.Format
 		files := clone(a.repository.Files)
 		parent := a.downloadDirectory()
+		supported := format != "mlx" || a.capabilities["mlx"] == true
 		a.mu.Unlock()
+		if !supported {
+			return errors.New(unsupportedMLXMessage)
+		}
 		if r == nil {
 			return errors.New("請先查詢模型 repository")
 		}
@@ -545,6 +565,10 @@ func (a *App) queryRepository(search bool, query, format string) error {
 		return errors.New("模型格式不符")
 	}
 	a.mu.Lock()
+	if format == "mlx" && a.capabilities["mlx"] != true {
+		a.mu.Unlock()
+		return errors.New(unsupportedMLXMessage)
+	}
 	if a.repositoryCancel != nil {
 		a.repositoryCancel()
 	}

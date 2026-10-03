@@ -38,16 +38,24 @@ var shard = regexp.MustCompile(`-([0-9]{5})-of-([0-9]{5})\.gguf$`)
 func PairingScore(model, auxiliary string) int {
 	m := quantization.ReplaceAllString(strings.ToLower(strings.TrimSuffix(filepath.Base(model), filepath.Ext(model))), "")
 	a := strings.ToLower(strings.TrimSuffix(filepath.Base(auxiliary), filepath.Ext(auxiliary)))
-	if strings.HasPrefix(a, "mmproj") {
-		return 0
-	}
-	for _, marker := range []string{".mmproj", "-mmproj", "_mmproj"} {
-		if i := strings.Index(a, marker); i >= 0 {
-			a = a[:i]
+	// mmproj-模型名稱與模型名稱.mmproj 都保留型號；單純 mmproj-F16 仍沒有可配對身分。
+	for _, marker := range []string{"mmproj", "vision-encoder", "projector"} {
+		if strings.HasPrefix(a, marker) {
+			a = strings.TrimLeft(a[len(marker):], "._- ")
+			break
+		}
+		found := false
+		for _, separator := range []string{".", "-", "_"} {
+			if i := strings.Index(a, separator+marker); i >= 0 {
+				a, found = a[:i], true
+				break
+			}
+		}
+		if found {
 			break
 		}
 	}
-	a = quantization.ReplaceAllString(a, "")
+	a = strings.TrimPrefix(quantization.ReplaceAllString("-"+a, ""), "-")
 	if m == "" || a == "" {
 		return 0
 	}
@@ -93,7 +101,7 @@ func Paired(model string, candidates []string) (string, error) {
 	if len(sorted) == 0 {
 		return "", errors.New("缺少對應的 mmproj 視覺編碼器")
 	}
-	if PairingScore(model, sorted[0]) == 0 {
+	if PairingScore(model, sorted[0]) == 0 || len(sorted) > 1 && PairingScore(model, sorted[0]) == PairingScore(model, sorted[1]) {
 		return "", errors.New("同資料夾有多個 mmproj，無法確定配對")
 	}
 	return sorted[0], nil

@@ -79,6 +79,9 @@ func (a *App) savePreferences() error {
 	p.Export = a.exportSettings
 	p.ComputeBackend = a.computeBackend
 	p.RAWDecoder = a.rawDecoder
+	if a.rawSwitch != nil {
+		p.RAWDecoder, p.LensCorrection = a.rawSwitch.backend, a.rawSwitch.lensCorrection
+	}
 	a.mu.Unlock()
 	if err := a.store.SaveState("preferences.json", p); err != nil {
 		return err
@@ -105,7 +108,16 @@ func (a *App) preferencePayload(payload object) {
 	payload["effectiveRAWDecoderBackend"] = a.renderInfo["rawDecoder"]
 	payload["softwareRAWFallback"] = a.renderInfo["softwareRAWFallback"]
 	payload["previewOutputSize"] = object{"width": a.renderInfo["outputWidth"], "height": a.renderInfo["outputHeight"]}
-	payload["cropAspectRatios"] = a.catalog["cropAspectRatios"]
+	ratios := clone(defaultPrompts.CropAspectRatios)
+	if a.sourceHeight > a.sourceWidth {
+		titles := map[string]string{"threeTwo": "2:3", "fourThree": "3:4", "sixteenNine": "9:16"}
+		for _, ratio := range ratios {
+			if title, ok := titles[stringValue(ratio, "id")]; ok {
+				ratio["title"] = title
+			}
+		}
+	}
+	payload["cropAspectRatios"] = ratios
 }
 func (a *App) setPreference(action string, message object) error {
 	if action == "setLanguage" {
@@ -130,6 +142,8 @@ func (a *App) setPreference(action string, message object) error {
 		}
 		a.mu.Lock()
 		a.preferences.Language = value
+		// 遷移語言只保留至使用者明確切換；之後提示詞與介面共用設定。
+		a.preferences.PromptLanguage = ""
 		a.mu.Unlock()
 	} else {
 		enabled, ok := message["enabled"].(bool)
@@ -147,8 +161,9 @@ func (a *App) setPreference(action string, message object) error {
 		case "setHighlightProtectionEnabled":
 			a.preferences.HighlightProtection = enabled
 		case "setLensCorrectionEnabled":
-			a.preferences.LensCorrection = enabled
-			a.sourcePreview = ""
+			backend := a.rawDecoder
+			a.mu.Unlock()
+			return a.setRAWConfiguration(backend, enabled)
 		case "setHDRFeatureEnabled":
 			a.preferences.HDR = enabled
 		case "setOriginalResolutionEditing":

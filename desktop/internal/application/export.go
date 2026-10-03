@@ -67,7 +67,7 @@ func (s ExportSettings) matchesExtension(path string) bool {
 }
 
 func defaultExportSettings() ExportSettings {
-	return ExportSettings{Format: "png", ColorSpace: "sRGB", JPEGQuality: 95, WebPQuality: 95, PNGDepth: 16, TIFFDepth: 16, TIFFCompression: 1, WriteExif: true}
+	return ExportSettings{Format: "png", ColorSpace: "sRGB", JPEGQuality: 95, WebPQuality: 95, PNGDepth: 8, TIFFDepth: 16, TIFFCompression: 1, WriteExif: true}
 }
 func (s *ExportSettings) update(key string, value any) error {
 	data, _ := json.Marshal(s)
