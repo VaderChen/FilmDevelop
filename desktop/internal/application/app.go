@@ -40,6 +40,7 @@ type App struct {
 	mcpMutating                                           bool
 	mcpFlush                                              chan struct{}
 	previewError                                          error
+	rawDecoderPromptGeneration                            string
 	repairing                                             bool
 	repairStep                                            string
 	repairProgress                                        object
@@ -131,6 +132,7 @@ type App struct {
 	thumbnails                   map[string]string
 	thumbnailFailed              map[string]bool
 	directoryPicker              func(context.Context, wruntime.OpenDialogOptions) (string, error)
+	browserOpenURL               func(context.Context, string)
 }
 
 func New(binary string) (*App, error) {
@@ -168,6 +170,7 @@ func New(binary string) (*App, error) {
 	app.thumbnailFailed = make(map[string]bool)
 	app.directoryMessage = "請選取照片目錄，以瀏覽下方的照片列表。"
 	app.directoryPicker = wruntime.OpenDirectoryDialog
+	app.browserOpenURL = wruntime.BrowserOpenURL
 	_, _ = app.store.LoadState("migration-issues.json", &app.migrationIssues)
 	if err = app.loadPreferences(); err != nil {
 		app.recoverState("preferences.json", err)
@@ -1208,6 +1211,7 @@ func (a *App) previewDone(revision uint64, output string, result json.RawMessage
 	if err != nil && !errors.Is(err, context.Canceled) {
 		a.toast(err)
 	}
+	a.offerRAWDecoder()
 }
 
 func (a *App) export() error {

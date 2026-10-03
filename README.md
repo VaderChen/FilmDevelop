@@ -8,7 +8,7 @@
 
 ## 下載使用
 
-[下載 Mac 與 Windows 版](https://github.com/VaderChen/FilmDevelop/releases/latest)。目前版本：**1.26.1003 build 0924**，Windows 標示 **Beta**。
+[下載 Mac 與 Windows 版](https://github.com/VaderChen/FilmDevelop/releases/latest)。目前版本：**1.26.1003 build 1026**，Windows 標示 **Beta**。
 
 | 平台 | 安裝方式與需求 |
 | --- | --- |
@@ -22,13 +22,11 @@
 <!-- release-summary:start -->
 ## 本次更新
 
-相較版本：**1.26.1003 build 0018**。
+相較版本：**1.26.1003 build 0924**。
 
-- **修正**：補上 Nikon HE／HE* NEF 與 GoPro GPR 的共同解碼流程：系統或 LibRaw 缺少解碼器時，使用已安裝的 Adobe DNG Converter 建立無損 RAW 快取，支援 Mac 與 Windows。
-- **新增**：缺少補充解碼器時，在照片下方提供 Adobe 官方下載與重新偵測入口；使用者需自行完成原廠安裝。FilmDevelop 不內附 Adobe Converter，一般預覽不自動跳出安裝對話框。
-- **修正**：GPR 加入照片匯入及兩平台 RAW 辨識；沒有可用內嵌縮圖時也能補充解碼，安裝後重新偵測可恢復列表縮圖。
-- **改善**：補充解碼保留原始照片、調整識別與拍攝 EXIF；快取有內容驗證、容量上限、取消與結束清理。完整感光資料仍由共用 LibRaw 顯影，不以相機 JPEG 取代編輯來源。
-- **改善**：補驗 Mac 47 張 RAW 的 141 次預覽／匯出、Windows 20 張的 60 次工作及預設系統模式 42 次工作；公開 EXIF、尺寸及像素差異紀錄。未知格式、JPEG XL／Enhanced DNG 與逐像素一致性仍有限制。
+- **新增**：目前照片需要另外安裝 Adobe DNG Converter 時，自動顯示確認對話框；確認後才用系統預設瀏覽器開啟 Adobe 官方下載頁，取代上一版僅提供照片下方入口的方式。
+- **改善**：取消解碼器確認後保留畫面，同一張照片重試不反覆彈出；可從下方入口重新開啟。提示會等待其他對話框結束，忽略過期照片與無關錯誤，並提供四語說明。
+- **修正**：更新下載視窗補上進度條，從 0% 起與百分比及容量同步，驗證安裝包時維持滿格；取消會清理暫存，舊下載事件不會影響新的對話框。
 
 [完整更新紀錄](CHANGELOG.md)
 <!-- release-summary:end -->
@@ -69,7 +67,7 @@
 
 RAW 與計算加速預設使用 **系統**，選項會保存並在啟動時重新偵測。Mac 使用 Apple 原生加速；Windows 優先採用通過實際探測的 Vulkan GPU，無法使用時回退 CPU。系統 RAW 解碼失敗時，使用內建 LibRaw 備援。
 
-Nikon HE／HE* NEF、GoPro GPR 等缺少解碼器的來源，可使用另外安裝的免費 [Adobe DNG Converter](https://helpx.adobe.com/camera-raw/desktop/dng-and-file-formats/adobe-dng-converter.html) 自動建立無損 RAW 快取。未安裝時，照片下方會提供官方下載與重新偵測；Adobe 程式不內附於 FilmDevelop。原始照片與拍攝 EXIF 會保留。
+Nikon HE／HE* NEF、GoPro GPR 等缺少解碼器的來源，可使用另外安裝的免費 [Adobe DNG Converter](https://helpx.adobe.com/camera-raw/desktop/dng-and-file-formats/adobe-dng-converter.html) 自動建立無損 RAW 快取。未安裝時會先跳出確認對話框，確認後才使用預設瀏覽器開啟 Adobe 官方下載頁；取消後仍可從照片下方重新開啟，安裝完成後可重新偵測。Adobe 程式不內附於 FilmDevelop。原始照片與拍攝 EXIF 會保留。
 
 本版在 Mac 驗證 47 張 RAW、Windows 驗證 20 張及 14 張預設系統模式樣本，包含 NEF／GPR 缺失格式。成功解碼不代表所有 RAW、HDR 範圍或兩平台每個像素都相同；JPEG XL／Enhanced DNG 尚未驗收。詳細範圍、部署條件與差異見 [RAW 補充解碼紀錄](engine/verification/raw/supplemental-decoder.md)。
 

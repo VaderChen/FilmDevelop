@@ -41,10 +41,17 @@
 (function () {
   "use strict";
   var current;
+  function updateProgress(dialog, payload) {
+    if (typeof payload.progress !== "number" || !Number.isFinite(payload.progress)) return;
+    var progress = dialog.querySelector("[data-host-progress]");
+    progress.value = Math.max(0, Math.min(1, payload.progress));
+    progress.hidden = false;
+  }
   window.handleHostProgress = function (payload) {
     if (!current || current.dataset.hostID !== payload.id) return;
     if (payload.close) { current.close();current.remove();current=null;return; }
-    current.querySelector("[data-host-detail]").textContent=payload.detail || "";
+    if (Object.prototype.hasOwnProperty.call(payload, "detail")) current.querySelector("[data-host-detail]").textContent=payload.detail || "";
+    updateProgress(current, payload);
   };
   window.handleHostDialog = function (payload) {
     if (window.dismissHostMenu) window.dismissHostMenu(false);
@@ -54,6 +61,9 @@
     dialog.setAttribute("aria-label", payload.title);
     var title = document.createElement("h2"); title.textContent = payload.title; title.style.marginTop = "0"; dialog.appendChild(title);
     var detail = document.createElement("p"); detail.dataset.hostDetail = "true"; detail.textContent = payload.detail || ""; detail.style.whiteSpace="pre-wrap"; dialog.appendChild(detail);
+    var progress = document.createElement("progress"); progress.dataset.hostProgress = "true"; progress.className = "host-dialog-progress";
+    progress.max = 1; progress.value = 0; progress.hidden = true; progress.setAttribute("aria-label", payload.title); dialog.appendChild(progress);
+    updateProgress(dialog, payload);
     var form=document.createElement("form");form.method="dialog";dialog.appendChild(form);
     var actions=document.createElement("div");actions.className="host-dialog-actions";form.appendChild(actions);
     var input;

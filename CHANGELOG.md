@@ -4,6 +4,16 @@
 
 <!-- 由 scripts/release_notes.py 產生；請修改 history.json。 -->
 
+## 1.26.1003 build 1026
+
+相較版本：**1.26.1003 build 0924**。
+
+- **新增**：目前照片需要另外安裝 Adobe DNG Converter 時，自動顯示確認對話框；確認後才用系統預設瀏覽器開啟 Adobe 官方下載頁，取代上一版僅提供照片下方入口的方式。
+- **改善**：取消解碼器確認後保留畫面，同一張照片重試不反覆彈出；可從下方入口重新開啟。提示會等待其他對話框結束，忽略過期照片與無關錯誤，並提供四語說明。
+- **修正**：更新下載視窗補上進度條，從 0% 起與百分比及容量同步，驗證安裝包時維持滿格；取消會清理暫存，舊下載事件不會影響新的對話框。
+
+[原始碼差異](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-0924...v1.26.1003-build-1026) · [驗證紀錄](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1026/desktop/RESTORATION.md)
+
 ## 1.26.1003 build 0924
 
 相較版本：**1.26.1003 build 0018**。

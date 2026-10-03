@@ -52,6 +52,42 @@
   },
   "releases": [
     {
+      "tag": "v1.26.1003-build-1026",
+      "previousTag": "v1.26.1003-build-0924",
+      "changes": [
+        {
+          "kind": "added",
+          "text": {
+            "traditionalChinese": "目前照片需要另外安裝 Adobe DNG Converter 時，自動顯示確認對話框；確認後才用系統預設瀏覽器開啟 Adobe 官方下載頁，取代上一版僅提供照片下方入口的方式。",
+            "english": "When the current photo requires a separately installed Adobe DNG Converter, a confirmation dialog now appears automatically. Confirming opens Adobe’s official download page in the system default browser, replacing the previous footer-only prompt.",
+            "japanese": "現在の写真に Adobe DNG Converter の別途インストールが必要な場合、確認ダイアログを自動表示します。確認後に既定のブラウザーで Adobe 公式ダウンロードページを開きます。前版の写真下部だけの案内から変更しました。",
+            "korean": "현재 사진에 Adobe DNG Converter의 별도 설치가 필요하면 확인 대화상자를 자동으로 표시합니다. 확인한 뒤 시스템 기본 브라우저로 Adobe 공식 다운로드 페이지를 엽니다. 이전 버전의 사진 아래 안내만 제공하던 방식을 개선했습니다."
+          },
+          "inApp": true
+        },
+        {
+          "kind": "improved",
+          "text": {
+            "traditionalChinese": "取消解碼器確認後保留畫面，同一張照片重試不反覆彈出；可從下方入口重新開啟。提示會等待其他對話框結束，忽略過期照片與無關錯誤，並提供四語說明。",
+            "english": "Cancelling preserves the current view and does not repeatedly prompt when retrying the same photo. The footer can reopen the dialog. Prompts wait for other dialogs, ignore stale photos and unrelated errors, and include all four interface languages.",
+            "japanese": "キャンセル後も画面を保持し、同じ写真の再試行では繰り返し表示しません。写真下部から再度開けます。他のダイアログが終了するまで待機し、古い写真や無関係なエラーは対象外とし、4 言語で案内します。",
+            "korean": "취소하면 현재 화면을 유지하며 같은 사진을 다시 시도할 때 반복해서 표시하지 않습니다. 사진 아래에서 다시 열 수 있습니다. 다른 대화상자가 닫힐 때까지 기다리고 이전 사진이나 관련 없는 오류는 제외하며 네 가지 언어로 안내합니다."
+          },
+          "inApp": true
+        },
+        {
+          "kind": "fixed",
+          "text": {
+            "traditionalChinese": "更新下載視窗補上進度條，從 0% 起與百分比及容量同步，驗證安裝包時維持滿格；取消會清理暫存，舊下載事件不會影響新的對話框。",
+            "english": "The update download dialog now includes a progress bar synchronized with percentage and size from 0%, staying full during package verification. Cancellation clears temporary files, and stale download events cannot affect a newer dialog.",
+            "japanese": "更新ダウンロード画面に進捗バーを追加し、0% から割合と容量に同期します。パッケージ検証中は満了表示を維持。キャンセル時は一時ファイルを削除し、古いダウンロード通知が新しいダイアログに影響しないようにします。",
+            "korean": "업데이트 다운로드 대화상자에 진행률 표시줄을 추가했습니다. 0%부터 비율과 용량에 맞춰 표시하고 패키지 검증 중에는 가득 찬 상태를 유지합니다. 취소 시 임시 파일을 정리하며 이전 다운로드 이벤트가 새 대화상자에 영향을 주지 않습니다."
+          },
+          "inApp": true
+        }
+      ]
+    },
+    {
       "tag": "v1.26.1003-build-0924",
       "previousTag": "v1.26.1003-build-0018",
       "changes": [

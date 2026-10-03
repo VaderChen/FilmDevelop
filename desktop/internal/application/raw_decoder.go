@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/VaderChen/FilmDevelop/internal/engine"
-	wruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // 導向 Adobe 提供的官方下載與安裝說明；安裝與授權由使用者完成。
@@ -17,10 +16,25 @@ func needsRAWDecoder(err error) bool {
 }
 
 func (a *App) setupRAWDecoder() error {
-	return a.showDialog("補充 RAW 解碼器", "此 RAW 需要 Adobe DNG Converter。請從 Adobe 官方下載適合系統的版本，依安裝程式完成授權與安裝，再回到這裡按「重新偵測」。\n安裝後會自動建立無損 RAW 快取，保留原始照片與拍攝 EXIF。", "",
+	return a.showRAWDecoderDialog(false)
+}
+
+func (a *App) offerRAWDecoder() {
+	_ = a.showRAWDecoderDialog(true)
+}
+
+func (a *App) showRAWDecoderDialog(automatic bool) error {
+	return a.showDialogWhen(func() bool {
+		if automatic && (a.closing || a.rendering || a.dialog != nil || !needsRAWDecoder(a.previewError) || a.rawDecoderPromptGeneration == a.generation) {
+			return false
+		}
+		// 同一張照片只自動提示一次，取消後仍可從照片下方重新開啟。
+		a.rawDecoderPromptGeneration = a.generation
+		return true
+	}, "補充 RAW 解碼器", "此 RAW 需要另外安裝 Adobe DNG Converter。按「Adobe 官方下載」後，會用預設瀏覽器開啟 Adobe 下載頁面。\n請下載適合系統的版本，完成授權與安裝後，回到照片下方按「重新載入預覽」。原始照片與拍攝 EXIF 會保留。", "",
 		[]dialogChoice{{ID: "download", Label: "Adobe 官方下載"}, {ID: "retry", Label: "重新偵測", Role: "secondary"}}, func(choice string) error {
 			if choice == "download" {
-				wruntime.BrowserOpenURL(a.ctx, rawDecoderDownloadURL)
+				a.browserOpenURL(a.ctx, rawDecoderDownloadURL)
 			} else if choice == "retry" {
 				a.retryPreview()
 			}

@@ -1,8 +1,22 @@
 [繁體中文](#繁體中文) · [English](#english) · [日本語](#日本語) · [한국어](#한국어)
 
-[macOS Apple Silicon DMG](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-0924/FilmDevelop-1.26.1003-build0924-macos-arm64.dmg) · [Windows x64 Beta](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-0924/FilmDevelop-1.26.1003-build0924-windows-x64-portable.zip) · [Swift Mac upgrade](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-0924/FilmYourPhoto-1.26.1003-build-0924-arm64.dmg) · [SHA-256](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-0924/SHA256SUMS.txt)
+[macOS Apple Silicon DMG](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-1026/FilmDevelop-1.26.1003-build1026-macos-arm64.dmg) · [Windows x64 Beta](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-1026/FilmDevelop-1.26.1003-build1026-windows-x64-portable.zip) · [Swift Mac upgrade](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-1026/FilmYourPhoto-1.26.1003-build-1026-arm64.dmg) · [SHA-256](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-1026/SHA256SUMS.txt)
 
 ## 繁體中文
+
+此發布說明已合併 **1.26.1003 build 0924** 的更新，以下按版本列出差異。
+
+### 本版更新
+
+相較版本：**1.26.1003 build 0924**。
+
+- **新增**：目前照片需要另外安裝 Adobe DNG Converter 時，自動顯示確認對話框；確認後才用系統預設瀏覽器開啟 Adobe 官方下載頁，取代上一版僅提供照片下方入口的方式。
+- **改善**：取消解碼器確認後保留畫面，同一張照片重試不反覆彈出；可從下方入口重新開啟。提示會等待其他對話框結束，忽略過期照片與無關錯誤，並提供四語說明。
+- **修正**：更新下載視窗補上進度條，從 0% 起與百分比及容量同步，驗證安裝包時維持滿格；取消會清理暫存，舊下載事件不會影響新的對話框。
+
+[原始碼差異](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-0924...v1.26.1003-build-1026) · [驗證紀錄](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1026/desktop/RESTORATION.md)
+
+### 合併自 1.26.1003 build 0924
 
 相較版本：**1.26.1003 build 0018**。
 
@@ -14,9 +28,23 @@
 
 [原始碼差異](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-0018...v1.26.1003-build-0924) · [驗證紀錄](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-0924/desktop/RESTORATION.md)
 
-[完整更新紀錄](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-0924/CHANGELOG.md) · [README](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-0924/README.md) · [驗證紀錄 (JSON)](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-0924/release-validation.json)
+[完整更新紀錄](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1026/CHANGELOG.md) · [README](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1026/README.md) · [驗證紀錄 (JSON)](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-1026/release-validation.json)
 
 ## English
+
+These release notes include the changes from **1.26.1003 build 0924**, grouped by version below.
+
+### Changes in this release
+
+Compared with: **1.26.1003 build 0924**。
+
+- **Added**：When the current photo requires a separately installed Adobe DNG Converter, a confirmation dialog now appears automatically. Confirming opens Adobe’s official download page in the system default browser, replacing the previous footer-only prompt.
+- **Improved**：Cancelling preserves the current view and does not repeatedly prompt when retrying the same photo. The footer can reopen the dialog. Prompts wait for other dialogs, ignore stale photos and unrelated errors, and include all four interface languages.
+- **Fixed**：The update download dialog now includes a progress bar synchronized with percentage and size from 0%, staying full during package verification. Cancellation clears temporary files, and stale download events cannot affect a newer dialog.
+
+[Source comparison](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-0924...v1.26.1003-build-1026) · [Validation record](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1026/desktop/RESTORATION.md)
+
+### Included from 1.26.1003 build 0924
 
 Compared with: **1.26.1003 build 0018**。
 
@@ -28,9 +56,23 @@ Compared with: **1.26.1003 build 0018**。
 
 [Source comparison](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-0018...v1.26.1003-build-0924) · [Validation record](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-0924/desktop/RESTORATION.md)
 
-[Full changelog](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-0924/CHANGELOG.en.md) · [README](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-0924/README.en.md) · [Validation record (JSON)](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-0924/release-validation.json)
+[Full changelog](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1026/CHANGELOG.en.md) · [README](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1026/README.en.md) · [Validation record (JSON)](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-1026/release-validation.json)
 
 ## 日本語
+
+このリリースノートには **1.26.1003 build 0924** の更新内容を統合し、以下にバージョン別の差分を記載しています。
+
+### 今回の更新
+
+比較元：**1.26.1003 build 0924**。
+
+- **追加**：現在の写真に Adobe DNG Converter の別途インストールが必要な場合、確認ダイアログを自動表示します。確認後に既定のブラウザーで Adobe 公式ダウンロードページを開きます。前版の写真下部だけの案内から変更しました。
+- **改善**：キャンセル後も画面を保持し、同じ写真の再試行では繰り返し表示しません。写真下部から再度開けます。他のダイアログが終了するまで待機し、古い写真や無関係なエラーは対象外とし、4 言語で案内します。
+- **修正**：更新ダウンロード画面に進捗バーを追加し、0% から割合と容量に同期します。パッケージ検証中は満了表示を維持。キャンセル時は一時ファイルを削除し、古いダウンロード通知が新しいダイアログに影響しないようにします。
+
+[ソースの差分](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-0924...v1.26.1003-build-1026) · [検証記録](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1026/desktop/RESTORATION.md)
+
+### 1.26.1003 build 0924 から統合した変更
 
 比較元：**1.26.1003 build 0018**。
 
@@ -42,9 +84,23 @@ Compared with: **1.26.1003 build 0018**。
 
 [ソースの差分](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-0018...v1.26.1003-build-0924) · [検証記録](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-0924/desktop/RESTORATION.md)
 
-[変更履歴](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-0924/CHANGELOG.ja.md) · [README](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-0924/README.ja.md) · [検証記録 (JSON)](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-0924/release-validation.json)
+[変更履歴](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1026/CHANGELOG.ja.md) · [README](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1026/README.ja.md) · [検証記録 (JSON)](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-1026/release-validation.json)
 
 ## 한국어
+
+이 릴리스 노트는 **1.26.1003 build 0924**의 변경 사항을 통합하며, 아래에 버전별 차이를 표시합니다.
+
+### 이번 릴리스의 변경 사항
+
+비교 버전: **1.26.1003 build 0924**。
+
+- **추가**：현재 사진에 Adobe DNG Converter의 별도 설치가 필요하면 확인 대화상자를 자동으로 표시합니다. 확인한 뒤 시스템 기본 브라우저로 Adobe 공식 다운로드 페이지를 엽니다. 이전 버전의 사진 아래 안내만 제공하던 방식을 개선했습니다.
+- **개선**：취소하면 현재 화면을 유지하며 같은 사진을 다시 시도할 때 반복해서 표시하지 않습니다. 사진 아래에서 다시 열 수 있습니다. 다른 대화상자가 닫힐 때까지 기다리고 이전 사진이나 관련 없는 오류는 제외하며 네 가지 언어로 안내합니다.
+- **수정**：업데이트 다운로드 대화상자에 진행률 표시줄을 추가했습니다. 0%부터 비율과 용량에 맞춰 표시하고 패키지 검증 중에는 가득 찬 상태를 유지합니다. 취소 시 임시 파일을 정리하며 이전 다운로드 이벤트가 새 대화상자에 영향을 주지 않습니다.
+
+[소스 변경 비교](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-0924...v1.26.1003-build-1026) · [검증 기록](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1026/desktop/RESTORATION.md)
+
+### 1.26.1003 build 0924에서 통합한 변경 사항
 
 비교 버전: **1.26.1003 build 0018**。
 
@@ -56,4 +112,4 @@ Compared with: **1.26.1003 build 0018**。
 
 [소스 변경 비교](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-0018...v1.26.1003-build-0924) · [검증 기록](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-0924/desktop/RESTORATION.md)
 
-[전체 변경 기록](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-0924/CHANGELOG.ko.md) · [README](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-0924/README.ko.md) · [검증 기록 (JSON)](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-0924/release-validation.json)
+[전체 변경 기록](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1026/CHANGELOG.ko.md) · [README](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1003-build-1026/README.ko.md) · [검증 기록 (JSON)](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1003-build-1026/release-validation.json)

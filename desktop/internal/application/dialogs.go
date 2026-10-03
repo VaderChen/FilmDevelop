@@ -17,7 +17,16 @@ type pendingDialog struct {
 }
 
 func (a *App) showDialog(title, detail, value string, choices []dialogChoice, submit func(string) error) error {
+	return a.showDialogWhen(nil, title, detail, value, choices, submit)
+}
+
+// 條件在鎖內檢查，讓背景提示可等待現有操作完成，不會覆蓋其他對話框。
+func (a *App) showDialogWhen(eligible func() bool, title, detail, value string, choices []dialogChoice, submit func(string) error) error {
 	a.mu.Lock()
+	if eligible != nil && !eligible() {
+		a.mu.Unlock()
+		return nil
+	}
 	id := identifier()
 	a.dialog = &pendingDialog{ID: id, Generation: a.generation, Choices: choices, Submit: submit}
 	a.mu.Unlock()
@@ -38,6 +47,7 @@ func (a *App) resolveDialog(message object) error {
 	a.dialog = nil
 	current := d.Generation == a.generation
 	a.mu.Unlock()
+	defer a.offerRAWDecoder()
 	if message["cancelled"] == true {
 		if d.Cancel != nil {
 			d.Cancel()

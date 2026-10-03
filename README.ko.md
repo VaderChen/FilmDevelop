@@ -8,7 +8,7 @@
 
 ## 다운로드
 
-[Mac 및 Windows 버전 다운로드](https://github.com/VaderChen/FilmDevelop/releases/latest). 버전은 **1.26.1003 build 0924**이며 Windows에는 **Beta**가 표시됩니다.
+[Mac 및 Windows 버전 다운로드](https://github.com/VaderChen/FilmDevelop/releases/latest). 버전은 **1.26.1003 build 1026**이며 Windows에는 **Beta**가 표시됩니다.
 
 Mac은 Apple Silicon과 macOS 14 이상이 필요합니다. DMG에서 FilmDevelop을 응용 프로그램 폴더로 옮기세요. 이번 DMG와 포함된 앱은 Developer ID 서명, Apple 공증 및 공증 티켓 첨부를 완료했습니다. Windows는 10/11 x64와 WebView2가 필요합니다. x64 포터블 ZIP 전체를 압축 해제한 다음 FilmDevelop.exe를 실행하세요. VC++ x64 Runtime은 포함되어 있습니다. 앱에는 Authenticode 서명이 없습니다.
 
@@ -19,13 +19,11 @@ Mac은 Apple Silicon과 macOS 14 이상이 필요합니다. DMG에서 FilmDevelo
 <!-- release-summary:start -->
 ## 이번 업데이트
 
-비교 버전: **1.26.1003 build 0018**。
+비교 버전: **1.26.1003 build 0924**。
 
-- **수정**：Mac과 Windows에 Nikon HE/HE* NEF 및 GoPro GPR의 공통 대체 디코딩 경로를 추가했습니다. 시스템이나 LibRaw에 디코더가 없으면 설치된 Adobe DNG Converter로 무손실 RAW 캐시를 만듭니다.
-- **추가**：추가 디코더가 없으면 사진 아래에 Adobe 공식 다운로드와 다시 검색 기능을 표시합니다. Adobe 설치는 사용자가 직접 완료해야 합니다. Converter는 포함하지 않으며 일반 미리보기에서 설치 대화상자를 자동으로 열지 않습니다.
-- **수정**：사진 가져오기와 두 플랫폼의 RAW 인식에 GPR을 추가했습니다. 사용할 수 있는 내장 썸네일이 없어도 추가 디코딩을 사용하며 설치 후 다시 검색하면 실패한 목록 썸네일을 다시 불러옵니다.
-- **개선**：추가 디코딩은 원본 사진, 편집 식별 정보와 촬영 EXIF를 보존합니다. 캐시는 내용 검사, 용량 제한, 취소와 종료 시 정리를 지원합니다. 공통 LibRaw가 전체 센서 데이터를 현상하며 카메라 JPEG를 편집 원본으로 사용하지 않습니다.
-- **개선**：Mac RAW 47개에서 미리보기·내보내기 141회, Windows 20개에서 60회 및 시스템 모드 42회를 검증했습니다. EXIF, 크기와 픽셀 차이를 기록했습니다. 알 수 없는 형식, JPEG XL/Enhanced DNG와 픽셀 단위 일치에는 제한이 남아 있습니다.
+- **추가**：현재 사진에 Adobe DNG Converter의 별도 설치가 필요하면 확인 대화상자를 자동으로 표시합니다. 확인한 뒤 시스템 기본 브라우저로 Adobe 공식 다운로드 페이지를 엽니다. 이전 버전의 사진 아래 안내만 제공하던 방식을 개선했습니다.
+- **개선**：취소하면 현재 화면을 유지하며 같은 사진을 다시 시도할 때 반복해서 표시하지 않습니다. 사진 아래에서 다시 열 수 있습니다. 다른 대화상자가 닫힐 때까지 기다리고 이전 사진이나 관련 없는 오류는 제외하며 네 가지 언어로 안내합니다.
+- **수정**：업데이트 다운로드 대화상자에 진행률 표시줄을 추가했습니다. 0%부터 비율과 용량에 맞춰 표시하고 패키지 검증 중에는 가득 찬 상태를 유지합니다. 취소 시 임시 파일을 정리하며 이전 다운로드 이벤트가 새 대화상자에 영향을 주지 않습니다.
 
 [전체 변경 기록](CHANGELOG.ko.md)
 <!-- release-summary:end -->
@@ -66,7 +64,7 @@ Mac은 Apple Silicon과 macOS 14 이상이 필요합니다. DMG에서 FilmDevelo
 
 RAW와 연산 가속은 기본적으로 **시스템**을 사용합니다. 선택은 저장되며 시작할 때 사용 가능한 기능을 다시 확인합니다. Mac은 Apple 가속을 사용하고, Windows는 실제 검사에 통과한 Vulkan GPU를 우선하며 사용할 수 없으면 CPU로 전환합니다. 내장 LibRaw가 대체 RAW 디코딩을 제공합니다.
 
-Nikon HE/HE* NEF, GoPro GPR 등 추가 디코더가 필요한 형식은 별도로 설치한 무료 [Adobe DNG Converter](https://helpx.adobe.com/camera-raw/desktop/dng-and-file-formats/adobe-dng-converter.html)를 이용해 무손실 RAW 캐시를 자동으로 만들 수 있습니다. 설치되지 않았다면 사진 아래에 공식 다운로드와 다시 검색 기능을 표시합니다. Adobe 프로그램은 FilmDevelop에 포함하지 않으며 원본 사진과 촬영 EXIF를 보존합니다.
+Nikon HE/HE* NEF, GoPro GPR 등 추가 디코더가 필요한 형식은 별도로 설치한 무료 [Adobe DNG Converter](https://helpx.adobe.com/camera-raw/desktop/dng-and-file-formats/adobe-dng-converter.html)를 이용해 무손실 RAW 캐시를 자동으로 만들 수 있습니다. 설치되지 않았다면 확인 대화상자를 표시하고 확인 후 기본 브라우저로 Adobe 공식 다운로드 페이지를 엽니다. 취소 후에도 사진 아래에서 다시 열거나 설치 후 다시 검색할 수 있습니다. Adobe 프로그램은 FilmDevelop에 포함하지 않으며 원본 사진과 촬영 EXIF를 보존합니다.
 
 이번 버전은 NEF/GPR 미지원 형식을 포함해 Mac RAW 47개, Windows 20개와 시스템 모드 14개를 검증했습니다. 디코딩 성공이 모든 RAW 형식, 전체 HDR 범위 또는 플랫폼 간 픽셀 일치를 보장하지는 않습니다. JPEG XL/Enhanced DNG는 아직 검증하지 않았습니다. 범위, 설치 조건과 차이는 [추가 RAW 디코딩 기록](engine/verification/raw/supplemental-decoder.md)을 참고하세요.
 

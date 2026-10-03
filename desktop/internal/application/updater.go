@@ -167,6 +167,17 @@ func (a *App) downloadUpdate(asset updater.Asset, version updater.Version) error
 	}
 	dialogID := a.dialog.ID
 	a.mu.Unlock()
+	reportProgress := func(p transfer.Progress) {
+		if p.Total <= 0 {
+			p.Total = asset.Size
+		}
+		if p.Fraction >= 1 {
+			p.Received = p.Total
+		}
+		a.reply("handleHostProgress", object{"id": dialogID, "progress": p.Fraction,
+			"detail": fmt.Sprintf("%s\n%d%%（%d / %d MB）", asset.Name, p.Percent, p.Received/1024/1024, p.Total/1024/1024)})
+	}
+	reportProgress(transfer.Progress{Total: asset.Size})
 	a.workers.Add(1)
 	go func() {
 		defer a.workers.Done()
@@ -176,12 +187,10 @@ func (a *App) downloadUpdate(asset updater.Asset, version updater.Version) error
 		var prepared *updater.Prepared
 		if err == nil {
 			destination = filepath.Join(root, "updates", identifier())
-			err = updater.Download(ctx, destination, asset, func(p transfer.Progress) {
-				a.reply("handleHostProgress", object{"id": dialogID, "detail": fmt.Sprintf("%s\n%d%%（%d / %d MB）", asset.Name, p.Percent, p.Received/1024/1024, p.Total/1024/1024)})
-			})
+			err = updater.Download(ctx, destination, asset, reportProgress)
 		}
 		if err == nil {
-			a.reply("handleHostProgress", object{"id": dialogID, "detail": "正在驗證安裝包與平台引擎…"})
+			a.reply("handleHostProgress", object{"id": dialogID, "progress": 1, "detail": "正在驗證安裝包與平台引擎…"})
 			prepared, err = updater.Prepare(ctx, filepath.Join(destination, asset.Name), version)
 		}
 		if err == nil {
