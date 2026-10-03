@@ -893,3 +893,24 @@ Windows 本輪為 Windows 10 x64／GTX 1060，未另測 Windows 11、乾淨系�
 | Windows Go | 實機執行五個受影響套件；application 的 8 個平台／環境限定項目略過，名稱列於 JSON 報告。 |
 
 量測的配置量是每次呼叫 B/op，不等於 App RSS。大型遮罩驗證配置約減少 99.6%；4,096 張照片掃描耗時下降 55.4%；32 候選模型配對耗時下降 82.0%。自訂底片預設僅快取命中時為零配置，極小案例與未改善項目均保留在報告。未重跑完整 RAW／AI 矩陣，沒有 Windows 11 或其他 GPU 的新結論。
+
+| 正式成品驗證 | 結果 |
+| --- | --- |
+| macOS DMG | 標準及舊 Swift 升級相容包均完成 Developer ID 簽章、Apple 公證與票證。標準 DMG 掛載後通過 Gatekeeper、隔離啟動與原片／Portra 匯出；兩張 PNG 與既有參考逐像素相同。 |
+| macOS UI | 升版與四語摘要同步後重跑真實 Wails 47 項 Smoke，全部通過。 |
+| Windows 正式 ZIP | Windows 10 x64／GTX 1060 全新目錄完整解壓；170 個產品檔案 SHA-256 核對，12 個 Microsoft Runtime 原廠簽章與 app-local 載入通過，正式 GUI 顯示 build 1503 Beta。 |
+| Windows 介面與 AI | 使用本版正式引擎，一般 14 項、兩輪移植 21＋13 項 WebView2 Smoke 全部通過；含四語更新摘要及隱藏 MLX。Qwen3-VL 2B／SmolVLM 500M 均完成 Vulkan 照片推論與 JSON 契約，來源照片不變。 |
+| Windows 更新 | 以兩版正式 App 完成 build 1300 → 1503 升級與啟動確認失敗還原，兩項均保留使用者測試檔案並正常重開。 |
+| 封裝與來源 | 發布流程 4 項、Windows 封裝 11 項通過；Mac 標準／相容包／Windows 共 110/116/170 個檔案通過私密資料稽核。產品測試程序已全部收回。 |
+
+| 正式附件 | 大小 | SHA-256 |
+| --- | ---: | --- |
+| `FilmDevelop-1.26.1003-build1503-macos-arm64.dmg` | 87,353,087 bytes | `60a87e710f61c6fbc034c5342909c0fd5969d87a7c01d79332b5a49498550166` |
+| `FilmYourPhoto-1.26.1003-build-1503-arm64.dmg` | 92,544,367 bytes | `f246d756aa649161e237fee1e08cec410b90214eba71abebd0def8aa702509dd` |
+| `FilmDevelop-1.26.1003-build1503-windows-x64-portable.zip` | 315,363,487 bytes | `6d9c98e25510a2c114e7837c6fae9e4aaa221df99b3095fbf4b89f1b31a1149d` |
+
+正式封裝來源為 `60cde992c157ee5403aeac763c861cf5a71a8256`，建置時工作目錄乾淨。封裝後僅補驗證文件，產品原始碼與版本資料相同。Release 隨附 `SHA256SUMS.txt` 與 `release-validation.json`；本次完整本機成品證據保留於 `build/function-release-20261003/`，函式量測證據位於 `build/function-efficiency-20261003/`。
+
+Windows 免安裝六組 Smoke 均通過，另完成上述正式 App 更新與還原。
+
+Windows 仍為未簽 Authenticode 的 Beta 版本；本次實機限 Windows 10／GTX 1060。完整 RAW、MLX／修復 AI 模型及外接檔案系統矩陣未於本次封裝重新執行，沿用既有紀錄，不由函式基準推論整體 App RSS 或所有硬體效能。

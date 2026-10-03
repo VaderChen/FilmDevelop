@@ -104,3 +104,7 @@ python3 engine/verification/desktop-smoke.py
 比較基線時，在 `8bdd679` 的獨立副本放入相同基準測試，使用相同 Go／C++ 編譯器、參數、輸入與硬體，量測期間不要同時建置或執行其他負載。小尺寸補測使用修改前 `.bak` 的完整桌面模組副本；備份內容取自相同基線。Windows 測試必須實際執行交叉編譯的測試程式，編譯成功本身不代表驗收通過。
 
 本輪本機原始證據保留於 `build/function-efficiency-20261003/`；正式比對樣本及結論另保存於本目錄的 JSON 報告。
+
+## 正式發布
+
+以上函式來源已納入 **1.26.1003 build 1503**。正式 Mac 標準與 Swift 相容 DMG 已完成簽章、公證；標準 Mac App 與 Windows x64 ZIP 另通過實機 Smoke。升版後 Mac 47 項、Windows 48 項 UI 通過，Windows 兩個 GGUF 推論及正式升級／失敗還原亦通過。成品 SHA-256 與驗證界線見 [發布驗證紀錄](RESTORATION.md)。函式量測沿用本報告原始樣本，未把新版包裝檢查重複計為新的效能量測。
