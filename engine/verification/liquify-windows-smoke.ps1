@@ -89,6 +89,9 @@ public static class LiquifyPixels {
  Save 'ui-report.json' @{passed=$true;runs=@($runs.ToArray());restartPNGIdentical=$true;width=1536;height=1024}
  Get-ChildItem Env:FILMDEVELOP_SMOKE_*|Remove-Item
  $mesh=Get-Content -Raw -Encoding UTF8 (Join-Path $Fixtures 'mesh.json')|ConvertFrom-Json
+ $catalog=Run (Join-Path $App 'filmdevelop-cli.exe') '-method catalog' 'catalog'|ConvertFrom-Json
+ $adjustment=($catalog.styles|Where-Object id -eq 'original').adjustment
+ Require ($adjustment.schemaVersion -eq 12) '正式目錄未提供目前版本的原片配方'
  $renders=[Collections.Generic.List[object]]::new()
  $library=Join-Path $App 'engine/libPhotoCompute.dll';$held=$library+'.liquify-smoke-held'
  Require (!(Test-Path $held)) '既有暫存 DLL 不可覆蓋'
@@ -98,7 +101,7 @@ public static class LiquifyPixels {
    foreach($format in @('png','jpeg')){
     foreach($case in @('identity','liquify')){
      $name=$route+'-'+$format+'-'+$case;$target=Join-Path $Work ($name+'.'+$format)
-     $recipe=@{version=1;style='original';adjustment=@{};repairPatches=@();detectSubject=$false}
+     $recipe=@{version=1;style='original';adjustment=$adjustment;repairPatches=@();detectSubject=$false}
      if($case -eq 'liquify'){$recipe.liquify=$mesh}
      $backend=if($route -eq 'cpu'){'system'}else{'vulkan'}
      $job=@{input=@{path=$env:FILMDEVELOP_SMOKE_INPUT;rawDecoder='system';lensCorrection=$false};output=@{path=$target;format=$format;bitDepth=16;colorSpace='sRGB';quality=.95;maxPixel=0;webPLossless=$false;tiffCompression=1};recipe=$recipe;computeBackend=$backend;preview=$false;previewMaxPixel=1024}
