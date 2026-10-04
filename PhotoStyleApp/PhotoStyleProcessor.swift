@@ -42,11 +42,12 @@ enum PhotoStyleProcessor {
         subjectMask: CIImage? = nil,
         shouldDetectSubjectMask: Bool = true,
         repairPatches: [PhotoRepairPatch] = [],
+        liquify: PhotoLiquifyMesh? = nil,
         isPreview: Bool = false,
         progress: (@Sendable (Double) -> Void)? = nil
     ) -> PhotoImage {
         (try? render(style: style, adjustment: adjustment, to: image, subjectMask: subjectMask,
-            shouldDetectSubjectMask: shouldDetectSubjectMask, repairPatches: repairPatches,
+            shouldDetectSubjectMask: shouldDetectSubjectMask, repairPatches: repairPatches, liquify: liquify,
             isPreview: isPreview, progress: progress, compute: PhotoNativeComputeProvider())) ?? image
     }
 
@@ -57,6 +58,7 @@ enum PhotoStyleProcessor {
         subjectMask: CIImage? = nil,
         shouldDetectSubjectMask: Bool = true,
         repairPatches: [PhotoRepairPatch] = [],
+        liquify: PhotoLiquifyMesh? = nil,
         isPreview: Bool = false,
         progress: (@Sendable (Double) -> Void)? = nil,
         compute: any PhotoComputeProvider,
@@ -67,7 +69,7 @@ enum PhotoStyleProcessor {
         guard style.filmStock != nil, adjustment.intensity < defaultIntensity else {
             return try applyPipeline(style: style, adjustment: adjustment, to: image,
                 subjectMask: subjectMask, shouldDetectSubjectMask: shouldDetectSubjectMask,
-                repairPatches: repairPatches, isPreview: isPreview, progress: progress, compute: compute, cache: cache, cacheScope: cacheScope)
+                repairPatches: repairPatches, liquify: liquify, isPreview: isPreview, progress: progress, compute: compute, cache: cache, cacheScope: cacheScope)
         }
 
         // Re-anchor only the lower half of film strength. The established default
@@ -85,7 +87,7 @@ enum PhotoStyleProcessor {
         originalAdjustment.dateEnabled = false
         let original = try applyPipeline(style: .original, adjustment: originalAdjustment, to: image,
             subjectMask: subjectMask, shouldDetectSubjectMask: false,
-            repairPatches: repairPatches, isPreview: isPreview,
+            repairPatches: repairPatches, liquify: liquify, isPreview: isPreview,
             progress: progress.map { report in
                 { @Sendable fraction in report(fraction * (amount > 0 ? 0.15 : 0.99)) }
             }, compute: compute, cache: cache, cacheScope: cacheScope)
@@ -101,7 +103,7 @@ enum PhotoStyleProcessor {
         filmAdjustment.dateEnabled = false
         let film = try applyPipeline(style: style, adjustment: filmAdjustment, to: image,
             subjectMask: subjectMask, shouldDetectSubjectMask: shouldDetectSubjectMask,
-            repairPatches: repairPatches, isPreview: isPreview,
+            repairPatches: repairPatches, liquify: liquify, isPreview: isPreview,
             progress: progress.map { report in
                 { @Sendable fraction in report(0.15 + fraction * 0.84) }
             }, compute: compute, cache: cache, cacheScope: cacheScope)
@@ -125,6 +127,7 @@ enum PhotoStyleProcessor {
         subjectMask: CIImage? = nil,
         shouldDetectSubjectMask: Bool = true,
         repairPatches: [PhotoRepairPatch] = [],
+        liquify: PhotoLiquifyMesh? = nil,
         isPreview: Bool = false,
         progress: (@Sendable (Double) -> Void)? = nil,
         compute: any PhotoComputeProvider,
@@ -166,17 +169,19 @@ enum PhotoStyleProcessor {
                 try pipeline.process("physical-input") {
                     // Patches stay in their saved original-image coordinates. Composite
                     // first, then crop/rotate the whole image once; never remap patches.
-                    PhotoRepairPatch.applying(repairPatches, to: $0)
-                        .transformed(by: geometry.1).cropped(to: geometry.0)
+                    let repaired = PhotoRepairPatch.applying(repairPatches, to: $0)
+                    let warped = try liquify?.applying(to: repaired) ?? repaired
+                    return warped.transformed(by: geometry.1).cropped(to: geometry.0)
                 }
                 try pipeline.process("input-calibration") {
                     PhotoColorCalibrationProcessor.apply(to: $0,
                         calibration: adjustment.colorCalibration?.stage == .input ? adjustment.colorCalibration : nil)
                 }
                 resolvedSubjectMask = try pipeline.inspect("subject-mask") { input in
-                    subjectMask.map {
+                    try subjectMask.map {
                         let fitted = $0.extent == source.extent ? $0 : PhotoSubjectMaskGenerator.fitMask($0, to: source.extent)
-                        return fitted.transformed(by: geometry.1).cropped(to: input.extent)
+                        let warped = try liquify?.applying(to: fitted) ?? fitted
+                        return warped.transformed(by: geometry.1).cropped(to: input.extent)
                     }
                         ?? (shouldDetectSubjectMask ? makeSubjectMask(from: input, extent: input.extent) : nil)
                 }
@@ -314,12 +319,12 @@ enum PhotoStyleProcessor {
             if adjustment.backgroundBlur > 0 {
                 try pipeline.process("depth-blur") {
                     let repaired = PhotoRepairPatch.applying(repairPatches, to: source)
-                    return applyDepthLensBlur(to: $0,
+                    return try applyDepthLensBlur(to: $0,
                         sourceForDepth: image.requiresRAWDisplayMapping ? PhotoRAWDynamicRangeProcessor.prepareForDisplayAdjustments(repaired) : repaired,
                         subjectMask: resolvedSubjectMask,
                         amount: adjustment.backgroundBlur / 100, sourceImage: image.cgImage,
                         allowSubjectDetection: shouldDetectSubjectMask, geometryTransform: geometry.1,
-                        depthRevision: repairPatches.map { $0.id.uuidString }.joined())
+                        depthRevision: repairPatches.map { $0.id.uuidString }.joined(), liquify: liquify)
                 }
             }
             if style.isMonochrome {
@@ -1142,8 +1147,9 @@ enum PhotoStyleProcessor {
         sourceImage: CGImage?,
         allowSubjectDetection: Bool,
         geometryTransform: CGAffineTransform = .identity,
-        depthRevision: String = ""
-    ) -> CIImage {
+        depthRevision: String = "",
+        liquify: PhotoLiquifyMesh? = nil
+    ) throws -> CIImage {
         let amount = amount.clamped(to: 0...1)
         guard amount > 0.005 else { return image }
         guard let subjectMask,
@@ -1151,8 +1157,11 @@ enum PhotoStyleProcessor {
                 for: sourceForDepth,
                 sourceImage: sourceImage, revision: depthRevision
               ) else {
-            let fallbackMask = subjectMask ?? (allowSubjectDetection
-                ? PhotoSubjectMaskGenerator.makeMask(from: sourceForDepth)?.transformed(by: geometryTransform) : nil)
+            let fallbackMask = try subjectMask ?? (allowSubjectDetection
+                ? try PhotoSubjectMaskGenerator.makeMask(from: sourceForDepth).map { mask in
+                    let warped = try liquify?.applying(to: mask) ?? mask
+                    return warped.transformed(by: geometryTransform)
+                } : nil)
             guard let fallbackMask else { return image }
             return PhotoBackgroundBlurProcessor.apply(
                 to: image,
@@ -1160,7 +1169,8 @@ enum PhotoStyleProcessor {
                 amount: amount
             )
         }
-        let croppedDepthMap = depthMap.transformed(by: geometryTransform).cropped(to: image.extent)
+        let warpedDepth = try liquify?.applying(to: depthMap) ?? depthMap
+        let croppedDepthMap = warpedDepth.transformed(by: geometryTransform).cropped(to: image.extent)
         guard let plan = depthBlurPlan(for: croppedDepthMap, subjectMask: subjectMask, extent: image.extent),
               let blurMask = depthBlurMask(from: croppedDepthMap, plan: plan, amount: amount) else {
             return PhotoBackgroundBlurProcessor.apply(

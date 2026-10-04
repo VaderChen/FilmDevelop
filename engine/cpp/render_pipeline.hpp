@@ -3,6 +3,7 @@
 #include "film_internal.hpp"
 #include "geometry.hpp"
 #include "repair_patches.hpp"
+#include "liquify.hpp"
 #include "skin_math.hpp"
 #include "depth.hpp"
 #include "decorations.hpp"
@@ -15,9 +16,17 @@ using ComputeImage = std::function<photocore::Image(const photocore::Image &, co
 inline photocore::Image render_style(const photocore::Image &input, const photocore::Image &source,
     const contract::RenderJob &job, const nlohmann::json &neutral, const nlohmann::json &catalog,
     const nlohmann::json &monochromes, photocore::film_cpu::Database &database, const ComputeImage &gpu = {},
-    const std::vector<RepairPatch> &patches = {}, const photocore::Image *subjectMask = nullptr, const photocore::Image *depthMap = nullptr) {
+    const std::vector<RepairPatch> &patches = {}, const photocore::Image *subjectMask = nullptr, const photocore::Image *depthMap = nullptr,
+    const LiquifyMesh *preparedLiquify = nullptr) {
     using namespace photocore;
     using Json = nlohmann::json;
+    std::optional<LiquifyMesh> ownedLiquify;
+    if(!preparedLiquify) {
+      const Json empty;
+      ownedLiquify.emplace(job.recipe.liquify ? *job.recipe.liquify : empty);
+      preparedLiquify=&*ownedLiquify;
+    }
+    const LiquifyMesh &liquify=*preparedLiquify;
     auto blend = [](Image base, const Image &foreground, double amount) {
       if (amount <= 0) return base;
       if (amount >= 1) return foreground;
@@ -38,9 +47,19 @@ inline photocore::Image render_style(const photocore::Image &input, const photoc
     auto process = [&](Image input, const Json &adjustment, const film_cpu::Profile *profile, const std::string &style, bool useGPU) {
       const CropGeometry geometry(input.width, input.height, job.recipe.adjustment);
       std::optional<Image> subject,depth;
-      if(subjectMask)subject=geometry.apply(film_cpu::sample_coefficients(*subjectMask,input.width,input.height));
-      if(depthMap)depth=geometry.apply(film_cpu::sample_coefficients(*depthMap,input.width,input.height));
-      if(!patches.empty() || !geometry.is_identity(input))input = apply_repaired_geometry(input, patches, geometry);
+      auto auxiliaryGeometry=[&](const Image &image) {
+        auto fitted=film_cpu::sample_coefficients(image,input.width,input.height);
+        if(!liquify.identity)fitted=apply_liquify(std::move(fitted),liquify);
+        if(geometry.is_identity(fitted))return fitted;
+        return geometry.apply(fitted);
+      };
+      if(subjectMask)subject=auxiliaryGeometry(*subjectMask);
+      if(depthMap)depth=auxiliaryGeometry(*depthMap);
+      if(!liquify.identity) {
+        input=apply_liquify(apply_repair_patches(std::move(input),patches),liquify);
+        if(!geometry.is_identity(input))input=geometry.apply(input);
+      }
+      else if(!patches.empty() || !geometry.is_identity(input))input = apply_repaired_geometry(input, patches, geometry);
       auto effects = adjustment.at("filmEffects");
       effects["_origin_x"] = geometry.left; effects["_origin_y"] = geometry.bottom;
       const double strength = film_cpu::number(adjustment, "intensity", 50, 0, 100) / 100;

@@ -21,6 +21,9 @@ var smokeScript string
 //go:embed navigation_smoke.js
 var navigationSmokeScript string
 
+//go:embed liquify_smoke.js
+var liquifySmokeScript string
+
 //go:embed editing_smoke.js
 var editingSmokeScript string
 
@@ -128,6 +131,10 @@ func configureSmoke(settings *options.App, app *application.App) {
 			}()
 		})
 		script := smokeScript
+		if mode := os.Getenv("FILMDEVELOP_SMOKE_LIQUIFY"); mode != "" {
+			encoded, _ := json.Marshal(mode)
+			script = "window.liquifySmokeMode=" + string(encoded) + ";" + liquifySmokeScript
+		}
 		if os.Getenv("FILMDEVELOP_SMOKE_PARITY") == "1" {
 			script = paritySmokeScript
 		}

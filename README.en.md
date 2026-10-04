@@ -8,7 +8,7 @@ Give your photos a film look you love. Pick a film, adjust exposure, color and g
 
 ## Get the app
 
-[Download for Mac and Windows](https://github.com/VaderChen/FilmDevelop/releases/latest). Version **1.26.1004 build 0036**; Windows is labeled **Beta**.
+[Download for Mac and Windows](https://github.com/VaderChen/FilmDevelop/releases/latest). Version **1.26.1004 build 1004**; Windows is labeled **Beta**.
 
 Mac requires Apple Silicon and macOS 14+. Open the DMG and drag FilmDevelop into Applications. This release’s DMG and included app are Developer ID signed, Apple notarized and stapled. Windows requires Windows 10/11 x64 and WebView2. Fully extract the x64 portable ZIP and run FilmDevelop.exe. The VC++ x64 Runtime is included; the app is not Authenticode signed.
 
@@ -19,16 +19,12 @@ The old Swift Mac app can upgrade through Check for Updates. The FilmYourPhoto b
 <!-- release-summary:start -->
 ## What changed
 
-Compared with: **1.26.1003 build 1503**。
+Compared with: **1.26.1004 build 0036**。
 
-- **Improved**：Skin smoothing now uses multiple luminance scales to reduce local unevenness while retaining fine texture, undertones and facial shading. Mid-to-high slider settings are stronger, and the blend strength no longer reaches its cap early.
-- **Improved**：Skin brightening now uses a lightness curve that preserves individual undertones instead of uniformly reducing saturation and contrast. Stronger slider response retains protection for highlights, black, HDR and alpha.
-- **Fixed**：Improve underexposed skin detection and remove residual skin effects outside the person mask and in fully transparent areas. Protect strongly red details and reapply confidence exclusions after mask refinement.
-- **Fixed**：Align edge-preserving channel-wise denoising across platforms, fixing weak midrange response and color contamination from transparent pixels. Effect blending preserves source coverage so semi-transparent images do not become more opaque.
-- **Fixed**：Use a shared monotonic luminance curve for tonal-zone fade, preventing adjacent tones from reversing under strong shadow fade while retaining existing zone controls and workflow.
-- **Fixed**：HDR log-luminance reconstruction preserves black and near-black gradations, avoiding lifted blacks or clipped shadows from numerical stabilization. Custom black-level controls and floating-point highlights remain available.
-- **Improved**：Align guided-filter sampling coordinates and upsampling to reduce differences between previews, exports and tiled rendering. Keep small coefficient images on the GPU within existing cache limits to avoid CPU readback and re-upload.
-- **Improved**：Make the photo export reveal smoother with display-synchronized frames, a shorter minimum reveal of 6.2 seconds instead of 7, continuous motion between sparse progress reports, and a gradual finish. Preserve the existing dialog, workflow and preview memory limit.
+- **Added**：Add a liquify brush to the left of the repair brush, with local push and restore modes, radius and strength controls. Strokes support undo/redo, persist when reopening photos and apply to full-resolution exports without downloading a model.
+- **Added**：Hold Shift and scroll to resize liquify and repair brushes: up increases and down decreases the size, with synchronized sliders and cursors. Existing limits are preserved, and resizing does not add an edit to history.
+- **Improved**：Unify photo-toolbar dropdown heights, spacing, arrows and focus styling for all four languages. Correct the dark-theme backgrounds of the liquify and repair toolbars.
+- **Improved**：Optimize liquify validation, serialization, history and native sampling at function level. Reuse undeformed source pixels and immutable meshes to reduce repeated decoding, allocations and local-stroke scratch storage while preserving brush behavior and floating-point color precision.
 
 [Full changelog](CHANGELOG.en.md)
 <!-- release-summary:end -->

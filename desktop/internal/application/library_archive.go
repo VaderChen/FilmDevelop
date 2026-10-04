@@ -280,6 +280,12 @@ func (a *App) planLibraryImport(ctx context.Context, path string, roots map[stri
 				}
 				r.RepairPatches = doc.SharedRepairPatches
 			}
+			if doc.SharedLiquify != nil {
+				if r.Liquify != nil {
+					return nil, errors.New("共用液化網格紀錄衝突")
+				}
+				r.Liquify = doc.SharedLiquify
+			}
 			if id != r.Style {
 				return nil, errors.New("照片配方識別不符")
 			}
@@ -290,6 +296,8 @@ func (a *App) planLibraryImport(ctx context.Context, path string, roots map[stri
 			doc.Recipes[id] = normalized
 		}
 		doc.SharedRepairPatches = nil
+		doc.SharedLiquify = nil
+		shareLiquifyMeshes(doc.Recipes)
 		if _, ok := a.defaults[doc.Selected]; !ok {
 			return nil, errors.New("照片所選底片不存在")
 		}

@@ -121,7 +121,7 @@ textarea, input:not([type=range]) { -webkit-user-select: text; user-select: text
 .photo-directory-status { display:inline-flex; align-items:center; gap:5px; min-height:14px; }
 .photo-directory-controls { display:flex; align-items:center; gap:12px; flex:0 0 auto; margin-left:auto; }
 .photo-thumbnail-size { display:flex; align-items:center; gap:6px; }
-.photo-thumbnail-size select { width:76px; height:28px; min-height:28px; padding:0 29px 0 10px; border-radius:7px; background-position:right 9px center, right 26px center; background-size:10px 6px, 1px 12px; font-size:11px; }
+.photo-thumbnail-size select { width:76px; }
 .photo-directory-spinner { display:inline-block; width:14px; height:14px; flex:0 0 auto; border:2px solid color-mix(in srgb, var(--accent) 23%, transparent); border-top-color:var(--accent); border-radius:50%; animation:photo-thumbnail-spin .8s linear infinite; }
 .photo-thumbnail-placeholder .photo-directory-spinner { width:20px; height:20px; }
 @keyframes photo-thumbnail-spin { to { transform:rotate(360deg); } }
@@ -266,7 +266,7 @@ dialog.exif-dialog::backdrop { background: rgba(0, 0, 0, .38); backdrop-filter: 
 .photo-directory[data-thumbnail-size=small] .photo-thumbnail-metadata { gap:3px; font-size:8px; }
 
 .photo-display-mode { display:flex; align-items:center; gap:6px; min-width:0; }
-.photo-display-mode select { width:150px; max-width:180px; height:28px; min-height:28px; padding:0 29px 0 10px; border-radius:7px; font-size:11px; text-overflow:ellipsis; }
+.photo-display-mode select { width:150px; max-width:180px; }
 .photo-directory-controls { flex-wrap:wrap; }
 
 dialog.update-complete-dialog { width:min(720px, calc(100vw - 48px)); max-width:none; max-height:calc(100vh - 48px); padding:0; margin:auto; color:var(--text); }

@@ -71,13 +71,18 @@ type App struct {
 	repository                                            repositoryState
 	repositoryCancel                                      context.CancelFunc
 
-	emit              func(string, any)
-	cropPreview       string
-	skipSubject       bool
-	interaction       string
-	previewTimer      *time.Timer
-	adjustmentPreview adjustmentPreviewState
-	editVersion       uint64
+	emit                func(string, any)
+	cropPreview         string
+	liquifyPreview      string
+	sentLiquifyRevision string
+	sentLiquify         bool
+	liquifyRevisionMesh *json.RawMessage
+	liquifyRevisionKey  string
+	skipSubject         bool
+	interaction         string
+	previewTimer        *time.Timer
+	adjustmentPreview   adjustmentPreviewState
+	editVersion         uint64
 
 	organization organization
 	recent       []string
@@ -473,7 +478,8 @@ func (a *App) sendState(full bool) {
 		"adjustmentDefaults": a.currentDefaults(), "sourceFileName": sourceName,
 		"photoDirectory": a.directoryPayload(),
 		"hasImage":       a.source != "", "photoGeneration": a.generation, "previewRevision": a.revision,
-		"sourceImage": a.sourcePreview, "cropSourceImage": a.cropPreview, "repairSourceImage": a.cropPreview, "outputImage": a.outputPreview,
+		"sourceImage": a.sourcePreview, "cropSourceImage": a.cropPreview, "repairSourceImage": a.liquifySource(), "liquifySourceImage": a.liquifySource(), "outputImage": a.outputPreview,
+		"liquifyMesh": a.recipes[a.selected].Liquify, "liquifyRevision": a.liquifyRevision(), "supportsLiquify": true,
 		"loadingPreviewImage":           a.loadingPreview,
 		"previewPhase":                  previewPhase,
 		"rawDecoderRequired":            needsRAWDecoder(a.previewError),
@@ -505,7 +511,7 @@ func (a *App) sendState(full bool) {
 	if a.sentPreviewImages == nil {
 		a.sentPreviewImages = make(map[string]string)
 	}
-	for _, key := range []string{"sourceImage", "cropSourceImage", "repairSourceImage", "outputImage", "loadingPreviewImage"} {
+	for _, key := range []string{"sourceImage", "cropSourceImage", "repairSourceImage", "liquifySourceImage", "outputImage", "loadingPreviewImage"} {
 		value := payload[key].(string)
 		previous, sent := a.sentPreviewImages[key]
 		if !full && sent && value == previous {
@@ -513,6 +519,11 @@ func (a *App) sendState(full bool) {
 		}
 		a.sentPreviewImages[key] = value
 	}
+	liquifyRevision := payload["liquifyRevision"].(string)
+	if !full && a.sentLiquify && liquifyRevision == a.sentLiquifyRevision {
+		delete(payload, "liquifyMesh")
+	}
+	a.sentLiquify, a.sentLiquifyRevision = true, liquifyRevision
 	payload = snapshotJSON(payload).(object)
 	a.mu.Unlock()
 	a.reply("handleNativeState", payload)
@@ -581,6 +592,10 @@ func (a *App) handle(message object) error {
 	if action == "prepareRepairBrush" {
 		// 前端在等待準備確認；忙碌時也必須明確回覆，避免工具列卡住。
 		return a.repairBrush(action, message)
+	}
+	if action == "applyLiquifyBrush" {
+		// 過期或忙碌也回覆筆畫識別，前端才可可靠釋放提交等待。
+		return a.liquifyBrush(message)
 	}
 	a.mu.Lock()
 	saving := a.saving || a.computing || a.repairing || a.mcpMutating || a.updating || a.switchingComputeBackend() || a.rawSwitch != nil
@@ -714,6 +729,7 @@ func (a *App) handle(message object) error {
 				a.mu.Unlock()
 				return err
 			}
+			a.trimLiquifyHistory()
 		}
 		a.mu.Unlock()
 		a.preview()
@@ -867,6 +883,7 @@ func (a *App) openImage(path string) error {
 			}
 			saved.Recipes[id] = result
 		}
+		shareLiquifyMeshes(saved.Recipes)
 	}
 	a.mu.Lock()
 	if a.saving {
@@ -882,6 +899,7 @@ func (a *App) openImage(path string) error {
 	a.generation = identifier()
 	a.sourcePreview = ""
 	a.cropPreview = ""
+	a.liquifyPreview = ""
 	a.skipSubject = false
 	a.forceSubject = false
 	a.interaction = ""
@@ -937,10 +955,16 @@ func (a *App) persist() error {
 	manual := clone(a.manual)
 	document.Manual = &manual
 	for id, recipe := range a.recipes {
+		if recipe.Liquify != nil && a.defaults[id].Liquify == nil {
+			// 預設沒有照片液化時已確定有編輯，毋須為每款底片序列化同一份大型網格。
+			document.Recipes[id] = recipe
+			continue
+		}
 		current, _ := json.Marshal(recipe)
 		baseline, _ := json.Marshal(a.defaults[id])
 		if string(current) != string(baseline) {
-			document.Recipes[id] = clone(recipe)
+			// 配方只以新值替換，可共用不可變的補片及液化網格至寫檔完成。
+			document.Recipes[id] = recipe
 		}
 	}
 	a.mu.Unlock()
@@ -1258,6 +1282,11 @@ func (a *App) previewDone(revision uint64, output string, result json.RawMessage
 			a.cropPreview = crop
 		}
 		delete(a.renderInfo, "cropImage")
+		a.liquifyPreview = ""
+		if source, ok := a.renderInfo["liquifyImage"].(string); ok {
+			a.liquifyPreview = source
+		}
+		delete(a.renderInfo, "liquifyImage")
 		var info struct{ SourceWidth, SourceHeight int }
 		_ = json.Unmarshal(result, &info)
 		a.sourceWidth = info.SourceWidth

@@ -1,5 +1,5 @@
 .repair-toggle[aria-pressed="true"] { color: var(--accent,#ba5035); background: rgba(190,80,50,.12); border-color: rgba(190,80,50,.4); }
-.repair-panel { display:flex; align-items:center; justify-content:flex-end; flex-wrap:nowrap; gap:8px; margin:0; padding:5px 10px; min-width:0; border:1px solid var(--line,#ddd8cf); border-radius:10px; background:var(--panel,#fffdf9); font-size:12px; }
+.repair-panel { display:flex; align-items:center; justify-content:flex-end; flex-wrap:nowrap; gap:8px; margin:0; padding:5px 10px; min-width:0; border:1px solid var(--line,#ddd8cf); border-radius:10px; background:var(--surface,#fffdf9); font-size:12px; }
 .repair-panel label { font-weight:650; }
 .repair-panel input[type="range"] { width:120px; min-width:80px; margin:0; }
 .repair-panel output { min-width:42px; font-variant-numeric:tabular-nums; }

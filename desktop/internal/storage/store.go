@@ -25,6 +25,7 @@ type Document struct {
 	SubjectMask         *SubjectMask               `json:"subjectMask,omitempty"`
 	Manual              *ManualAdjustments         `json:"manualAdjustments,omitempty"`
 	SharedRepairPatches json.RawMessage            `json:"sharedRepairPatches,omitempty"`
+	SharedLiquify       *json.RawMessage           `json:"sharedLiquify,omitempty"`
 	CustomID            string                     `json:"customFilmID,omitempty"`
 	CustomBase          *contract.Recipe           `json:"customBase,omitempty"`
 	Version             int                        `json:"version"`
@@ -246,6 +247,16 @@ func (s *Store) Load(key string) (*Document, error) {
 		}
 		document.SharedRepairPatches = nil
 	}
+	if document.SharedLiquify != nil {
+		for id, recipe := range document.Recipes {
+			if recipe.Liquify != nil {
+				return nil, errors.New("共用液化網格與底片紀錄衝突")
+			}
+			recipe.Liquify = document.SharedLiquify
+			document.Recipes[id] = recipe
+		}
+		document.SharedLiquify = nil
+	}
 	return &document, nil
 }
 func (s *Store) Save(key string, document Document) error {
@@ -272,6 +283,26 @@ func (s *Store) Save(key string, document Document) error {
 		document.Recipes = cloneRecipeMap(document.Recipes)
 		for id, recipe := range document.Recipes {
 			recipe.RepairPatches = json.RawMessage(`[]`)
+			document.Recipes[id] = recipe
+		}
+	}
+	var mesh *json.RawMessage
+	consistent = len(document.Recipes) > 0
+	first := true
+	for _, recipe := range document.Recipes {
+		if first {
+			mesh, first = recipe.Liquify, false
+		}
+		if mesh == nil && recipe.Liquify != nil || mesh != nil && (recipe.Liquify == nil || !bytes.Equal(*mesh, *recipe.Liquify)) {
+			consistent = false
+		}
+	}
+	if consistent && mesh != nil {
+		// 照片層級網格只序列化一次，避免每款底片重複保存同一份陣列。
+		document.SharedLiquify = mesh
+		document.Recipes = cloneRecipeMap(document.Recipes)
+		for id, recipe := range document.Recipes {
+			recipe.Liquify = nil
 			document.Recipes[id] = recipe
 		}
 	}

@@ -11,7 +11,8 @@
       "style": "string",
       "adjustment": "json",
       "repairPatches": "json",
-      "detectSubject": "bool"
+      "detectSubject": "bool",
+      "liquify": "json?"
     },
     "ImageInput": {
       "path": "string",

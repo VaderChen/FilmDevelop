@@ -58,6 +58,7 @@ func (a *App) pushHistory() {
 		a.undo = slices.Delete(a.undo, 0, len(a.undo)-100)
 	}
 	a.redo = nil
+	a.trimLiquifyHistory()
 }
 func recipeFields(r contract.Recipe) object {
 	var p object
@@ -77,6 +78,7 @@ func preserveGeometry(next, current contract.Recipe) contract.Recipe {
 	}
 	n["imageScoped"] = true
 	next.RepairPatches = clone(current.RepairPatches)
+	next.Liquify = current.Liquify
 	return withFields(next, n)
 }
 func (a *App) sampleWhiteBalance(message object) error {

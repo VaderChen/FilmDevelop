@@ -11,11 +11,12 @@ type EngineError struct {
 	Message string `json:"message"`
 }
 type Recipe struct {
-	Version       int             `json:"version"`
-	Style         string          `json:"style"`
-	Adjustment    json.RawMessage `json:"adjustment"`
-	RepairPatches json.RawMessage `json:"repairPatches"`
-	DetectSubject bool            `json:"detectSubject"`
+	Version       int              `json:"version"`
+	Style         string           `json:"style"`
+	Adjustment    json.RawMessage  `json:"adjustment"`
+	RepairPatches json.RawMessage  `json:"repairPatches"`
+	DetectSubject bool             `json:"detectSubject"`
+	Liquify       *json.RawMessage `json:"liquify,omitempty"`
 }
 type ImageInput struct {
 	Path           string `json:"path"`

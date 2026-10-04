@@ -31,6 +31,7 @@ struct WorkerFailure: Error {
         let style: String
         let adjustment: StyleAdjustment
         let repairs: JSONValue
+        let liquify: JSONValue?
         let maskKey: String?
         let detectSubject: Bool
         let computeBackend: String
@@ -124,7 +125,7 @@ struct WorkerFailure: Error {
                 "mlx": FileManager.default.isExecutableFile(atPath: Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/MLX/photostyle-mlx").path),
                 "computeBackends": compute, "rawDecoders": ["system", "software"],
                 "formats": PhotoExportFormat.allCases.map { ["id": $0.rawValue, "bitDepths": $0.supportedBitDepths] },
-                "features": ["full-render-pipeline", "subject-mask", "saved-repair-patches", "color-managed-export"],
+                "features": ["full-render-pipeline", "subject-mask", "saved-repair-patches", "liquify", "color-managed-export"],
                 "limitations": ["預覽快取只保留目前照片；取消或閒置回收後重新建立"]
             ])
         case "analysis":
@@ -409,6 +410,7 @@ struct WorkerFailure: Error {
             throw WorkerFailure(code: "outputExists", message: "引擎只接受尚不存在的工作暫存成品")
         }
         let patches = try job.recipe.repairPatches.decoded([PhotoRepairPatch].self)
+        let liquify = try job.recipe.liquify.flatMap { $0 == .null ? nil : try $0.decoded(PhotoLiquifyMesh.self) }
         guard patches.allSatisfy({ patch in
             [patch.x, patch.y, patch.width, patch.height, patch.linearGain].allSatisfy(\.isFinite)
                 && patch.width > 0 && patch.height > 0 && patch.linearGain > 0
@@ -466,16 +468,19 @@ struct WorkerFailure: Error {
         }
         let stageEncoder = JSONEncoder()
         stageEncoder.outputFormatting = [.sortedKeys]
-        let stageScope = try stageEncoder.encode(EditorCacheKey(style: job.recipe.style,
-            adjustment: StyleAdjustment.default(for: .original), repairs: job.recipe.repairPatches,
-            maskKey: job.recipe.detectSubject ? cache.maskKey : nil, detectSubject: job.recipe.detectSubject,
-            computeBackend: job.computeBackend, policy: job.policy, maxPixel: job.previewMaxPixel))
-        let stageScopeKey = SHA256.hash(data: stageScope).map { String(format: "%02x", $0) }.joined()
+        func scopeKey(_ value: JSONValue?) throws -> String {
+            let scope = try stageEncoder.encode(EditorCacheKey(style: job.recipe.style,
+                adjustment: StyleAdjustment.default(for: .original), repairs: job.recipe.repairPatches, liquify: value,
+                maskKey: job.recipe.detectSubject ? cache.maskKey : nil, detectSubject: job.recipe.detectSubject,
+                computeBackend: job.computeBackend, policy: job.policy, maxPixel: job.previewMaxPixel))
+            return SHA256.hash(data: scope).map { String(format: "%02x", $0) }.joined()
+        }
+        let stageScopeKey = try scopeKey(job.recipe.liquify)
         let stageCache = useCache && job.preview ? cache.stages : nil
         let previousStageHits = cache.stages.hits
         let completion = Completion()
         let rendered = try PhotoStyleProcessor.render(style: style, adjustment: adjustment, to: image,
-            subjectMask: subjectMask, shouldDetectSubjectMask: !job.preview && job.recipe.detectSubject, repairPatches: patches, isPreview: job.preview,
+            subjectMask: subjectMask, shouldDetectSubjectMask: !job.preview && job.recipe.detectSubject, repairPatches: patches, liquify: liquify, isPreview: job.preview,
             progress: { value in
                 completion.update(value)
                 try? emit(Response(version: 1, id: id, kind: "progress", payload: .number(value), error: nil))
@@ -504,24 +509,23 @@ struct WorkerFailure: Error {
             let editing = adjustment.forSourceEditingPreview
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.sortedKeys]
-            let editorSettings = EditorCacheKey(style: job.recipe.style, adjustment: editing,
-                repairs: job.recipe.repairPatches, maskKey: job.recipe.detectSubject ? cache.maskKey : nil,
-                detectSubject: job.recipe.detectSubject, computeBackend: job.computeBackend,
-                policy: job.policy, maxPixel: job.previewMaxPixel)
-            let editorKey = SHA256.hash(data: try encoder.encode(editorSettings)).map { String(format: "%02x", $0) }.joined()
-            var editorCacheHit = false
-            if editing != adjustment, let index = cache.editors.firstIndex(where: { $0.key == editorKey }) {
-                let entry = cache.editors.remove(at: index)
-                cache.editors.append(entry)
-                previewFields["cropImage"] = entry.image
-                editorCacheHit = true
-            } else {
-                let editor = editing == adjustment ? rendered : try PhotoStyleProcessor.render(style: style,
+            func editorPayload(mesh: PhotoLiquifyMesh?, value: JSONValue?, canReuseRendered: Bool) throws -> (String,Bool) {
+                let settings = EditorCacheKey(style: job.recipe.style, adjustment: editing,
+                    repairs: job.recipe.repairPatches, liquify: value, maskKey: job.recipe.detectSubject ? cache.maskKey : nil,
+                    detectSubject: job.recipe.detectSubject, computeBackend: job.computeBackend,
+                    policy: job.policy, maxPixel: job.previewMaxPixel)
+                let key = SHA256.hash(data: try encoder.encode(settings)).map { String(format: "%02x", $0) }.joined()
+                if let index = cache.editors.firstIndex(where: { $0.key == key }) {
+                    let entry = cache.editors.remove(at: index); cache.editors.append(entry)
+                    return (entry.image,true)
+                }
+                let reuse = canReuseRendered && editing == adjustment
+                let editor = reuse ? rendered : try PhotoStyleProcessor.render(style: style,
                     adjustment: editing, to: image, subjectMask: subjectMask, shouldDetectSubjectMask: false,
-                    repairPatches: patches, isPreview: true, compute: PhotoBackendRouter.compute(compute),
-                    cache: stageCache, cacheScope: stageScopeKey)
+                    repairPatches: patches, liquify: mesh, isPreview: true, compute: PhotoBackendRouter.compute(compute),
+                    cache: stageCache, cacheScope: try scopeKey(value))
                 let data: Data
-                if editing == adjustment && format == .jpeg && job.output.quality == 0.88
+                if reuse && format == .jpeg && job.output.quality == 0.88
                     && job.output.maxPixel == job.previewMaxPixel && colorSpace == .sRGB {
                     data = output
                 } else {
@@ -530,17 +534,22 @@ struct WorkerFailure: Error {
                     }
                     data = encoded
                 }
-                let editorPayload = "data:image/jpeg;base64," + data.base64EncodedString()
-                previewFields["cropImage"] = editorPayload
-                cache.editors.removeAll { $0.key == editorKey }
+                let payload = "data:image/jpeg;base64," + data.base64EncodedString()
+                cache.editors.removeAll { $0.key == key }
                 // 只保存顯示用 JPEG，避免持有額外的原尺寸 Float32 影像。
-                if editorPayload.utf8.count <= 16 * 1024 * 1024 {
-                    cache.editors.append((key: editorKey, image: editorPayload))
+                if payload.utf8.count <= 16 * 1024 * 1024 {
+                    cache.editors.append((key: key, image: payload))
                     while cache.editors.count > 2 || cache.editors.reduce(0, { $0 + $1.image.utf8.count }) > 16 * 1024 * 1024 {
                         cache.editors.removeFirst()
                     }
                 }
+                return (payload,false)
             }
+            let (cropPayload,editorCacheHit) = try editorPayload(mesh: liquify,value: job.recipe.liquify,canReuseRendered: true)
+            previewFields["cropImage"] = cropPayload
+            if let liquify, !liquify.isIdentity {
+                previewFields["liquifyImage"] = try editorPayload(mesh: nil,value: nil,canReuseRendered: false).0
+            } else { previewFields["liquifyImage"] = cropPayload }
             let comparisonKey = "\(job.policy?.fullResolution == true):\(job.previewMaxPixel):"
                 + "\(adjustment.cropAspectRatio):\(adjustment.cropRotation):\(adjustment.cropScale):"
                 + "\(adjustment.cropWidth):\(adjustment.cropHeight):\(adjustment.cropHorizontalPosition):\(adjustment.cropVerticalPosition)"

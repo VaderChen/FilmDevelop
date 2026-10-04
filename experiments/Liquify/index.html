@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>FilmDevelop · 液化實驗室</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main class="workspace">
+    <header class="header">
+      <div><p class="eyebrow">FILMDEVELOP / 獨立原型</p><h1>液化實驗室</h1></div>
+      <p class="intro">用筆刷推移畫面，保留每一次細微調整。</p>
+    </header>
+    <div class="editor">
+      <section class="preview" aria-label="照片預覽">
+        <div class="preview-bar"><span id="imageName">格線測試圖</span><span id="compareBadge" hidden>顯示原圖</span></div>
+        <div class="canvas-space">
+          <div id="canvasWrap" class="canvas-wrap">
+            <canvas id="canvas" width="768" height="512" tabindex="0" aria-label="液化畫布；按住滑鼠或觸控拖曳以推移影像">瀏覽器需要支援 Canvas 才能操作。</canvas>
+            <div id="brush" class="brush" hidden aria-hidden="true"></div>
+          </div>
+        </div>
+        <p class="hint">拖曳以局部變形 · 按住空白鍵比較原圖 · Esc 取消目前筆畫</p>
+      </section>
+      <aside class="controls" aria-label="液化工具">
+        <section class="control-section">
+          <h2>影像</h2>
+          <label for="openFile" class="file-label">開啟照片</label>
+          <input id="openFile" type="file" accept="image/*" aria-label="選取本機照片">
+          <p class="help">照片只在本機處理。此原型將長邊縮至最多 1,024 像素。</p>
+          <button id="testImage" class="subtle" type="button">載入格線測試圖</button>
+        </section>
+        <section class="control-section">
+          <h2>筆刷</h2>
+          <label for="mode">筆刷模式</label>
+          <select id="mode"><option value="push">推移</option><option value="restore">局部還原</option></select>
+          <div class="range-heading"><label for="radius">半徑</label><output id="radiusValue" for="radius">64 px</output></div>
+          <input id="radius" type="range" min="12" max="180" step="1" value="64">
+          <div class="range-heading"><label for="strength">強度</label><output id="strengthValue" for="strength">65%</output></div>
+          <input id="strength" type="range" min="0" max="100" step="1" value="65">
+          <p class="help">推移沿拖曳方向變形；局部還原將筆刷範圍內的影像逐步恢復。</p>
+        </section>
+        <section class="control-section actions">
+          <div class="two-buttons"><button id="undo" type="button" disabled>復原</button><button id="redo" type="button" disabled>重做</button></div>
+          <button id="reset" class="subtle" type="button">全部還原</button>
+          <button id="compare" type="button" aria-pressed="false">按住比較原圖</button>
+          <button id="download" class="primary" type="button">下載 PNG</button>
+        </section>
+        <p id="status" class="status" role="status" aria-live="polite">正在準備測試圖…</p>
+        <p id="error" class="error" role="alert" hidden></p>
+        <p class="prototype-note">獨立效果驗證，尚未整合至 App。下載的是此預覽尺寸的影像。</p>
+      </aside>
+    </div>
+  </main>
+  <script type="module" src="./app.mjs"></script>
+</body>
+</html>

@@ -4,6 +4,17 @@
 
 <!-- 由 scripts/release_notes.py 產生；請修改 history.json。 -->
 
+## 1.26.1004 build 1004
+
+Compared with: **1.26.1004 build 0036**。
+
+- **Added**：Add a liquify brush to the left of the repair brush, with local push and restore modes, radius and strength controls. Strokes support undo/redo, persist when reopening photos and apply to full-resolution exports without downloading a model.
+- **Added**：Hold Shift and scroll to resize liquify and repair brushes: up increases and down decreases the size, with synchronized sliders and cursors. Existing limits are preserved, and resizing does not add an edit to history.
+- **Improved**：Unify photo-toolbar dropdown heights, spacing, arrows and focus styling for all four languages. Correct the dark-theme backgrounds of the liquify and repair toolbars.
+- **Improved**：Optimize liquify validation, serialization, history and native sampling at function level. Reuse undeformed source pixels and immutable meshes to reduce repeated decoding, allocations and local-stroke scratch storage while preserving brush behavior and floating-point color precision.
+
+[Source comparison](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1004-build-0036...v1.26.1004-build-1004) · [Validation record](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-1004/desktop/RESTORATION.md)
+
 ## 1.26.1004 build 0036
 
 Compared with: **1.26.1003 build 1503**。

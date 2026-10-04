@@ -262,7 +262,7 @@ class Worker {
           {"source-preview", "print-exposure", "development", "chemistry",
            "scanner", "film-stock", "spectral", "emulsion", "halation", "bloom", "digital-look", "hdr", "local-tone",
            "digital-exposure", "white-balance", "lab-color", "tone-zones", "color-calibration", "crop-rotation", "lens-shading",
-           "saved-repair-patches", "repair", "image-analysis", "gguf-inference", "subject-mask", "face-analysis", "skin-white-balance",
+           "saved-repair-patches", "liquify", "repair", "image-analysis", "gguf-inference", "subject-mask", "face-analysis", "skin-white-balance",
            "skin-enhancement", "denoise", "depth-blur", "frame", "date-stamp", "color-managed-export"}},
          {"supportedStyles", [&] { Json styles = Json::array({"original"}); for (const auto &p : data().profiles) styles.push_back(p.first); for (const auto &p : data().digital) styles.push_back(p.first); return styles; }()},
          {"fullRenderPipeline", true},
@@ -350,6 +350,8 @@ class Worker {
   Json render(const filmdevelop::contract::RenderJob &job,
               const std::string &id, bool session) {
     validate(job);
+    const Json noLiquify;
+    const filmdevelop::LiquifyMesh liquify(job.recipe.liquify ? *job.recipe.liquify : noLiquify);
     bool accelerated = false;
     if (job.computeBackend == "vulkan") {
       accelerator();
@@ -424,7 +426,7 @@ class Worker {
     auto finish = [&](bool useGPU) {
       filmdevelop::ComputeImage compute;
       if (useGPU) compute = [&](const Image &input, const Json &plan, const std::vector<Image> &auxiliary) { return accelerator().apply(input, plan, auxiliary); };
-      return filmdevelop::render_style(*linear, *source, job, neutral, catalog, monochromes, data(), compute, patches,subject,depth);
+      return filmdevelop::render_style(*linear, *source, job, neutral, catalog, monochromes, data(), compute, patches,subject,depth,&liquify);
     };
     Image image = [&] {
       try { return finish(accelerated); }
@@ -468,11 +470,11 @@ class Worker {
       if(editing.recipe.adjustment != job.recipe.adjustment) {
         filmdevelop::ComputeImage compute;
         if(accelerated)compute=[&](const Image &input,const Json &plan,const std::vector<Image> &auxiliary){return accelerator().apply(input,plan,auxiliary);};
-        try { editor=filmdevelop::render_style(*linear,*source,editing,neutral,catalog,monochromes,data(),compute,patches,subject,depth); }
+        try { editor=filmdevelop::render_style(*linear,*source,editing,neutral,catalog,monochromes,data(),compute,patches,subject,depth,&liquify); }
         catch(const Failure &error) {
           if(!accelerated || job.computeBackend!="system")throw;
           gpuFailure=error.what();gpu.reset();gpuProbed=true;accelerated=false;
-          editor=filmdevelop::render_style(*linear,*source,editing,neutral,catalog,monochromes,data(),{},patches,subject,depth);
+          editor=filmdevelop::render_style(*linear,*source,editing,neutral,catalog,monochromes,data(),{},patches,subject,depth,&liquify);
         }
       }
       auto encodePreview = [&](const Image &value) {
@@ -484,6 +486,20 @@ class Worker {
           base64(editing.recipe.adjustment == job.recipe.adjustment && job.output.format == "jpeg" && job.output.quality == .88 && job.output.maxPixel == job.previewMaxPixel && job.output.colorSpace == "sRGB"
                      ? bytes
                      : encodePreview(editor ? *editor : image));
+      if(!liquify.identity) {
+        editing.recipe.liquify.reset();
+        filmdevelop::ComputeImage compute;
+        if(accelerated)compute=[&](const Image &input,const Json &plan,const std::vector<Image> &auxiliary){return accelerator().apply(input,plan,auxiliary);};
+        Image canonical=[&] {
+          try { return filmdevelop::render_style(*linear,*source,editing,neutral,catalog,monochromes,data(),compute,patches,subject,depth); }
+          catch(const Failure &error) {
+            if(!accelerated || job.computeBackend!="system")throw;
+            gpuFailure=error.what();gpu.reset();gpuProbed=true;accelerated=false;
+            return filmdevelop::render_style(*linear,*source,editing,neutral,catalog,monochromes,data(),{},patches,subject,depth);
+          }
+        }();
+        result["liquifyImage"]="data:image/jpeg;base64,"+base64(encodePreview(canonical));
+      } else result["liquifyImage"]=result["cropImage"];
       const filmdevelop::CropGeometry comparisonGeometry(source->width, source->height, job.recipe.adjustment);
       result["sourceImage"] = "data:image/jpeg;base64," + base64(comparisonGeometry.is_identity(*source)
           ? encodePreview(*source) : encodePreview(comparisonGeometry.apply(*source)));

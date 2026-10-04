@@ -1,71 +1,55 @@
 [繁體中文](#繁體中文) · [English](#english) · [日本語](#日本語) · [한국어](#한국어)
 
-[macOS Apple Silicon DMG](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1004-build-0036/FilmDevelop-1.26.1004-build0036-macos-arm64.dmg) · [Windows x64 Beta](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1004-build-0036/FilmDevelop-1.26.1004-build0036-windows-x64-portable.zip) · [Swift Mac upgrade](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1004-build-0036/FilmYourPhoto-1.26.1004-build-0036-arm64.dmg) · [SHA-256](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1004-build-0036/SHA256SUMS.txt)
+[macOS Apple Silicon DMG](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1004-build-1004/FilmDevelop-1.26.1004-build1004-macos-arm64.dmg) · [Windows x64 Beta](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1004-build-1004/FilmDevelop-1.26.1004-build1004-windows-x64-portable.zip) · [Swift Mac upgrade](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1004-build-1004/FilmYourPhoto-1.26.1004-build-1004-arm64.dmg) · [SHA-256](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1004-build-1004/SHA256SUMS.txt)
 
 ## 繁體中文
 
-相較版本：**1.26.1003 build 1503**。
+相較版本：**1.26.1004 build 0036**。
 
-- **改善**：柔膚改用多尺度亮度處理，優先改善局部明暗不均並保留細紋、原膚色與立體光影；增加滑桿中高段的作用，末段混合強度不再提前封頂。
-- **改善**：美白改為保留個人底色的明度曲線，不再統一降低飽和度與反差；加強滑桿提亮效果，同時保護高光、純黑、HDR 與透明度。
-- **修正**：改善欠曝膚色辨識，人物遮罩外與完全透明區域不再殘留膚質效果；增加偏紅細節保護，遮罩細化後再次排除低可信區域。
-- **修正**：統一跨平台降噪的逐通道保邊處理，修正中段作用偏弱及透明像素污染鄰近色彩；效果混合沿用來源覆蓋率，避免半透明影像越調越不透明。
-- **修正**：分區淡化改用共同的單調亮度曲線，修正強烈暗部淡化時相鄰階調反轉；保留既有分區控制與操作方式。
-- **修正**：HDR 對數亮度重建保留純黑與極暗階調，避免數值穩定處理抬升黑位或截斷暗部；保留自訂黑位控制與浮點高光。
-- **改善**：統一導向濾波的取樣座標及上採樣，減少預覽、匯出與分塊運算差異；小型係數圖保留在 GPU 並沿用容量上限，減少 CPU 讀回與再次上傳。
-- **改善**：改善輸出照片的顯影動畫：配合螢幕逐幀更新，最短顯現時間由 7 秒縮短為 6.2 秒，較久沒有進度回報時仍平順顯現，完成時連續減速定影；維持原有對話框、操作流程與預覽記憶體上限。
+- **新增**：在修復筆刷左邊加入液化筆刷，提供局部推移、局部還原、半徑與強度控制；逐筆保存並支援復原／重做，重開照片及原尺寸匯出保留變形，不需下載模型。
+- **新增**：液化與修復筆刷支援 Shift＋滾輪調整大小，向上放大、向下縮小，滑桿與游標同步；維持既有範圍，調整大小不新增修圖歷史。
+- **改善**：統一照片工具列下拉選單的高度、間距、箭頭與焦點樣式，改善四語文字顯示；修正液化及修復工具列在深色主題的背景。
+- **改善**：逐函式最佳化液化網格驗證、序列化、歷史與原生取樣，重用未變形來源像素與不可變網格；減少重複解碼、配置及局部筆畫暫存，維持既有筆刷效果與浮點色彩精度。
 
-[原始碼差異](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-1503...v1.26.1004-build-0036) · [驗證紀錄](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-0036/desktop/RESTORATION.md)
+[原始碼差異](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1004-build-0036...v1.26.1004-build-1004) · [驗證紀錄](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-1004/desktop/RESTORATION.md)
 
-[完整更新紀錄](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-0036/CHANGELOG.md) · [README](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-0036/README.md) · [驗證紀錄 (JSON)](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1004-build-0036/release-validation.json)
+[完整更新紀錄](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-1004/CHANGELOG.md) · [README](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-1004/README.md) · [驗證紀錄 (JSON)](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1004-build-1004/release-validation.json)
 
 ## English
 
-Compared with: **1.26.1003 build 1503**。
+Compared with: **1.26.1004 build 0036**。
 
-- **Improved**：Skin smoothing now uses multiple luminance scales to reduce local unevenness while retaining fine texture, undertones and facial shading. Mid-to-high slider settings are stronger, and the blend strength no longer reaches its cap early.
-- **Improved**：Skin brightening now uses a lightness curve that preserves individual undertones instead of uniformly reducing saturation and contrast. Stronger slider response retains protection for highlights, black, HDR and alpha.
-- **Fixed**：Improve underexposed skin detection and remove residual skin effects outside the person mask and in fully transparent areas. Protect strongly red details and reapply confidence exclusions after mask refinement.
-- **Fixed**：Align edge-preserving channel-wise denoising across platforms, fixing weak midrange response and color contamination from transparent pixels. Effect blending preserves source coverage so semi-transparent images do not become more opaque.
-- **Fixed**：Use a shared monotonic luminance curve for tonal-zone fade, preventing adjacent tones from reversing under strong shadow fade while retaining existing zone controls and workflow.
-- **Fixed**：HDR log-luminance reconstruction preserves black and near-black gradations, avoiding lifted blacks or clipped shadows from numerical stabilization. Custom black-level controls and floating-point highlights remain available.
-- **Improved**：Align guided-filter sampling coordinates and upsampling to reduce differences between previews, exports and tiled rendering. Keep small coefficient images on the GPU within existing cache limits to avoid CPU readback and re-upload.
-- **Improved**：Make the photo export reveal smoother with display-synchronized frames, a shorter minimum reveal of 6.2 seconds instead of 7, continuous motion between sparse progress reports, and a gradual finish. Preserve the existing dialog, workflow and preview memory limit.
+- **Added**：Add a liquify brush to the left of the repair brush, with local push and restore modes, radius and strength controls. Strokes support undo/redo, persist when reopening photos and apply to full-resolution exports without downloading a model.
+- **Added**：Hold Shift and scroll to resize liquify and repair brushes: up increases and down decreases the size, with synchronized sliders and cursors. Existing limits are preserved, and resizing does not add an edit to history.
+- **Improved**：Unify photo-toolbar dropdown heights, spacing, arrows and focus styling for all four languages. Correct the dark-theme backgrounds of the liquify and repair toolbars.
+- **Improved**：Optimize liquify validation, serialization, history and native sampling at function level. Reuse undeformed source pixels and immutable meshes to reduce repeated decoding, allocations and local-stroke scratch storage while preserving brush behavior and floating-point color precision.
 
-[Source comparison](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-1503...v1.26.1004-build-0036) · [Validation record](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-0036/desktop/RESTORATION.md)
+[Source comparison](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1004-build-0036...v1.26.1004-build-1004) · [Validation record](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-1004/desktop/RESTORATION.md)
 
-[Full changelog](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-0036/CHANGELOG.en.md) · [README](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-0036/README.en.md) · [Validation record (JSON)](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1004-build-0036/release-validation.json)
+[Full changelog](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-1004/CHANGELOG.en.md) · [README](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-1004/README.en.md) · [Validation record (JSON)](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1004-build-1004/release-validation.json)
 
 ## 日本語
 
-比較元：**1.26.1003 build 1503**。
+比較元：**1.26.1004 build 0036**。
 
-- **改善**：肌のスムージングを複数スケールの輝度処理に変更し、細かな質感、元の肌色、立体的な陰影を保ちながら明暗のむらを抑えます。スライダー中～高域の効果を強め、混合強度が途中で上限に達する制限を除きました。
-- **改善**：美白を個人の肌色を保つ明度カーブに変更し、一律の彩度・コントラスト低下を廃止しました。スライダーの明るさ補正を強めつつ、ハイライト、黒、HDR、透明度を保護します。
-- **修正**：露出不足の肌色認識を改善し、人物マスクの外側や完全に透明な領域に肌補正が残る問題を修正。赤みの強い細部を保護し、マスク精細化後も信頼度の低い領域を除外します。
-- **修正**：プラットフォーム間のエッジ保持型チャンネル別ノイズ除去を統一し、中間強度の弱さと透明画素による周囲の色への影響を修正。効果の混合で元の透明度を保ち、半透明画像が不透明になる問題を防ぎます。
-- **修正**：階調別フェードに共通の単調輝度カーブを使用し、シャドウを強くフェードした際の隣接階調の反転を修正。既存の領域別コントロールと操作手順を維持します。
-- **修正**：HDR の対数輝度再構成で黒と極暗部の階調を保持し、数値安定化による黒浮きや暗部の切り捨てを修正。任意の黒レベル調整と浮動小数点ハイライトは維持します。
-- **改善**：ガイドフィルターのサンプリング座標とアップサンプリングを統一し、プレビュー、書き出し、タイル処理の差を低減。小さな係数画像を既存のキャッシュ上限内で GPU に保持し、CPU 読み戻しと再転送を削減します。
-- **改善**：写真書き出し時の現像アニメーションを画面更新に同期し、最短表示時間を 7 秒から 6.2 秒に短縮。進捗通知の間隔が長い場合も滑らかに表示します。完了時は連続的に減速して定着し、既存のダイアログ、操作手順、プレビューのメモリ上限を維持します。
+- **追加**：修復ブラシの左にゆがみブラシを追加。局所的な移動・復元、半径・強度の調整に対応します。ストローク単位の保存と取り消し／やり直しが可能で、写真の再表示や元の解像度での書き出しにも変形が反映されます。モデルのダウンロードは不要です。
+- **追加**：ゆがみ・修復ブラシで Shift＋ホイールによるサイズ変更に対応。上で拡大、下で縮小し、スライダーとカーソルが連動します。既存の範囲を維持し、サイズ変更は編集履歴に追加されません。
+- **改善**：写真ツールバーのプルダウンの高さ、余白、矢印、フォーカス表示を統一し、4 言語の文字表示を改善。ダークテーマでのゆがみ・修復ツールバーの背景を修正しました。
+- **改善**：ゆがみの検証、シリアライズ、履歴、ネイティブサンプリングを関数単位で最適化。変形前の画素と不変のメッシュを再利用し、ブラシの効果と浮動小数点の色精度を保ちながら、重複デコード、メモリ確保、局所ストロークの一時領域を削減します。
 
-[ソースの差分](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-1503...v1.26.1004-build-0036) · [検証記録](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-0036/desktop/RESTORATION.md)
+[ソースの差分](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1004-build-0036...v1.26.1004-build-1004) · [検証記録](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-1004/desktop/RESTORATION.md)
 
-[変更履歴](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-0036/CHANGELOG.ja.md) · [README](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-0036/README.ja.md) · [検証記録 (JSON)](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1004-build-0036/release-validation.json)
+[変更履歴](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-1004/CHANGELOG.ja.md) · [README](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-1004/README.ja.md) · [検証記録 (JSON)](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1004-build-1004/release-validation.json)
 
 ## 한국어
 
-비교 버전: **1.26.1003 build 1503**。
+비교 버전: **1.26.1004 build 0036**。
 
-- **개선**：피부 스무딩을 다중 스케일 휘도 처리로 바꾸어 미세한 질감, 원래 피부색과 입체적인 음영을 유지하면서 국소적인 밝기 불균일을 줄입니다. 슬라이더 중·고강도 효과를 높이고 혼합 강도가 중간에 상한에 도달하던 제한을 없앴습니다.
-- **개선**：피부 미백을 개인의 원래 색조를 유지하는 명도 곡선으로 변경하여 일괄적인 채도·대비 감소를 없앴습니다. 슬라이더의 밝기 효과를 높이면서 하이라이트, 검정, HDR과 투명도를 보호합니다.
-- **수정**：노출이 부족한 피부색 인식을 개선하고 인물 마스크 밖과 완전히 투명한 영역에 남던 피부 보정을 제거했습니다. 붉은 세부 영역을 보호하고 마스크 정제 후에도 신뢰도가 낮은 영역을 제외합니다.
-- **수정**：플랫폼 간 채널별 에지 보존 노이즈 제거를 통일하여 중간 강도의 약한 반응과 투명 픽셀로 인한 주변 색 오염을 수정했습니다. 효과 혼합 시 원래 알파를 유지하여 반투명 이미지가 더 불투명해지는 문제를 방지합니다.
-- **수정**：명암 영역별 페이드에 공통 단조 휘도 곡선을 적용하여 강한 그림자 페이드에서 인접 계조가 뒤집히는 문제를 수정했습니다. 기존 영역별 제어와 작업 흐름은 유지합니다.
-- **수정**：HDR 로그 휘도 복원에서 검정과 극암부 계조를 보존하여 수치 안정화로 검정이 들뜨거나 어두운 계조가 잘리는 문제를 수정했습니다. 사용자 검정 레벨과 부동소수점 하이라이트는 유지합니다.
-- **개선**：가이드 필터의 샘플링 좌표와 업샘플링을 통일하여 미리보기, 내보내기와 타일 처리 간 차이를 줄입니다. 작은 계수 이미지를 기존 캐시 한도 내에서 GPU에 유지하여 CPU 읽기와 재전송을 줄입니다.
-- **개선**：사진 내보내기 현상 애니메이션을 화면 갱신에 맞추고 최소 표시 시간을 7초에서 6.2초로 줄여 진행 알림 간격이 길어도 부드럽게 표시합니다. 완료 시 연속적으로 감속하며 기존 대화상자, 작업 흐름과 미리보기 메모리 한도를 유지합니다.
+- **추가**：복구 브러시 왼쪽에 유동화 브러시를 추가했습니다. 부분 밀기·복원과 반경·강도 조절을 지원합니다. 획별 저장 및 실행 취소·다시 실행이 가능하며, 사진을 다시 열거나 원본 해상도로 내보낼 때도 변형이 유지됩니다. 모델 다운로드가 필요하지 않습니다.
+- **추가**：유동화·복구 브러시에서 Shift＋휠로 크기를 조절할 수 있습니다. 위로 스크롤하면 커지고 아래로 스크롤하면 작아지며 슬라이더와 커서가 동기화됩니다. 기존 범위를 유지하고 크기 조절은 편집 기록에 추가되지 않습니다.
+- **개선**：사진 도구 모음 드롭다운의 높이, 간격, 화살표와 포커스 스타일을 통일하여 네 언어의 텍스트 표시를 개선했습니다. 어두운 테마에서 유동화·복구 도구 모음 배경도 수정했습니다.
+- **개선**：유동화 검증, 직렬화, 기록과 네이티브 샘플링을 함수 단위로 최적화했습니다. 변형 전 원본 픽셀과 불변 메시를 재사용하여 브러시 효과 및 부동소수점 색 정밀도를 유지하면서 중복 디코딩, 메모리 할당과 국소 획의 임시 저장 공간을 줄입니다.
 
-[소스 변경 비교](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1003-build-1503...v1.26.1004-build-0036) · [검증 기록](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-0036/desktop/RESTORATION.md)
+[소스 변경 비교](https://github.com/VaderChen/FilmDevelop/compare/v1.26.1004-build-0036...v1.26.1004-build-1004) · [검증 기록](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-1004/desktop/RESTORATION.md)
 
-[전체 변경 기록](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-0036/CHANGELOG.ko.md) · [README](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-0036/README.ko.md) · [검증 기록 (JSON)](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1004-build-0036/release-validation.json)
+[전체 변경 기록](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-1004/CHANGELOG.ko.md) · [README](https://github.com/VaderChen/FilmDevelop/blob/v1.26.1004-build-1004/README.ko.md) · [검증 기록 (JSON)](https://github.com/VaderChen/FilmDevelop/releases/download/v1.26.1004-build-1004/release-validation.json)

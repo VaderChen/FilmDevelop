@@ -1,6 +1,6 @@
 (function () {
   "use strict";
-  var allowed = new Set(["handleUIPreferences", "handleNativeState", "handleNativeToast", "handleDesktopCommand", "handleNativeFileOpen", "handlePhotoDirectoryState", "handleFilmHoverPreview", "handleHostDialog", "handleHostMenu", "handleRepairPreparation", "handleNativeMenu", "handlePreviewMenu", "handlePhotoEXIF", "handleBatchExportProgress", "handleRepairResult", "handleUpdateComplete", "handleMCPFlush", "handleMCPPage", "handleHostProgress", "handleHostClose", "handleHostStartup", "handleExportDevelopment", "handleFocusDirectoryPhoto"]);
+  var allowed = new Set(["handleUIPreferences", "handleNativeState", "handleNativeToast", "handleDesktopCommand", "handleNativeFileOpen", "handlePhotoDirectoryState", "handleFilmHoverPreview", "handleHostDialog", "handleHostMenu", "handleRepairPreparation", "handleNativeMenu", "handlePreviewMenu", "handlePhotoEXIF", "handleBatchExportProgress", "handleRepairResult", "handleLiquifyResult", "handleUpdateComplete", "handleMCPFlush", "handleMCPPage", "handleHostProgress", "handleHostClose", "handleHostStartup", "handleExportDevelopment", "handleFocusDirectoryPhoto"]);
   // Wails 的事件回呼可並行；等宿主確認入列後才送下一筆，保持手勢與換圖順序。
   var pending = [], sequence = 0, hostConnected = false;
   function sendNext() {

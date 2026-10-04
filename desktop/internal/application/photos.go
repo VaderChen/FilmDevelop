@@ -85,6 +85,7 @@ func (a *App) openDirectory(path, preferred string) error {
 		a.imageKey = ""
 		a.sourcePreview = ""
 		a.cropPreview = ""
+		a.liquifyPreview = ""
 		a.outputPreview = ""
 		a.loadingPreview = ""
 		a.sourceWidth = 0

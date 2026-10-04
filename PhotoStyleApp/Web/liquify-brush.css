@@ -1,0 +1,23 @@
+.liquify-toggle[aria-pressed="true"] { color:var(--accent,#ba5035); background:rgba(190,80,50,.12); border-color:rgba(190,80,50,.4); }
+.liquify-panel { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:7px; margin:0; padding:5px 10px; min-width:0; border:1px solid var(--line,#ddd8cf); border-radius:10px; background:var(--surface,#fffdf9); font-size:12px; }
+.liquify-panel label { font-weight:650; }
+.liquify-panel label,.liquify-panel output,.liquify-panel button { flex-shrink:0; white-space:nowrap; }
+.liquify-panel input[type="range"] { width:85px; min-width:65px; margin:0; }
+.liquify-panel output { min-width:39px; font-variant-numeric:tabular-nums; }
+.liquify-panel select { min-width:12em; max-width:150px; flex-shrink:0; }
+.liquify-panel .photo-directory-button { min-height:28px; padding:5px 9px; font-size:11px; }
+.liquify-status { display:flex; align-items:center; gap:6px; color:var(--muted,#746e64); min-height:18px; }
+.liquify-status .preview-spinner { width:14px; height:14px; border-width:2px; }
+.liquify-overlay { position:absolute; inset:0; width:100%; height:100%; z-index:6; cursor:none; touch-action:none; }
+.liquify-cursor { position:absolute; z-index:7; border:1px solid white; box-shadow:0 0 0 1px #333; border-radius:50%; transform:translate(-50%,-50%); pointer-events:none; }
+.liquify-cursor.restore { border-style:dashed; }
+.home-workspace.liquify-active .adjustment-pane { pointer-events:none; opacity:.6; }
+.home-workspace.liquify-active .preview-image,.home-workspace.liquify-active .preview-loading-image { visibility:hidden; }
+.home-workspace.liquify-active .crop-quick-group,.home-workspace.liquify-active .white-balance-picker { pointer-events:none; opacity:.45; }
+.liquify-header .app-brand { display:none; }
+.app-header.liquify-header { display:grid; grid-template-columns:var(--film-sidebar-width) minmax(0,1fr) var(--inspector-width); gap:0; padding:10px 0; flex-basis:auto; min-height:64px; }
+.liquify-header .liquify-panel { grid-column:2; margin:0 var(--preview-gutter); }
+.liquify-header .tabs { grid-column:3; justify-self:center; max-width:calc(100% - 20px); }
+.liquify-header .tab { flex:1 1 auto; padding:5px 8px; white-space:nowrap; }
+.liquify-header .tab span { overflow:hidden; text-overflow:ellipsis; }
+@media (max-width:1200px) { .liquify-panel { gap:5px; } .liquify-panel input[type="range"] { width:65px; } }

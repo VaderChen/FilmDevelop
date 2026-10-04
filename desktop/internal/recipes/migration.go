@@ -15,10 +15,17 @@ import (
 // Normalize 將 schema 1–12 的既有配方移至 schema 12；保留修復貼片與主體遮罩設定。
 // 遷移預設取自原 Swift 解碼器，與新建底片的預設分開保存。
 func (l *Library) Normalize(recipe contract.Recipe) (contract.Recipe, error) {
-	result := cloneRecipe(recipe)
+	result := l.cloneRecipe(recipe)
 	style, exists := l.styles[recipe.Style]
 	if !exists || recipe.Version != 1 || len(recipe.Adjustment) > contract.MaxMessageBytes || !json.Valid(recipe.RepairPatches) {
 		return result, errors.New("配方版本、底片或資料格式不符")
+	}
+	liquify, err := l.normalizeLiquify(recipe.Liquify)
+	if err != nil {
+		return result, err
+	}
+	if liquify == nil {
+		result.Liquify = nil
 	}
 	var source object
 	if err := json.Unmarshal(recipe.Adjustment, &source); err != nil {

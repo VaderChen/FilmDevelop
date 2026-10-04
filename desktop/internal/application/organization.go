@@ -128,7 +128,7 @@ func (a *App) markEdited() error {
 	}
 	edited := a.selected != "original" || a.selectedCustom != "" || len(a.manual.PrintControls) > 0
 	for id, r := range a.recipes {
-		if string(r.Adjustment) != string(a.defaults[id].Adjustment) || string(r.RepairPatches) != "[]" {
+		if string(r.Adjustment) != string(a.defaults[id].Adjustment) || string(r.RepairPatches) != "[]" || r.Liquify != nil {
 			edited = true
 			break
 		}
@@ -485,7 +485,11 @@ func (a *App) batchPhotos(paths []string, operation, directory string) error {
 				case "copy":
 					for id, r := range doc.Recipes {
 						r.RepairPatches = json.RawMessage(`[]`)
+						r.Liquify = nil
 						doc.Recipes[id] = r
+					}
+					if doc.CustomBase != nil {
+						doc.CustomBase.Liquify = nil
 					}
 					a.mu.Lock()
 					a.copiedRecipe = clone(doc)
@@ -495,22 +499,31 @@ func (a *App) batchPhotos(paths []string, operation, directory string) error {
 					if operation == "apply" {
 						next = clone(copied)
 						var patches json.RawMessage
+						var liquify *json.RawMessage
 						for _, r := range doc.Recipes {
 							if string(r.RepairPatches) != "[]" {
 								patches = r.RepairPatches
-								break
+							}
+							if r.Liquify != nil {
+								liquify = r.Liquify
 							}
 						}
-						if len(patches) > 0 {
-							// 修復屬於目標照片；即使複製的是無調整原片也保留。
+						if len(patches) > 0 || liquify != nil {
+							// 修復與液化屬於目標照片，不能由另一張照片的配方覆蓋。
 							for id, r := range a.defaults {
 								if _, ok := next.Recipes[id]; !ok {
 									next.Recipes[id] = r
 								}
 							}
 							for id, r := range next.Recipes {
-								r.RepairPatches = patches
+								if len(patches) > 0 {
+									r.RepairPatches = patches
+								}
+								r.Liquify = liquify
 								next.Recipes[id] = r
+							}
+							if next.CustomBase != nil {
+								next.CustomBase.Liquify = liquify
 							}
 						}
 					}

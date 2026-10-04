@@ -11,6 +11,7 @@ struct Recipe: Codable {
  var adjustment: JSONValue
  var repairPatches: JSONValue
  var detectSubject: Bool
+ var liquify: JSONValue?
 }
 struct ImageInput: Codable {
  var path: String

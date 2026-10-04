@@ -31,6 +31,7 @@ xcrun swiftc -O -D FILMDEVELOP_GO_HOST -parse-as-library -swift-version 5 -targe
   "$ROOT_DIR/PhotoStyleApp/PhotoImage.swift" "$ROOT_DIR/PhotoStyleApp/PhotoWebPEncoder.swift" \
   "$ROOT_DIR/PhotoStyleApp/PhotoStyle.swift" "$ROOT_DIR/PhotoStyleApp/Comparable+Clamped.swift" \
   "$ROOT_DIR/PhotoStyleApp/PhotoStyleProcessor.swift" "$ROOT_DIR/PhotoStyleApp/PhotoProcessingPipeline.swift" \
+  "$ROOT_DIR/PhotoStyleApp/PhotoLiquifyProcessor.swift" \
   "$ROOT_DIR/PhotoStyleApp/PhotoComputeBackend.swift" "$ROOT_DIR/PhotoStyleApp/PhotoSoftwareRAWDecoder.swift" \
   "$ROOT_DIR/PhotoStyleApp/PhotoImageDecoding.swift" "$ROOT_DIR/PhotoStyleApp/PhotoRAWThumbnail.swift" \
   "$ROOT_DIR/PhotoStyleApp/PhotoDateStampRenderer.swift" "$ROOT_DIR/engine/macos/JSONValue.swift" \

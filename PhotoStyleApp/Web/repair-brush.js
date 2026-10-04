@@ -17,7 +17,7 @@
     this.panel = function () {
       if (!active()) return '';
       var waiting = pending || state().isRepairingImage;
-      return '<section class="repair-panel" aria-label="' + escape(text('修復筆刷')) + '"><label for="repairBrushSize">' + escape(text('筆刷大小')) + '</label><input id="repairBrushSize" type="range" min="4" max="160" step="1" value="' + size + '"' + (waiting ? ' disabled' : '') + '><output id="repairBrushSizeValue">' + size + ' px</output>' +
+      return '<section class="repair-panel" aria-label="' + escape(text('修復筆刷')) + '"><label for="repairBrushSize">' + escape(text('筆刷大小')) + '</label><input id="repairBrushSize" type="range" min="4" max="160" step="1" title="' + escape(text('按住 Shift＋滾輪調整筆刷大小。')) + '" value="' + size + '"' + (waiting ? ' disabled' : '') + '><output id="repairBrushSizeValue">' + size + ' px</output>' +
         button(waiting ? '取消修復' : '完成', waiting ? 'cancel' : 'done', false) +
         (waiting ? '<span class="repair-status" role="status"><span class="preview-spinner"></span><span>' + escape(text(state().repairStep || '正在準備本機修復工具…')) + '</span></span>' : '') + '</section>';
     };
@@ -43,11 +43,14 @@
         if (stroke.points.length === 1) { var p=stroke.points[0];ctx.arc(left+p.x*g.image.width,top+p.y*g.image.height,radius,0,Math.PI*2);ctx.fill(); } else ctx.stroke();
       });
     }
-    function point(event) {
-      var g=geometry(); if(!g)return null;
+    function point(event,g) {
+      if(!g)return null;
       var x=(event.clientX-g.image.left)/g.image.width,y=(event.clientY-g.image.top)/g.image.height;
       if(x<0||x>1||y<0||y>1)return null;
       return {x:x,y:y};
+    }
+    function cursorAt(event,p,g) {
+      if(cursor&&g){cursor.hidden=!p||busy();cursor.style.width=size+'px';cursor.style.height=size+'px';cursor.style.left=(event.clientX-g.frame.left)+'px';cursor.style.top=(event.clientY-g.frame.top)+'px';}
     }
     this.bind = function () {
       drawing = null;
@@ -74,17 +77,21 @@
       if(!active()||!canvas||!frame)return;
       var image=env.image();if(image)image.addEventListener('load',redraw,{once:true});
       if(window.ResizeObserver){observer=new ResizeObserver(redraw);observer.observe(frame);}
+      window.PhotoBrushSizeWheel(canvas, {
+        control:function(){return env.root.querySelector('#repairBrushSize');},
+        ready:function(){return active()&&!busy()&&!drawing;},
+        update:function(value,event){size=value;env.root.querySelector('#repairBrushSizeValue').textContent=size+' px';var g=geometry();cursorAt(event,point(event,g),g);}
+      });
       canvas.addEventListener('pointerdown',function(e){
         if(e.button!==0||busy())return;
-        var p=point(e),g=geometry();if(!p||!g||strokes.length>=128)return;
+        var g=geometry(),p=point(e,g);if(!p||!g||strokes.length>=128)return;
         e.preventDefault();e.stopPropagation();env.cancelGesture();
         drawing={radius:size/2/g.image.width,points:[p]};
         drawing.radius=Math.min(drawing.radius,0.5);strokes.push(drawing);
         canvas.setPointerCapture(e.pointerId);redraw();
       });
       canvas.addEventListener('pointermove',function(e){
-        var p=point(e),g=geometry();
-        if(cursor&&g){cursor.hidden=!p||busy();cursor.style.width=size+'px';cursor.style.height=size+'px';cursor.style.left=(e.clientX-g.frame.left)+'px';cursor.style.top=(e.clientY-g.frame.top)+'px';}
+        var g=geometry(),p=point(e,g);cursorAt(e,p,g);
         if(!drawing||!p||!g)return;
         e.preventDefault();e.stopPropagation();
         var last=drawing.points[drawing.points.length-1];

@@ -1,0 +1,48 @@
+:root { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif; color: #e8e8e8; background: #151718; font-synthesis: none; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+button, input, select { font: inherit; }
+button, select, .file-label { border: 1px solid #485050; border-radius: 7px; background: #2a3030; color: #eef2f0; min-height: 39px; padding: 8px 12px; }
+button, .file-label { cursor: pointer; }
+button:hover:not(:disabled), .file-label:hover { background: #36403c; border-color: #718e7e; }
+button:disabled { opacity: .38; cursor: default; }
+button:focus-visible, select:focus-visible, input:focus-visible, canvas:focus-visible { outline: 2px solid #ade9c6; outline-offset: 4px; }
+button.primary { background: #bad6bf; color: #152119; border-color: #bad6bf; font-weight: 650; }
+button.primary:hover { background: #d3e9d7; }
+button.subtle { background: transparent; }
+.workspace { max-width: 1440px; margin: 0 auto; padding: 34px 36px 28px; }
+.header { display: flex; align-items: end; justify-content: space-between; gap: 30px; margin-bottom: 25px; }
+.eyebrow { color: #96b8a2; font-size: 11px; font-weight: 650; letter-spacing: .17em; margin: 0 0 9px; }
+h1 { font-size: 27px; font-weight: 560; letter-spacing: .06em; margin: 0; }
+.intro { color: #abb1ae; font-size: 13px; margin: 0 0 3px; }
+.editor { display: grid; grid-template-columns: minmax(0, 1fr) 266px; border: 1px solid #333a37; border-radius: 12px; overflow: hidden; }
+.preview { display: flex; flex-direction: column; min-width: 0; background: #101213; }
+.preview-bar { min-height: 43px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 18px; font-size: 12px; color: #aeb7b1; border-bottom: 1px solid #2b302e; }
+#imageName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#compareBadge { color: #d6edc8; flex-shrink: 0; }
+.canvas-space { flex: 1; display: flex; justify-content: center; align-items: center; padding: 24px; min-height: 430px; }
+.canvas-wrap { position: relative; width: 100%; max-width: 768px; line-height: 0; }
+#canvas { display: block; width: 100%; height: auto; touch-action: none; cursor: crosshair; user-select: none; box-shadow: 0 12px 50px #0005; background: repeating-conic-gradient(#444 0% 25%, #393939 0% 50%) 50% / 16px 16px; }
+.brush { position: absolute; pointer-events: none; border: 1px solid #fff; box-shadow: 0 0 0 1px #0009; border-radius: 50%; transform: translate(-50%, -50%); }
+.brush.restore { border-style: dashed; }
+.hint { text-align: center; padding: 13px; margin: 0; color: #8d9790; font-size: 11px; line-height: 1.6; border-top: 1px solid #292f2c; }
+.controls { padding: 22px; background: #202524; border-left: 1px solid #333a37; }
+.control-section { display: flex; flex-direction: column; gap: 10px; margin-bottom: 23px; }
+h2 { font-size: 11px; color: #afbbb3; font-weight: 600; letter-spacing: .15em; margin: 0 0 4px; }
+label { color: #d3dcd5; font-size: 12px; }
+.file-label { text-align: center; font-size: 13px; }
+#openFile { width: 100%; font-size: 11px; color: #b5bfb8; }
+#openFile::file-selector-button { display: none; }
+select { width: 100%; font-size: 13px; }
+.help { color: #96a199; font-size: 11px; line-height: 1.7; margin: 0; }
+.range-heading { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+output { color: #c6dccc; font-size: 12px; font-variant-numeric: tabular-nums; }
+input[type="range"] { width: 100%; margin: 3px 0; accent-color: #bed9c1; height: 20px; }
+.actions { gap: 8px; }
+.two-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.status { font-size: 11px; color: #b2c4b8; line-height: 1.8; white-space: pre-line; font-variant-numeric: tabular-nums; }
+.error { color: #ffb8ae; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.prototype-note { color: #829088; font-size: 10px; line-height: 1.8; margin-top: 18px; }
+[hidden] { display: none !important; }
+@media (max-width: 800px) { .workspace { padding: 20px 14px; } .header { align-items: start; flex-direction: column; gap: 12px; } .editor { grid-template-columns: minmax(0, 1fr); } .controls { border-left: 0; border-top: 1px solid #333a37; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; } .control-section { margin: 0; } .status, .error, .prototype-note { grid-column: 1 / -1; margin: 0; } .canvas-space { padding: 16px; min-height: 260px; } }
+@media (max-width: 430px) { .controls { grid-template-columns: minmax(0, 1fr); } }

@@ -2,6 +2,7 @@
 package recipes
 
 import (
+	"bytes"
 	_ "embed"
 	"encoding/json"
 	"errors"
@@ -10,6 +11,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"sync"
 	"unicode/utf8"
 
 	"github.com/VaderChen/FilmDevelop/internal/contract"
@@ -33,6 +35,10 @@ type rule struct {
 }
 
 type Library struct {
+	liquifyMu         sync.Mutex
+	liquifyValidated  []byte
+	liquifyCanonical  []byte
+	liquifyIdentity   bool
 	catalog           object
 	styles            map[string]object
 	properties        map[string]rule
@@ -92,7 +98,7 @@ func clone[T any](value T) T {
 	return result
 }
 
-// Recipe 的可變資料只有兩個 RawMessage；各自複製及正規化，避免再解碼含大型修復貼片的外層 JSON。
+// Recipe 的可變 RawMessage 各自複製及正規化，避免再解碼含大型修復貼片的外層 JSON。
 // 保留原 clone 的 HTML 跳脫、無效 UTF-8 替換、null 及無效 JSON 回傳零值語意。
 func cloneRecipe(value contract.Recipe) contract.Recipe {
 	adjustment, err := json.Marshal(value.Adjustment)
@@ -105,9 +111,60 @@ func cloneRecipe(value contract.Recipe) contract.Recipe {
 	}
 	result := value
 	result.Adjustment, result.RepairPatches = adjustment, patches
+	if value.Liquify != nil {
+		data, err := json.Marshal(value.Liquify)
+		if err != nil {
+			return contract.Recipe{}
+		}
+		if string(data) == "null" {
+			result.Liquify = nil
+		} else {
+			raw := json.RawMessage(data)
+			result.Liquify = &raw
+		}
+	}
 	if !utf8.ValidString(result.Style) {
 		style, _ := json.Marshal(result.Style)
 		_ = json.Unmarshal(style, &result.Style)
+	}
+	return result
+}
+
+// 通過液化驗證時重用同一份標準 JSON，再複製私有位元組給呼叫者；
+// 其他欄位和無效資料仍沿用既有完整 clone 的序列化與隔離語意。
+func (l *Library) cloneRecipe(value contract.Recipe) contract.Recipe {
+	if value.Liquify == nil {
+		return cloneRecipe(value)
+	}
+	if _, err := l.normalizeLiquify(value.Liquify); err != nil {
+		return cloneRecipe(value)
+	}
+	withoutMesh := value
+	withoutMesh.Liquify = nil
+	result := cloneRecipe(withoutMesh)
+	// 成功 clone 會把來源 nil RawMessage 編碼成非 nil 的「null」；
+	// 只有原函式遇到無效 JSON 回傳零值時，Adjustment 才仍是 nil。
+	if result.Adjustment == nil {
+		return result
+	}
+	l.liquifyMu.Lock()
+	var data []byte
+	if l.matchesLiquify(*value.Liquify) {
+		if l.liquifyCanonical == nil {
+			l.liquifyCanonical, _ = json.Marshal(value.Liquify)
+			if bytes.Equal(l.liquifyCanonical, l.liquifyValidated) {
+				l.liquifyCanonical = l.liquifyValidated
+			}
+		}
+		data = bytes.Clone(l.liquifyCanonical)
+	}
+	l.liquifyMu.Unlock()
+	if data == nil {
+		data, _ = json.Marshal(value.Liquify)
+	}
+	if string(data) != "null" {
+		raw := json.RawMessage(data)
+		result.Liquify = &raw
 	}
 	return result
 }
@@ -259,6 +316,9 @@ func (l *Library) document(recipe contract.Recipe) (object, error) {
 	if len(recipe.Adjustment) > contract.MaxMessageBytes || !json.Valid(recipe.RepairPatches) {
 		return nil, errors.New("配方資料不完整或超過大小限制")
 	}
+	if _, err := l.normalizeLiquify(recipe.Liquify); err != nil {
+		return nil, err
+	}
 	var document object
 	if err := json.Unmarshal(recipe.Adjustment, &document); err != nil {
 		return nil, err
@@ -341,7 +401,7 @@ func (l *Library) ProjectMany(recipes map[string]contract.Recipe) (map[string]ob
 }
 
 func (l *Library) Edit(request contract.EditorRequest) (contract.Recipe, error) {
-	result := cloneRecipe(request.Recipe)
+	result := l.cloneRecipe(request.Recipe)
 	document, err := l.document(result)
 	if err != nil {
 		return result, err

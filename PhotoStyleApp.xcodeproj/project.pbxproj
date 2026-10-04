@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AC2610040000000000000150 /* PhotoLiquifyProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC2610040000000000000151 /* PhotoLiquifyProcessor.swift */; };
 		FC0110010000000000000001 /* LegacyStyleAdjustmentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC0110020000000000000001 /* LegacyStyleAdjustmentStore.swift */; };
 		FA3000010000000000000004 /* RAWLicenses in Resources */ = {isa = PBXBuildFile; fileRef = FA3000020000000000000004 /* RAWLicenses */; };
 		FA3000010000000000000003 /* RAWMapping in Resources */ = {isa = PBXBuildFile; fileRef = FA3000020000000000000003 /* RAWMapping */; };
@@ -92,6 +93,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		AC2610040000000000000151 /* PhotoLiquifyProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoLiquifyProcessor.swift; sourceTree = "<group>"; };
 		FC0110020000000000000001 /* LegacyStyleAdjustmentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyStyleAdjustmentStore.swift; sourceTree = "<group>"; };
 		FA3000020000000000000004 /* RAWLicenses */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Vendor/PhotoRAW/macos/RAWLicenses"; sourceTree = SOURCE_ROOT; };
 		FA3000020000000000000003 /* RAWMapping */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Vendor/PhotoRAW/macos/RAWMapping"; sourceTree = SOURCE_ROOT; };
@@ -268,6 +270,7 @@
 				FC0110020000000000000001 /* LegacyStyleAdjustmentStore.swift */,
 				AC2409240000000000000001 /* PhotoStyleWebCoordinator+Repair.swift */,
 				AC2409240000000000000000 /* PhotoRepairService.swift */,
+				AC2610040000000000000151 /* PhotoLiquifyProcessor.swift */,
 				44F8E5232C00100100000001 /* Comparable+Clamped.swift */,
 					44F8E5042C00100100000001 /* PhotoStyleProcessor.swift */,
 				44F8E5242C00100100000001 /* PhotoStyleRendering.swift */,
@@ -452,6 +455,7 @@
 				FC0110010000000000000001 /* LegacyStyleAdjustmentStore.swift in Sources */,
 				AC2409240000000000000011 /* PhotoStyleWebCoordinator+Repair.swift in Sources */,
 				AC2409240000000000000010 /* PhotoRepairService.swift in Sources */,
+				AC2610040000000000000150 /* PhotoLiquifyProcessor.swift in Sources */,
 				44F8E6222C00100100000001 /* Comparable+Clamped.swift in Sources */,
 				44F8E6042C00100100000001 /* PhotoStyleProcessor.swift in Sources */,
 				44F8E6232C00100100000001 /* PhotoStyleRendering.swift in Sources */,
@@ -642,7 +646,7 @@
 				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 0036;
+				CURRENT_PROJECT_VERSION = 1004;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = 8QB2QM35YM;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -674,7 +678,7 @@
 				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 0036;
+				CURRENT_PROJECT_VERSION = 1004;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = 8QB2QM35YM;
 				GENERATE_INFOPLIST_FILE = NO;

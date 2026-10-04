@@ -30,16 +30,18 @@ struct Recipe {
  nlohmann::json adjustment;
  nlohmann::json repairPatches;
  bool detectSubject;
+ std::optional<nlohmann::json> liquify;
 };
 inline void from_json(const nlohmann::json& j, Recipe& v) {
  if (!j.is_object()) throw std::invalid_argument("契約需要物件");
- for (const auto& field : j.items()) if (field.key() != "version" && field.key() != "style" && field.key() != "adjustment" && field.key() != "repairPatches" && field.key() != "detectSubject") throw std::invalid_argument("未知契約欄位：" + field.key());
+ for (const auto& field : j.items()) if (field.key() != "version" && field.key() != "style" && field.key() != "adjustment" && field.key() != "repairPatches" && field.key() != "detectSubject" && field.key() != "liquify") throw std::invalid_argument("未知契約欄位：" + field.key());
  if (!j.at("version").is_number_integer() || (j.at("version").is_number_unsigned() && j.at("version").get<uint64_t>() > uint64_t(std::numeric_limits<int64_t>::max()))) throw std::invalid_argument("契約欄位需要整數：version");
  j.at("version").get_to(v.version);
  j.at("style").get_to(v.style);
  j.at("adjustment").get_to(v.adjustment);
  j.at("repairPatches").get_to(v.repairPatches);
  j.at("detectSubject").get_to(v.detectSubject);
+ if (j.contains("liquify") && !j.at("liquify").is_null()) v.liquify = j.at("liquify").get<nlohmann::json>(); else v.liquify.reset();
 }
 inline void to_json(nlohmann::json& j, const Recipe& v) {
  j = nlohmann::json::object();
@@ -48,6 +50,7 @@ inline void to_json(nlohmann::json& j, const Recipe& v) {
  j["adjustment"] = v.adjustment;
  j["repairPatches"] = v.repairPatches;
  j["detectSubject"] = v.detectSubject;
+ if (v.liquify) j["liquify"] = *v.liquify; else j["liquify"] = nullptr;
 }
 struct ImageInput {
  std::string path;

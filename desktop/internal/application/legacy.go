@@ -127,7 +127,7 @@ func (a *App) legacyPhotoDocument(fingerprint, path string) (*storage.Document, 
 // 僅這種紀錄可回退讀取 Swift；有調整內容或明確重設（完整歷史）一律保留。
 func legacyPhotoPlaceholder(doc *storage.Document) bool {
 	return doc.Selected == "original" && len(doc.Recipes) == 0 && doc.CustomID == "" && doc.CustomBase == nil &&
-		len(doc.SharedRepairPatches) == 0 && (doc.Manual == nil || (!doc.Manual.HasCompleteHistory && len(doc.Manual.PrintControls) == 0))
+		len(doc.SharedRepairPatches) == 0 && doc.SharedLiquify == nil && (doc.Manual == nil || (!doc.Manual.HasCompleteHistory && len(doc.Manual.PrintControls) == 0))
 }
 
 func (a *App) legacyEditedPhotos() (map[string]bool, error) {
@@ -161,6 +161,9 @@ func (a *App) legacyDocumentHasEdits(doc *storage.Document) bool {
 		return true
 	}
 	recipe := doc.Recipes[doc.Selected]
+	if recipe.Liquify != nil || doc.SharedLiquify != nil {
+		return true
+	}
 	var patches []json.RawMessage
 	if json.Unmarshal(recipe.RepairPatches, &patches) != nil || len(patches) > 0 {
 		return true
