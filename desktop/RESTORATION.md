@@ -973,4 +973,29 @@ Windows 仍為未簽 Authenticode 的 Beta；本輪實機限 Windows 10／GTX 10
 
 函式最佳化涵蓋前端幾何驗證、序列化、來源像素重用、Go 配方快取與歷史、Swift 不可變位移圖及 C++ 活動區域取樣。既有筆刷參數與輸出保持相同；量測範圍、冷／暖快取及常駐記憶體交換見[函式報告](../engine/verification/liquify-optimization.md)，不以個別函式配置量推論整體 App RSS。
 
-正式簽章、公證、封裝與 Windows 實機結果於本輪驗證完成後補入。
+正式成品驗證完成：
+
+| 驗證項目 | 結果 |
+| --- | --- |
+| 共用核心與語法 | 液化核心 22 項、Chromium／WebKit 各 34 項、原生 12 項 Smoke 通過；全部 12 個 Go internal 測試套件 race 與 vet、JavaScript／Python／JSON／Shell／契約及版本文件一致性檢查通過。 |
+| macOS 實際介面 | 真實 Wails 一般操作 56 項，液化兩次啟動共 38 項通過，包含液化／修復 Shift＋滾輪、選單樣式、復原／重做、過期提交拒絕及保存重開。1536×1024 PNG 在重開前後逐位元組相同。 |
+| macOS 正式 DMG | 標準與舊 Swift 升級相容包均通過 Developer ID 簽章、Apple 公證及票證。標準 DMG 掛載後通過 Gatekeeper、隔離啟動、原片與液化的 JPEG 8-bit／PNG 16-bit 共 4 份原尺寸匯出。 |
+| Windows 正式 ZIP | Windows 10 x64／GTX 1060 全新目錄解壓；170 個產品檔案摘要、12 個 Microsoft Runtime 簽章與 app-local 載入通過，正式 GUI 顯示 build 1004 Beta。 |
+| Windows WebView2 | 一般操作 23 項，液化兩次啟動共 38 項通過；包含液化／修復 Shift＋滾輪、共用選單、復原／重做、保存重開及 1536×1024 PNG 匯出一致。 |
+| Windows 原生與匯出 | 實機執行 6 組 Float32 取樣及 6 組非法網格拒絕；相同 C++ 合成輸入與 Mac C++ 的最大差為 `5.96046448e-08`，門檻 `2e-6`。正式引擎分別使用 CPU 回退與 Vulkan，完成原片／液化的 JPEG 8-bit／PNG 16-bit 共 8 份原尺寸匯出。 |
+| Windows Go 與更新 | application／recipes／storage 液化測試共 25 項（含子案例）通過，沒有略過。兩版正式 App 完成 build 0036 → 1004 升級及啟動確認失敗還原，均保留使用者測試檔案並正常重開。 |
+| 參考資料與封裝 | 14 款數位／相機風格、47 個色彩與編輯資料檔案在重新產生後完全相同；更新來源指紋及實際擷取作業系統中繼資料。發布流程 4 項、Windows 封裝 11 項通過；Mac 標準／相容／Windows 共 110／116／170 個檔案通過發布私密資料稽核。 |
+
+Windows 免安裝六組 Smoke 全數通過，另完成上述兩版正式 App 的更新與還原。
+
+| 正式附件 | 大小 | SHA-256 |
+| --- | ---: | --- |
+| `FilmDevelop-1.26.1004-build1004-macos-arm64.dmg` | 88,199,827 bytes | `996ec169a067c02c12dd1184a53db082f2d240f8328c0c8d10d328406767e132` |
+| `FilmYourPhoto-1.26.1004-build-1004-arm64.dmg` | 92,565,252 bytes | `6bceea6076d7e899e0722dcea1dc4425a028cabef632f9bacfab29fbdc396b48` |
+| `FilmDevelop-1.26.1004-build1004-windows-x64-portable.zip` | 315,431,842 bytes | `d52f71ff08bb01f5d9848fac09bfbe060c9aa74b0c6ea262fb32c4baf5b05165` |
+
+Mac 成品的產品來源為 `35d2d31`；Windows 成品記錄來源為 `82c2d70d7f8d4418dd457fdb52ebdafa55663d4e`。兩者之間只修正 Smoke 請求及同步上述數值不變的參考資料中繼資料，產品程式、版本及四語摘要相同。封裝後僅補驗證文件及測試腳本的 PowerShell 變數命名，產品來源不變。完整入口已先清空 `dist`；Windows 來源指紋檢查阻擋後，重新產生並核對數據，接續完成同輪 Windows 封裝，Mac 成品保持原簽章及公證。
+
+Release 隨附 `SHA256SUMS.txt` 與 `release-validation.json`；完整本機證據位於 `build/liquify-release-20261004/`。GUI 專項使用同版產品來源加上不隨正式 App 發佈的 Smoke 入口，影像處理使用本輪正式原生引擎；正式 GUI 另做隔離啟動、套件與更新交接驗證。測試模型、照片、工具及診斷檔不列為公開附件，測試產品程序已收回。
+
+Windows 仍為未簽 Authenticode 的 Beta，本輪實機為 Windows 10／GTX 1060，沒有新增 Windows 11、其他 GPU、完整 RAW／AI 或外接檔案系統矩陣的結論。液化實機驗證不延伸為所有平台完整照片輸出逐像素相同，也不將先前 Mac 函式量測當成 Windows 效能數字。

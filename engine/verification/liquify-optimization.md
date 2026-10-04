@@ -75,7 +75,7 @@ Swift 此例每份網格保留 793,616 bytes 的 map 資料，取代每次 apply
 
 2026-10-04 驗證結果：核心 22 項、Chromium／WebKit 各 20 項、原生 12 項 Smoke 通過；30 組原生前後 Float32 RGBA 逐位元組相同。Go 全部有測試的 12 個 internal 套件 race 與 vet 通過；包含快取內容被修改、並行驗證、clone 隔離與歷史順序等價測例。
 
-真實 Go／WKWebView／Swift App 兩次啟動完成液化、復原／重做、保存重開及正式匯出，1536×1024 PNG 在重開前後逐位元組相同，未偵測 Go 資料競爭。Windows 宿主與原生引擎均已成功交叉編譯；尚未在 Windows 實機執行。
+真實 Go／WKWebView／Swift App 兩次啟動完成液化、復原／重做、保存重開及正式匯出，1536×1024 PNG 在重開前後逐位元組相同，未偵測 Go 資料競爭。該輪只完成 Windows 宿主與原生引擎交叉編譯；後續 build 1004 發佈前已完成 Windows 10／GTX 1060 實機液化、筆刷滾輪、保存重開、原生取樣與 CPU／Vulkan 匯出，詳見[正式成品驗證](../../desktop/RESTORATION.md)。
 
 本機證據位於 `build/liquify-optimization/`，包含修改前來源快照、SHA-256、原始量測與 Smoke 報告。`build/` 不進版控；要重現前後量測，須保留自己的修改前來源快照，不可以已最佳化的檔案覆蓋基線。
 
@@ -93,4 +93,4 @@ go -C desktop vet ./internal/...
 go -C desktop test ./internal/application ./internal/recipes -run '^$' -bench Liquify -benchmem -count 3
 ```
 
-瀏覽器測試需要 Playwright；可用 `PLAYWRIGHT_MODULE` 指定模組，`LIQUIFY_BROWSER_EXECUTABLE` 指定已安裝的瀏覽器執行檔。瀏覽器 Smoke 使用正式共用 Web，宿主回覆由測試模擬；實際保存與匯出另由桌面 Smoke 驗證。Windows 在本機可做交叉編譯及共用 C++ 演算法測試，無 Windows 實機，不能視為 Windows GUI 執行驗證。
+瀏覽器測試需要 Playwright；可用 `PLAYWRIGHT_MODULE` 指定模組，`LIQUIFY_BROWSER_EXECUTABLE` 指定已安裝的瀏覽器執行檔。瀏覽器 Smoke 使用正式共用 Web，宿主回覆由測試模擬；實際保存與匯出另由桌面 Smoke 驗證。Windows 實機專項使用 `liquify-windows-smoke.ps1`，另需同版正式解壓 App、Smoke 宿主、原生探針、合成測資及已驗證修復模型。上方效能表仍為 Mac 量測；後續 Windows 執行證據不改變其量測平台。

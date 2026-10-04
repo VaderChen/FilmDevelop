@@ -51,9 +51,9 @@ public static class LiquifyPixels {
    $target=Join-Path $Work ($name+'.f32')
    $arguments='"'+(Join-Path $Fixtures ($mesh+'.json'))+'" '+$width+' '+$height+' "'+$target+'"'
    [void](Run $NativeProbe $arguments $name)
-   $error=[LiquifyPixels]::Compare($target,(Join-Path $Fixtures ($name+'-cpp.f32')))
-   Require ($error -le 0.000002) ('Windows Float32 取樣差異過大：'+$name)
-   $checks.Add(@{name=$name;kind='native-pixels';passed=$true;maximumError=$error;tolerance=0.000002})
+   $maximumError=[LiquifyPixels]::Compare($target,(Join-Path $Fixtures ($name+'-cpp.f32')))
+   Require ($maximumError -le 0.000002) ('Windows Float32 取樣差異過大：'+$name)
+   $checks.Add(@{name=$name;kind='native-pixels';passed=$true;maximumError=$maximumError;tolerance=0.000002})
   }
  }
  foreach($file in Get-ChildItem -LiteralPath $Fixtures -Filter 'invalid-*.json'){
