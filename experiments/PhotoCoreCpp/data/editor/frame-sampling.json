@@ -8,11 +8,11 @@
   "kernelCount": 95,
   "file": "frame-sampling.bin",
   "sha256": "b350bb3eec70b633d5ae654e98979cedbcb43e57617b386b88baffc680548413",
-  "referenceOS": "27.0",
+  "referenceOS": "27.0.1",
   "generator": "engine/verification/frame-sampling-reference.swift",
   "generatorSHA256": "23213fd9e293de58ea6ea066d8c3f2e8ea269ac49d7701f9ae7073a5de01d018",
   "referenceSources": {
     "PhotoStyleApp/PhotoImage.swift": "10a0ed8c4858ac8a708e3deebb6ed2bb0602f4f859ffaf8aa75c9d18cbd0a6b9",
-    "PhotoStyleApp/PhotoStyleProcessor.swift": "1a9d50036cb1f5d540043b3222f2945b5676c232c4b8bdb521308716d90dc0b7"
+    "PhotoStyleApp/PhotoStyleProcessor.swift": "54a9415d6b6cc29673771f4b0f66ed3dfa1cba5fc16a392d9de178cd5b5dc625"
   }
 }

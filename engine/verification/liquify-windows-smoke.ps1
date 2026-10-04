@@ -104,7 +104,8 @@ public static class LiquifyPixels {
      $recipe=@{version=1;style='original';adjustment=$adjustment;repairPatches=@();detectSubject=$false}
      if($case -eq 'liquify'){$recipe.liquify=$mesh}
      $backend=if($route -eq 'cpu'){'system'}else{'vulkan'}
-     $job=@{input=@{path=$env:FILMDEVELOP_SMOKE_INPUT;rawDecoder='system';lensCorrection=$false};output=@{path=$target;format=$format;bitDepth=16;colorSpace='sRGB';quality=.95;maxPixel=0;webPLossless=$false;tiffCompression=1};recipe=$recipe;computeBackend=$backend;preview=$false;previewMaxPixel=1024}
+     $depth=if($format -eq 'png'){16}else{8}
+     $job=@{input=@{path=$env:FILMDEVELOP_SMOKE_INPUT;rawDecoder='system';lensCorrection=$false};output=@{path=$target;format=$format;bitDepth=$depth;colorSpace='sRGB';quality=.95;maxPixel=0;webPLossless=$false;tiffCompression=1};recipe=$recipe;computeBackend=$backend;preview=$false;previewMaxPixel=1024}
      # 清除 Smoke 環境變數後仍使用同一張唯讀原尺寸格線。
      $job.input.path=Join-Path $Fixtures 'grid.bmp'
      Save ($name+'.json') $job
